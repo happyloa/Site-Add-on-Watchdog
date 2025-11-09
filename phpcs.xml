@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<ruleset name="WP Plugin Watchdog">
+    <description>Code style for WP Plugin Watchdog</description>
+    <rule ref="PSR12" />
+    <file>wp-plugin-watchdog.php</file>
+    <file>src</file>
+    <exclude-pattern>vendor/</exclude-pattern>
+</ruleset>
