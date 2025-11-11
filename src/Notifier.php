@@ -86,6 +86,11 @@ class Notifier
             $lines[] = '';
         }
 
+        $lines[] = sprintf(
+            __('Update plugins here: %s', 'wp-plugin-watchdog'),
+            esc_url(admin_url('update-core.php'))
+        );
+
         return implode("\n", $lines);
     }
 

@@ -32,6 +32,8 @@ class NotifierTest extends TestCase
                 ['user_email' => 'second@example.com'],
             ]);
 
+        Functions\when('admin_url')->alias(static fn ($path = '') => 'https://example.com/wp-admin/' . ltrim($path, '/'));
+        Functions\when('esc_url')->alias(static fn ($url) => $url);
         Functions\when('__')->alias(static fn ($text) => $text);
 
         Functions\expect('wp_mail')
@@ -40,6 +42,10 @@ class NotifierTest extends TestCase
                 self::assertSame(['admin@example.com', 'second@example.com'], $recipients);
                 self::assertSame('Plugin Watchdog Risk Alert', $subject);
                 self::assertIsString($body);
+                self::assertStringContainsString(
+                    'Update plugins here: https://example.com/wp-admin/update-core.php',
+                    $body
+                );
 
                 return true;
             });
@@ -75,6 +81,8 @@ class NotifierTest extends TestCase
                 ['user_email' => 'other@example.com'],
             ]);
 
+        Functions\when('admin_url')->alias(static fn ($path = '') => 'https://example.com/wp-admin/' . ltrim($path, '/'));
+        Functions\when('esc_url')->alias(static fn ($url) => $url);
         Functions\when('__')->alias(static fn ($text) => $text);
 
         Functions\expect('wp_mail')
