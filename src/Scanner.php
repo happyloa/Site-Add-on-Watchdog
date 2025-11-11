@@ -45,6 +45,17 @@ class Scanner
             if (
                 $remoteVersion &&
                 $localVersion &&
+                version_compare($remoteVersion, $localVersion, '>')
+            ) {
+                $reasons[] = __(
+                    'An update is available in the plugin directory.',
+                    'wp-plugin-watchdog'
+                );
+            }
+
+            if (
+                $remoteVersion &&
+                $localVersion &&
                 $this->versionComparator->isTwoMinorVersionsBehind($localVersion, $remoteVersion)
             ) {
                 $reasons[] = __(

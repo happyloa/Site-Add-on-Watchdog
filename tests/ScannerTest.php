@@ -47,6 +47,8 @@ class ScannerTest extends TestCase
 
         $this->assertCount(1, $risks);
         $this->assertSame('sample', $risks[0]->pluginSlug);
+        $this->assertContains('An update is available in the plugin directory.', $risks[0]->reasons);
+        $this->assertContains('An update is available in the plugin directory.', $risks[0]->toArray()['reasons']);
         $this->assertContains('Changelog mentions security-related updates.', $risks[0]->reasons);
     }
 }
