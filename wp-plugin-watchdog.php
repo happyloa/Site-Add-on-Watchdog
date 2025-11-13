@@ -43,7 +43,8 @@ use Watchdog\Services\WPScanClient;
 
 $settingsRepository = new SettingsRepository();
 $riskRepository     = new RiskRepository();
-$wpscanClient       = new WPScanClient($settingsRepository->get()['wpscan_api_key']);
+$currentSettings    = $settingsRepository->get();
+$wpscanClient       = new WPScanClient($currentSettings['notifications']['wpscan_api_key']);
 $scanner            = new Scanner($riskRepository, new VersionComparator(), $wpscanClient);
 $notifier           = new Notifier($settingsRepository);
 $plugin             = new Plugin($scanner, $riskRepository, $settingsRepository, $notifier);

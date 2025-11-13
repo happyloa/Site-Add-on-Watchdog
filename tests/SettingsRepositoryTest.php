@@ -33,7 +33,7 @@ class SettingsRepositoryTest extends TestCase
         $repository = new SettingsRepository();
         $settings   = $repository->get();
 
-        self::assertSame('admin@example.com, second@example.com', $settings['email_recipients']);
+        self::assertSame('admin@example.com, second@example.com', $settings['notifications']['email']['recipients']);
     }
 
     public function testFallsBackToAdminEmailWhenNoAdministratorsFound(): void
@@ -61,6 +61,6 @@ class SettingsRepositoryTest extends TestCase
         $repository = new SettingsRepository();
         $settings   = $repository->get();
 
-        self::assertSame('owner@example.com', $settings['email_recipients']);
+        self::assertSame('owner@example.com', $settings['notifications']['email']['recipients']);
     }
 }

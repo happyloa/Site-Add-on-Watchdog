@@ -8,6 +8,9 @@ use Watchdog\Repository\SettingsRepository;
 
 class Plugin
 {
+    private const CRON_HOOK = 'wp_watchdog_scheduled_scan';
+    private const LEGACY_CRON_HOOK = 'wp_watchdog_daily_scan';
+
     private bool $hooksRegistered = false;
 
     public function __construct(
@@ -24,7 +27,8 @@ class Plugin
             return;
         }
 
-        add_action('wp_watchdog_daily_scan', [$this, 'runScan']);
+        add_action(self::CRON_HOOK, [$this, 'runScan']);
+        add_filter('cron_schedules', [$this, 'registerCronSchedules']);
         add_action('plugins_loaded', [$this, 'schedule']);
 
         $this->hooksRegistered = true;
@@ -32,17 +36,37 @@ class Plugin
 
     public function schedule(): void
     {
-        if (! wp_next_scheduled('wp_watchdog_daily_scan')) {
-            wp_schedule_event(time() + HOUR_IN_SECONDS, 'daily', 'wp_watchdog_daily_scan');
+        $settings  = $this->settingsRepository->get();
+        $frequency = $settings['notifications']['frequency'] ?? 'daily';
+        $allowed   = ['daily', 'weekly', 'manual'];
+        if (! in_array($frequency, $allowed, true)) {
+            $frequency = 'daily';
         }
+
+        $this->clearScheduledHook(self::LEGACY_CRON_HOOK);
+
+        $timestamp       = wp_next_scheduled(self::CRON_HOOK);
+        $currentSchedule = $timestamp ? wp_get_schedule(self::CRON_HOOK) : false;
+
+        if ($frequency === 'manual') {
+            $this->clearScheduledHook(self::CRON_HOOK);
+
+            return;
+        }
+
+        if ($timestamp && $currentSchedule === $frequency) {
+            return;
+        }
+
+        $this->clearScheduledHook(self::CRON_HOOK);
+
+        wp_schedule_event(time() + HOUR_IN_SECONDS, $frequency, self::CRON_HOOK);
     }
 
     public function deactivate(): void
     {
-        $timestamp = wp_next_scheduled('wp_watchdog_daily_scan');
-        if ($timestamp) {
-            wp_unschedule_event($timestamp, 'wp_watchdog_daily_scan');
-        }
+        $this->clearScheduledHook(self::CRON_HOOK);
+        $this->clearScheduledHook(self::LEGACY_CRON_HOOK);
     }
 
     /**
@@ -61,6 +85,30 @@ class Plugin
                 $this->notifier->notify($risks);
             }
             $this->settingsRepository->saveNotificationHash($hash);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $schedules
+     */
+    public function registerCronSchedules(array $schedules): array
+    {
+        if (! isset($schedules['weekly'])) {
+            $schedules['weekly'] = [
+                'interval' => WEEK_IN_SECONDS,
+                'display'  => __('Once Weekly', 'wp-plugin-watchdog'),
+            ];
+        }
+
+        return $schedules;
+    }
+
+    private function clearScheduledHook(string $hook): void
+    {
+        $timestamp = wp_next_scheduled($hook);
+        while ($timestamp) {
+            wp_unschedule_event($timestamp, $hook);
+            $timestamp = wp_next_scheduled($hook);
         }
     }
 }

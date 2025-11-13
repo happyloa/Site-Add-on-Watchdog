@@ -55,7 +55,16 @@ class AdminPage
         $this->guardAccess('wp_watchdog_settings');
 
         $payload = wp_unslash($_POST['settings'] ?? []);
+        if (! is_array($payload)) {
+            $payload = [];
+        }
+
+        if (! isset($payload['notifications']) || ! is_array($payload['notifications'])) {
+            $payload['notifications'] = [];
+        }
+
         $this->settingsRepository->save($payload);
+        $this->plugin->schedule();
 
         wp_safe_redirect(
             add_query_arg(

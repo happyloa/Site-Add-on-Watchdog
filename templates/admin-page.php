@@ -104,16 +104,28 @@
         <input type="hidden" name="action" value="wp_watchdog_save_settings">
         <table class="form-table" role="presentation">
             <tr>
+                <th scope="row"><?php esc_html_e('Scan frequency', 'wp-plugin-watchdog'); ?></th>
+                <td>
+                    <label for="wp-watchdog-notification-frequency" class="screen-reader-text"><?php esc_html_e('Scan frequency', 'wp-plugin-watchdog'); ?></label>
+                    <select id="wp-watchdog-notification-frequency" name="settings[notifications][frequency]">
+                        <option value="daily" <?php selected($settings['notifications']['frequency'], 'daily'); ?>><?php esc_html_e('Daily', 'wp-plugin-watchdog'); ?></option>
+                        <option value="weekly" <?php selected($settings['notifications']['frequency'], 'weekly'); ?>><?php esc_html_e('Weekly', 'wp-plugin-watchdog'); ?></option>
+                        <option value="manual" <?php selected($settings['notifications']['frequency'], 'manual'); ?>><?php esc_html_e('Manual (no automatic scans)', 'wp-plugin-watchdog'); ?></option>
+                    </select>
+                    <p class="description"><?php esc_html_e('Choose how often the automatic scan should run.', 'wp-plugin-watchdog'); ?></p>
+                </td>
+            </tr>
+            <tr>
                 <th scope="row"><?php esc_html_e('Email notifications', 'wp-plugin-watchdog'); ?></th>
                 <td>
                     <label>
-                        <input type="checkbox" name="settings[email_enabled]" <?php checked($settings['email_enabled']); ?> />
+                        <input type="checkbox" name="settings[notifications][email][enabled]" <?php checked($settings['notifications']['email']['enabled']); ?> />
                         <?php esc_html_e('Enabled', 'wp-plugin-watchdog'); ?>
                     </label>
                     <p>
                         <label>
                             <?php esc_html_e('Recipients (comma separated)', 'wp-plugin-watchdog'); ?><br />
-                            <input type="text" name="settings[email_recipients]" value="<?php echo esc_attr($settings['email_recipients']); ?>" class="regular-text" />
+                            <input type="text" name="settings[notifications][email][recipients]" value="<?php echo esc_attr($settings['notifications']['email']['recipients']); ?>" class="regular-text" />
                         </label>
                     </p>
                 </td>
@@ -122,13 +134,13 @@
                 <th scope="row"><?php esc_html_e('Discord notifications', 'wp-plugin-watchdog'); ?></th>
                 <td>
                     <label>
-                        <input type="checkbox" name="settings[discord_enabled]" <?php checked($settings['discord_enabled']); ?> />
+                        <input type="checkbox" name="settings[notifications][discord][enabled]" <?php checked($settings['notifications']['discord']['enabled']); ?> />
                         <?php esc_html_e('Enabled', 'wp-plugin-watchdog'); ?>
                     </label>
                     <p>
                         <label>
                             <?php esc_html_e('Discord webhook URL', 'wp-plugin-watchdog'); ?><br />
-                            <input type="url" name="settings[discord_webhook]" value="<?php echo esc_attr($settings['discord_webhook']); ?>" class="regular-text" />
+                            <input type="url" name="settings[notifications][discord][webhook]" value="<?php echo esc_attr($settings['notifications']['discord']['webhook']); ?>" class="regular-text" />
                         </label>
                     </p>
                 </td>
@@ -137,13 +149,13 @@
                 <th scope="row"><?php esc_html_e('Generic webhook', 'wp-plugin-watchdog'); ?></th>
                 <td>
                     <label>
-                        <input type="checkbox" name="settings[webhook_enabled]" <?php checked($settings['webhook_enabled']); ?> />
+                        <input type="checkbox" name="settings[notifications][webhook][enabled]" <?php checked($settings['notifications']['webhook']['enabled']); ?> />
                         <?php esc_html_e('Enabled', 'wp-plugin-watchdog'); ?>
                     </label>
                     <p>
                         <label>
                             <?php esc_html_e('Webhook URL', 'wp-plugin-watchdog'); ?><br />
-                            <input type="url" name="settings[webhook_url]" value="<?php echo esc_attr($settings['webhook_url']); ?>" class="regular-text" />
+                            <input type="url" name="settings[notifications][webhook][url]" value="<?php echo esc_attr($settings['notifications']['webhook']['url']); ?>" class="regular-text" />
                         </label>
                     </p>
                 </td>
@@ -151,7 +163,7 @@
             <tr>
                 <th scope="row"><?php esc_html_e('WPScan API key', 'wp-plugin-watchdog'); ?></th>
                 <td>
-                    <input type="text" name="settings[wpscan_api_key]" value="<?php echo esc_attr($settings['wpscan_api_key']); ?>" class="regular-text" />
+                    <input type="text" name="settings[notifications][wpscan_api_key]" value="<?php echo esc_attr($settings['notifications']['wpscan_api_key']); ?>" class="regular-text" />
                     <p class="description"><?php esc_html_e('Optional. Provide your own WPScan API key to enrich vulnerability reports.', 'wp-plugin-watchdog'); ?></p>
                 </td>
             </tr>

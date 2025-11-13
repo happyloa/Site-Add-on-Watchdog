@@ -17,13 +17,17 @@ class Notifier
     public function notify(array $risks): void
     {
         $settings        = $this->settingsRepository->get();
+        $notifications   = $settings['notifications'];
+        $emailSettings   = $notifications['email'];
+        $discordSettings = $notifications['discord'];
+        $webhookSettings = $notifications['webhook'];
         $plainTextReport = $this->formatPlainTextMessage($risks);
         $emailReport     = $this->formatEmailMessage($risks);
 
-        if ($settings['email_enabled']) {
+        if (! empty($emailSettings['enabled'])) {
             $configuredRecipients = [];
-            if (! empty($settings['email_recipients'])) {
-                $configuredRecipients = $this->parseRecipients($settings['email_recipients']);
+            if (! empty($emailSettings['recipients'])) {
+                $configuredRecipients = $this->parseRecipients($emailSettings['recipients']);
             }
 
             $recipients = $this->uniqueEmails(array_merge(
@@ -41,15 +45,15 @@ class Notifier
             }
         }
 
-        if ($settings['discord_enabled'] && ! empty($settings['discord_webhook'])) {
-            $this->dispatchWebhook($settings['discord_webhook'], [
+        if (! empty($discordSettings['enabled']) && ! empty($discordSettings['webhook'])) {
+            $this->dispatchWebhook($discordSettings['webhook'], [
                 'username'  => 'WP Plugin Watchdog',
                 'content'   => $plainTextReport,
             ]);
         }
 
-        if ($settings['webhook_enabled'] && ! empty($settings['webhook_url'])) {
-            $this->dispatchWebhook($settings['webhook_url'], [
+        if (! empty($webhookSettings['enabled']) && ! empty($webhookSettings['url'])) {
+            $this->dispatchWebhook($webhookSettings['url'], [
                 'message' => $plainTextReport,
                 'risks'   => array_map(static fn (Risk $risk): array => $risk->toArray(), $risks),
             ]);

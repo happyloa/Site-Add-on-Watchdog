@@ -9,30 +9,43 @@ class SettingsRepository
     public function get(): array
     {
         $defaults = [
-            'email_enabled'     => true,
-            'email_recipients'  => '',
-            'discord_enabled'   => false,
-            'discord_webhook'   => '',
-            'webhook_enabled'   => false,
-            'webhook_url'       => '',
-            'wpscan_api_key'    => '',
+            'notifications'     => [
+                'frequency' => 'daily',
+                'email'     => [
+                    'enabled'    => true,
+                    'recipients' => '',
+                ],
+                'discord'   => [
+                    'enabled' => false,
+                    'webhook' => '',
+                ],
+                'webhook'   => [
+                    'enabled' => false,
+                    'url'     => '',
+                ],
+                'wpscan_api_key' => '',
+            ],
             'last_notification' => '',
         ];
 
         $stored = get_option(self::OPTION);
-        if ($stored === false) {
-            $defaults['email_recipients'] = $this->buildAdministratorEmailList();
-
-            return $defaults;
-        }
-
         if (! is_array($stored)) {
+            if ($stored === false) {
+                $defaults['notifications']['email']['recipients'] = $this->buildAdministratorEmailList();
+
+                return $defaults;
+            }
+
             $stored = [];
         }
 
-        $settings = array_merge($defaults, $stored);
-        if ($settings['email_recipients'] === '') {
-            $settings['email_recipients'] = $this->buildAdministratorEmailList();
+        $normalized = $this->normalizeStoredSettings($stored);
+        $settings   = array_replace_recursive($defaults, $normalized);
+
+        $settings['notifications']['frequency'] = $this->sanitizeFrequency($settings['notifications']['frequency']);
+
+        if ($settings['notifications']['email']['recipients'] === '') {
+            $settings['notifications']['email']['recipients'] = $this->buildAdministratorEmailList();
         }
 
         return $settings;
@@ -40,16 +53,45 @@ class SettingsRepository
 
     public function save(array $settings): void
     {
-        $current = $this->get();
+        $current       = $this->get();
+        $notifications = $settings['notifications'] ?? [];
+
+        if (! is_array($notifications)) {
+            $notifications = [];
+        }
+
+        $email = $notifications['email'] ?? [];
+        if (! is_array($email)) {
+            $email = [];
+        }
+
+        $discord = $notifications['discord'] ?? [];
+        if (! is_array($discord)) {
+            $discord = [];
+        }
+
+        $webhook = $notifications['webhook'] ?? [];
+        if (! is_array($webhook)) {
+            $webhook = [];
+        }
 
         $filtered = [
-            'email_enabled'     => ! empty($settings['email_enabled']),
-            'email_recipients'  => sanitize_text_field($settings['email_recipients'] ?? ''),
-            'discord_enabled'   => ! empty($settings['discord_enabled']),
-            'discord_webhook'   => esc_url_raw($settings['discord_webhook'] ?? ''),
-            'webhook_enabled'   => ! empty($settings['webhook_enabled']),
-            'webhook_url'       => esc_url_raw($settings['webhook_url'] ?? ''),
-            'wpscan_api_key'    => sanitize_text_field($settings['wpscan_api_key'] ?? ''),
+            'notifications'     => [
+                'frequency' => $this->sanitizeFrequency($notifications['frequency'] ?? ''),
+                'email'     => [
+                    'enabled'    => ! empty($email['enabled']),
+                    'recipients' => sanitize_text_field($email['recipients'] ?? ''),
+                ],
+                'discord'   => [
+                    'enabled' => ! empty($discord['enabled']),
+                    'webhook' => esc_url_raw($discord['webhook'] ?? ''),
+                ],
+                'webhook'   => [
+                    'enabled' => ! empty($webhook['enabled']),
+                    'url'     => esc_url_raw($webhook['url'] ?? ''),
+                ],
+                'wpscan_api_key' => sanitize_text_field($notifications['wpscan_api_key'] ?? ''),
+            ],
             'last_notification' => $current['last_notification'] ?? '',
         ];
 
@@ -58,9 +100,86 @@ class SettingsRepository
 
     public function saveNotificationHash(string $hash): void
     {
-        $settings = $this->get();
+        $settings                       = $this->get();
         $settings['last_notification'] = $hash;
         update_option(self::OPTION, $settings, false);
+    }
+
+    private function normalizeStoredSettings(array $stored): array
+    {
+        $notifications = [];
+
+        if (isset($stored['notifications']) && is_array($stored['notifications'])) {
+            $notifications = $stored['notifications'];
+        }
+
+        $email = $notifications['email'] ?? [];
+        if (! is_array($email)) {
+            $email = [];
+        }
+
+        $discord = $notifications['discord'] ?? [];
+        if (! is_array($discord)) {
+            $discord = [];
+        }
+
+        $webhook = $notifications['webhook'] ?? [];
+        if (! is_array($webhook)) {
+            $webhook = [];
+        }
+
+        $legacy = [
+            'email'   => [
+                'enabled'    => $stored['email_enabled'] ?? null,
+                'recipients' => $stored['email_recipients'] ?? null,
+            ],
+            'discord' => [
+                'enabled' => $stored['discord_enabled'] ?? null,
+                'webhook' => $stored['discord_webhook'] ?? null,
+            ],
+            'webhook' => [
+                'enabled' => $stored['webhook_enabled'] ?? null,
+                'url'     => $stored['webhook_url'] ?? null,
+            ],
+            'frequency'      => $stored['notification_frequency'] ?? null,
+            'wpscan_api_key' => $stored['wpscan_api_key'] ?? null,
+        ];
+
+        $normalizedNotifications = [
+            'frequency' => $notifications['frequency'] ?? $legacy['frequency'],
+            'email'     => [
+                'enabled'    => $email['enabled'] ?? $legacy['email']['enabled'],
+                'recipients' => $email['recipients'] ?? $legacy['email']['recipients'],
+            ],
+            'discord'   => [
+                'enabled' => $discord['enabled'] ?? $legacy['discord']['enabled'],
+                'webhook' => $discord['webhook'] ?? $legacy['discord']['webhook'],
+            ],
+            'webhook'   => [
+                'enabled' => $webhook['enabled'] ?? $legacy['webhook']['enabled'],
+                'url'     => $webhook['url'] ?? $legacy['webhook']['url'],
+            ],
+            'wpscan_api_key' => $notifications['wpscan_api_key'] ?? $legacy['wpscan_api_key'],
+        ];
+
+        return [
+            'notifications'     => $normalizedNotifications,
+            'last_notification' => $stored['last_notification'] ?? '',
+        ];
+    }
+
+    private function sanitizeFrequency(mixed $frequency): string
+    {
+        $allowed = ['daily', 'weekly', 'manual'];
+        if (! is_string($frequency)) {
+            $frequency = '';
+        }
+
+        if (! in_array($frequency, $allowed, true)) {
+            return 'daily';
+        }
+
+        return $frequency;
     }
 
     private function buildAdministratorEmailList(): string

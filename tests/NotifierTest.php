@@ -10,12 +10,22 @@ class NotifierTest extends TestCase
     public function testAdministratorsAreIncludedWhenNoCustomRecipientsAreConfigured(): void
     {
         $settings = [
-            'email_enabled'    => true,
-            'email_recipients' => '',
-            'discord_enabled'  => false,
-            'discord_webhook'  => '',
-            'webhook_enabled'  => false,
-            'webhook_url'      => '',
+            'notifications' => [
+                'frequency' => 'daily',
+                'email'     => [
+                    'enabled'    => true,
+                    'recipients' => '',
+                ],
+                'discord'   => [
+                    'enabled' => false,
+                    'webhook' => '',
+                ],
+                'webhook'   => [
+                    'enabled' => false,
+                    'url'     => '',
+                ],
+                'wpscan_api_key' => '',
+            ],
         ];
 
         $repository = $this->createMock(SettingsRepository::class);
@@ -63,12 +73,22 @@ class NotifierTest extends TestCase
     public function testConfiguredRecipientsAreMergedAndDeduplicatedWithAdministrators(): void
     {
         $settings = [
-            'email_enabled'    => true,
-            'email_recipients' => 'Admin@example.com, custom@example.com',
-            'discord_enabled'  => false,
-            'discord_webhook'  => '',
-            'webhook_enabled'  => false,
-            'webhook_url'      => '',
+            'notifications' => [
+                'frequency' => 'daily',
+                'email'     => [
+                    'enabled'    => true,
+                    'recipients' => 'Admin@example.com, custom@example.com',
+                ],
+                'discord'   => [
+                    'enabled' => false,
+                    'webhook' => '',
+                ],
+                'webhook'   => [
+                    'enabled' => false,
+                    'url'     => '',
+                ],
+                'wpscan_api_key' => '',
+            ],
         ];
 
         $repository = $this->createMock(SettingsRepository::class);
