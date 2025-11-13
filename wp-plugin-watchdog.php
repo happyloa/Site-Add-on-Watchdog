@@ -15,7 +15,23 @@
 
 defined('ABSPATH') || exit;
 
-require_once __DIR__ . '/vendor/autoload.php';
+$autoload = __DIR__ . '/vendor/autoload.php';
+if (is_readable($autoload)) {
+    require_once $autoload;
+} else {
+    spl_autoload_register(static function (string $class): void {
+        $prefix = "Watchdog\\";
+        if (! str_starts_with($class, $prefix)) {
+            return;
+        }
+
+        $relativeClass = substr($class, strlen($prefix));
+        $path          = __DIR__ . '/src/' . str_replace('\\', '/', $relativeClass) . '.php';
+        if (is_readable($path)) {
+            require_once $path;
+        }
+    });
+}
 
 use Watchdog\AdminPage;
 use Watchdog\Notifier;
