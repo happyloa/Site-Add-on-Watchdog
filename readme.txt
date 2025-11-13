@@ -4,7 +4,7 @@ Tags: security, plugins, monitoring, notifications
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 8.1
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,10 @@ Register for a free account at [wpscan.com](https://wpscan.com/) and copy the AP
 Yes. Use the "Run manual scan" button on the Watchdog admin page.
 
 == Changelog ==
+
+= 0.2.0 =
+* Prefill email notification recipients with site administrators.
+* Refresh email layout with HTML formatting including version details.
 
 = 0.1.0 =
 * Initial release.

@@ -9,22 +9,33 @@ class SettingsRepository
     public function get(): array
     {
         $defaults = [
-            'email_enabled'        => true,
-            'email_recipients'     => '',
-            'discord_enabled'      => false,
-            'discord_webhook'      => '',
-            'webhook_enabled'      => false,
-            'webhook_url'          => '',
-            'wpscan_api_key'       => '',
-            'last_notification'    => '',
+            'email_enabled'     => true,
+            'email_recipients'  => '',
+            'discord_enabled'   => false,
+            'discord_webhook'   => '',
+            'webhook_enabled'   => false,
+            'webhook_url'       => '',
+            'wpscan_api_key'    => '',
+            'last_notification' => '',
         ];
 
-        $settings = get_option(self::OPTION, []);
-        if (! is_array($settings)) {
-            $settings = [];
+        $stored = get_option(self::OPTION);
+        if ($stored === false) {
+            $defaults['email_recipients'] = $this->buildAdministratorEmailList();
+
+            return $defaults;
         }
 
-        return array_merge($defaults, $settings);
+        if (! is_array($stored)) {
+            $stored = [];
+        }
+
+        $settings = array_merge($defaults, $stored);
+        if ($settings['email_recipients'] === '') {
+            $settings['email_recipients'] = $this->buildAdministratorEmailList();
+        }
+
+        return $settings;
     }
 
     public function save(array $settings): void
@@ -50,5 +61,47 @@ class SettingsRepository
         $settings = $this->get();
         $settings['last_notification'] = $hash;
         update_option(self::OPTION, $settings, false);
+    }
+
+    private function buildAdministratorEmailList(): string
+    {
+        $users = get_users([
+            'role'   => 'administrator',
+            'fields' => ['user_email'],
+        ]);
+
+        $emails = [];
+        foreach ($users as $user) {
+            if (is_object($user) && isset($user->user_email)) {
+                $emails[] = trim((string) $user->user_email);
+                continue;
+            }
+
+            if (is_array($user) && isset($user['user_email'])) {
+                $emails[] = trim((string) $user['user_email']);
+            }
+        }
+
+        if (empty($emails)) {
+            $adminEmail = get_option('admin_email');
+            if (is_string($adminEmail) && $adminEmail !== '') {
+                $emails[] = trim($adminEmail);
+            }
+        }
+
+        $unique = [];
+        $seen   = [];
+
+        foreach (array_filter($emails) as $email) {
+            $normalized = strtolower($email);
+            if (isset($seen[$normalized])) {
+                continue;
+            }
+
+            $seen[$normalized] = true;
+            $unique[]          = $email;
+        }
+
+        return implode(', ', $unique);
     }
 }

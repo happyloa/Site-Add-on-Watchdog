@@ -2,11 +2,10 @@
 
 /**
  * Plugin Name: WP Plugin Watchdog
- * Plugin URI:  https://example.com/wp-plugin-watchdog
  * Description: Monitors installed plugins for potential security risks and outdated versions.
- * Version:     0.1.0
- * Author:      Plugin Watchdog Team
- * Author URI:  https://example.com
+ * Version:     0.2.0
+ * Author:      Aaron
+ * Author URI:  https://www.worksbyaaron.com/
  * License:     GPLv2 or later
  * Text Domain: wp-plugin-watchdog
  * Requires PHP: 8.1
