@@ -20,11 +20,13 @@ if (is_readable($autoload)) {
     require_once $autoload;
 } else {
     spl_autoload_register(static function (string $class): void {
-        if (! str_starts_with($class, 'Watchdog\\')) {
+        $prefix = "Watchdog\\";
+        if (! str_starts_with($class, $prefix)) {
             return;
         }
 
-        $path = __DIR__ . '/src/' . str_replace('\\', '/', substr($class, strlen('Watchdog\\'))) . '.php';
+        $relativeClass = substr($class, strlen($prefix));
+        $path          = __DIR__ . '/src/' . str_replace('\\', '/', $relativeClass) . '.php';
         if (is_readable($path)) {
             require_once $path;
         }
