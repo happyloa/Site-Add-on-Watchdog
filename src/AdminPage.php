@@ -58,7 +58,9 @@ class AdminPage
 
     public function enqueueAssets(string $hook): void
     {
-        $matchesHook = $this->menuHook !== null ? ($hook === $this->menuHook) : ($hook === 'toplevel_page_wp-plugin-watchdog');
+        $matchesHook = $this->menuHook !== null
+            ? ($hook === $this->menuHook)
+            : ($hook === 'toplevel_page_wp-plugin-watchdog');
 
         if (! $matchesHook) {
             return;
