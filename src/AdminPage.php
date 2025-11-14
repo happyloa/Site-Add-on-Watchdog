@@ -8,6 +8,9 @@ use Watchdog\Repository\SettingsRepository;
 
 class AdminPage
 {
+    private ?string $menuHook = null;
+    private bool $assetsEnqueued = false;
+
     public function __construct(
         private readonly RiskRepository $riskRepository,
         private readonly SettingsRepository $settingsRepository,
@@ -22,11 +25,12 @@ class AdminPage
         add_action('admin_post_wp_watchdog_ignore', [$this, 'handleIgnore']);
         add_action('admin_post_wp_watchdog_unignore', [$this, 'handleUnignore']);
         add_action('admin_post_wp_watchdog_scan', [$this, 'handleManualScan']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueueAssets']);
     }
 
     public function addMenu(): void
     {
-        add_menu_page(
+        $this->menuHook = add_menu_page(
             __('Plugin Watchdog', 'wp-plugin-watchdog'),
             __('Watchdog', 'wp-plugin-watchdog'),
             'manage_options',
@@ -42,12 +46,27 @@ class AdminPage
             wp_die(__('You do not have permission to access this page.', 'wp-plugin-watchdog'));
         }
 
+        $this->enqueuePageAssets();
+
         $risks     = $this->riskRepository->all();
         $ignored   = $this->riskRepository->ignored();
         $settings  = $this->settingsRepository->get();
         $scanNonce = wp_create_nonce('wp_watchdog_scan');
 
         require __DIR__ . '/../templates/admin-page.php';
+    }
+
+    public function enqueueAssets(string $hook): void
+    {
+        $matchesHook = $this->menuHook !== null
+            ? ($hook === $this->menuHook)
+            : ($hook === 'toplevel_page_wp-plugin-watchdog');
+
+        if (! $matchesHook) {
+            return;
+        }
+
+        $this->enqueuePageAssets();
     }
 
     public function handleSettings(): void
@@ -125,5 +144,28 @@ class AdminPage
         }
 
         check_admin_referer($action);
+    }
+
+    private function enqueuePageAssets(): void
+    {
+        if ($this->assetsEnqueued) {
+            return;
+        }
+
+        $pluginFile    = dirname(__DIR__) . '/wp-plugin-watchdog.php';
+        $stylePath     = dirname(__DIR__) . '/assets/css/admin.css';
+        $scriptPath    = dirname(__DIR__) . '/assets/js/admin-table.js';
+        $styleUrl      = plugins_url('assets/css/admin.css', $pluginFile);
+        $scriptUrl     = plugins_url('assets/js/admin-table.js', $pluginFile);
+        $styleVersion  = file_exists($stylePath) ? (string) filemtime($stylePath) : false;
+        $scriptVersion = file_exists($scriptPath) ? (string) filemtime($scriptPath) : false;
+
+        wp_enqueue_style('wp-plugin-watchdog-admin', $styleUrl, [], $styleVersion);
+        wp_enqueue_script('wp-plugin-watchdog-admin-table', $scriptUrl, [], $scriptVersion, true);
+        wp_localize_script('wp-plugin-watchdog-admin-table', 'wpWatchdogTable', [
+            'pageStatus' => __('Page %1$d of %2$d', 'wp-plugin-watchdog'),
+        ]);
+
+        $this->assetsEnqueued = true;
     }
 }
