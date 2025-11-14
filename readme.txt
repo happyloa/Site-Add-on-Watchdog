@@ -36,7 +36,9 @@ The plugin runs on a schedule you control—choose daily, weekly, or rely on man
 
 * Email: send to one or more recipients (comma separated).
 * Discord: post to a channel via webhook.
-* Generic webhook: post JSON payload to any endpoint you control, with optional HMAC signatures and retry logic for failed deliveries.
+* Generic webhook: post JSON payload to any endpoint you control, with optional HMAC signatures. Failed deliveries are logged and highlighted on the Watchdog admin screen so you can reconfigure or resend manually.
+
+_Future enhancement:_ automatic retries for failed webhook deliveries are on the roadmap. Track progress in [issue #42](https://github.com/pluginwatchdog/wp-plugin-watchdog/issues/42).
 
 == Installation ==
 
