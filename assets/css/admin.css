@@ -1,0 +1,165 @@
+.wp-watchdog-risk-table {
+    margin-top: 1.5rem;
+}
+
+.wp-watchdog-risk-table__controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.wp-watchdog-risk-table__pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.wp-watchdog-risk-table__pagination button.button {
+    min-width: 2.5rem;
+    text-align: center;
+}
+
+.wp-watchdog-risk-table__page-status {
+    font-weight: 600;
+}
+
+.wp-watchdog-risk-table__scroll {
+    overflow-x: auto;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    background: #fff;
+}
+
+.wp-watchdog-risk-table__scroll table {
+    margin: 0;
+}
+
+.wp-watchdog-risk-table table.wp-list-table th {
+    vertical-align: middle;
+}
+
+.wp-watchdog-risk-table__sort {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.wp-watchdog-risk-table__sort:focus {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.wp-watchdog-risk-table__sort-indicator {
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 6px solid currentColor;
+    transform: rotate(0deg);
+    opacity: 0.3;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.wp-watchdog-risk-table__sort[aria-sort="ascending"] .wp-watchdog-risk-table__sort-indicator {
+    transform: rotate(180deg);
+    opacity: 1;
+}
+
+.wp-watchdog-risk-table__sort[aria-sort="descending"] .wp-watchdog-risk-table__sort-indicator {
+    transform: rotate(0deg);
+    opacity: 1;
+}
+
+.wp-watchdog-risk-table__sort[aria-sort="none"] .wp-watchdog-risk-table__sort-indicator {
+    opacity: 0.3;
+}
+
+.wp-watchdog-risk-table table.wp-list-table tbody td ul {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+
+.wp-watchdog-risk-table table.wp-list-table tbody td ul ul {
+    margin-top: 0.5rem;
+}
+
+.wp-watchdog-risk-table table.wp-list-table tbody td ul li {
+    margin-bottom: 0.25rem;
+}
+
+@media (max-width: 960px) {
+    .wp-watchdog-risk-table__controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 782px) {
+    .wp-watchdog-risk-table__scroll {
+        border: none;
+    }
+
+    .wp-watchdog-risk-table__scroll table,
+    .wp-watchdog-risk-table__scroll thead,
+    .wp-watchdog-risk-table__scroll tbody,
+    .wp-watchdog-risk-table__scroll th,
+    .wp-watchdog-risk-table__scroll td,
+    .wp-watchdog-risk-table__scroll tr {
+        display: block;
+    }
+
+    .wp-watchdog-risk-table__scroll thead tr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+    }
+
+    .wp-watchdog-risk-table__scroll tbody tr {
+        border: 1px solid #c3c4c7;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+        padding: 0.75rem 0;
+        background: #fff;
+    }
+
+    .wp-watchdog-risk-table__scroll tbody tr:last-child {
+        margin-bottom: 0;
+    }
+
+    .wp-watchdog-risk-table__scroll td {
+        border: none;
+        position: relative;
+        padding: 0.5rem 1rem 0.5rem 45%;
+        min-height: 2.5rem;
+    }
+
+    .wp-watchdog-risk-table__scroll td::before {
+        content: attr(data-column-label);
+        position: absolute;
+        left: 1rem;
+        top: 0.5rem;
+        font-weight: 600;
+        width: 40%;
+        padding-right: 0.5rem;
+        white-space: normal;
+    }
+
+    .wp-watchdog-risk-table table.wp-list-table tbody td ul {
+        padding-left: 1rem;
+    }
+}

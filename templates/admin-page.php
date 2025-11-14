@@ -30,59 +30,139 @@
     <?php if (empty($risks)) : ?>
         <p><?php esc_html_e('No risks detected.', 'wp-plugin-watchdog'); ?></p>
     <?php else : ?>
-        <table class="widefat">
-            <thead>
-            <tr>
-                <th><?php esc_html_e('Plugin', 'wp-plugin-watchdog'); ?></th>
-                <th><?php esc_html_e('Local Version', 'wp-plugin-watchdog'); ?></th>
-                <th><?php esc_html_e('Directory Version', 'wp-plugin-watchdog'); ?></th>
-                <th><?php esc_html_e('Reasons', 'wp-plugin-watchdog'); ?></th>
-                <th><?php esc_html_e('Actions', 'wp-plugin-watchdog'); ?></th>
-            </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($risks as $risk) : ?>
-                <tr>
-                    <td><?php echo esc_html($risk->pluginName); ?></td>
-                    <td><?php echo esc_html($risk->localVersion); ?></td>
-                    <td><?php echo esc_html($risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog')); ?></td>
-                    <td>
-                        <ul>
-                            <?php foreach ($risk->reasons as $reason) : ?>
-                                <li><?php echo esc_html($reason); ?></li>
-                            <?php endforeach; ?>
-                            <?php if (! empty($risk->details['vulnerabilities'])) : ?>
-                                <li>
-                                    <?php esc_html_e('WPScan vulnerabilities:', 'wp-plugin-watchdog'); ?>
-                                    <ul>
-                                        <?php foreach ($risk->details['vulnerabilities'] as $vuln) : ?>
-                                            <li>
-                                                <?php echo esc_html($vuln['title'] ?? ''); ?>
-                                                <?php if (! empty($vuln['cve'])) : ?>
-                                                    - <?php echo esc_html($vuln['cve']); ?>
-                                                <?php endif; ?>
-                                                <?php if (! empty($vuln['fixed_in'])) : ?>
-                                                    (<?php printf(esc_html__('Fixed in %s', 'wp-plugin-watchdog'), esc_html($vuln['fixed_in'])); ?>)
-                                                <?php endif; ?>
-                                            </li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                </li>
-                            <?php endif; ?>
-                        </ul>
-                    </td>
-                    <td>
-                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                            <?php wp_nonce_field('wp_watchdog_ignore'); ?>
-                            <input type="hidden" name="action" value="wp_watchdog_ignore">
-                            <input type="hidden" name="plugin_slug" value="<?php echo esc_attr($risk->pluginSlug); ?>">
-                            <button class="button" type="submit"><?php esc_html_e('Ignore', 'wp-plugin-watchdog'); ?></button>
-                        </form>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
+        <?php
+        $columns = [
+            'plugin'   => __('Plugin', 'wp-plugin-watchdog'),
+            'local'    => __('Local Version', 'wp-plugin-watchdog'),
+            'remote'   => __('Directory Version', 'wp-plugin-watchdog'),
+            'reasons'  => __('Reasons', 'wp-plugin-watchdog'),
+            'actions'  => __('Actions', 'wp-plugin-watchdog'),
+        ];
+        $perPage = (int) apply_filters('wp_watchdog_admin_risks_per_page', 10);
+        $normalizeForSort = static function (string $value): string {
+            $normalized = function_exists('remove_accents') ? remove_accents($value) : $value;
+
+            return strtolower($normalized);
+        };
+        ?>
+        <div class="wp-watchdog-risk-table" data-wp-watchdog-table data-per-page="<?php echo esc_attr(max($perPage, 1)); ?>">
+            <div class="wp-watchdog-risk-table__controls">
+                <div class="wp-watchdog-risk-table__pagination" data-pagination>
+                    <button type="button" class="button" data-action="prev" aria-label="<?php esc_attr_e('Previous page', 'wp-plugin-watchdog'); ?>" disabled>&lsaquo;</button>
+                    <span class="wp-watchdog-risk-table__page-status" data-page-status></span>
+                    <button type="button" class="button" data-action="next" aria-label="<?php esc_attr_e('Next page', 'wp-plugin-watchdog'); ?>" disabled>&rsaquo;</button>
+                </div>
+            </div>
+            <div class="wp-watchdog-risk-table__scroll">
+                <table class="widefat fixed striped wp-list-table">
+                    <thead>
+                    <tr>
+                        <th scope="col">
+                            <button type="button" class="wp-watchdog-risk-table__sort" data-sort-key="sortPlugin" data-sort-default="asc" data-sort-initial aria-sort="ascending">
+                                <?php echo esc_html($columns['plugin']); ?>
+                                <span class="wp-watchdog-risk-table__sort-indicator" aria-hidden="true"></span>
+                            </button>
+                        </th>
+                        <th scope="col">
+                            <button type="button" class="wp-watchdog-risk-table__sort" data-sort-key="sortLocal" data-sort-default="desc" aria-sort="none">
+                                <?php echo esc_html($columns['local']); ?>
+                                <span class="wp-watchdog-risk-table__sort-indicator" aria-hidden="true"></span>
+                            </button>
+                        </th>
+                        <th scope="col">
+                            <button type="button" class="wp-watchdog-risk-table__sort" data-sort-key="sortRemote" data-sort-default="desc" aria-sort="none">
+                                <?php echo esc_html($columns['remote']); ?>
+                                <span class="wp-watchdog-risk-table__sort-indicator" aria-hidden="true"></span>
+                            </button>
+                        </th>
+                        <th scope="col">
+                            <button type="button" class="wp-watchdog-risk-table__sort" data-sort-key="sortReasons" data-sort-default="asc" aria-sort="none">
+                                <?php echo esc_html($columns['reasons']); ?>
+                                <span class="wp-watchdog-risk-table__sort-indicator" aria-hidden="true"></span>
+                            </button>
+                        </th>
+                        <th scope="col"><?php echo esc_html($columns['actions']); ?></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($risks as $risk) : ?>
+                        <?php
+                        $remoteVersion = $risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog');
+                        $remoteSort    = is_string($risk->remoteVersion) ? $normalizeForSort($risk->remoteVersion) : '';
+                        $reasonParts   = $risk->reasons;
+                        if (! empty($risk->details['vulnerabilities'])) {
+                            foreach ($risk->details['vulnerabilities'] as $vulnerability) {
+                                if (! empty($vulnerability['title'])) {
+                                    $reasonParts[] = $vulnerability['title'];
+                                }
+                                if (! empty($vulnerability['cve'])) {
+                                    $reasonParts[] = $vulnerability['cve'];
+                                }
+                                if (! empty($vulnerability['fixed_in'])) {
+                                    $reasonParts[] = sprintf(
+                                        /* translators: %s is a plugin version number */
+                                        __('Fixed in %s', 'wp-plugin-watchdog'),
+                                        $vulnerability['fixed_in']
+                                    );
+                                }
+                            }
+                        }
+                        $reasonSort = $normalizeForSort(implode(' ', $reasonParts));
+                        ?>
+                        <tr
+                            data-sort-plugin="<?php echo esc_attr($normalizeForSort($risk->pluginName)); ?>"
+                            data-sort-local="<?php echo esc_attr($normalizeForSort($risk->localVersion)); ?>"
+                            data-sort-remote="<?php echo esc_attr($remoteSort); ?>"
+                            data-sort-reasons="<?php echo esc_attr($reasonSort); ?>"
+                        >
+                            <td class="column-primary" data-column="plugin" data-column-label="<?php echo esc_attr($columns['plugin']); ?>">
+                                <?php echo esc_html($risk->pluginName); ?>
+                            </td>
+                            <td data-column="local" data-column-label="<?php echo esc_attr($columns['local']); ?>">
+                                <?php echo esc_html($risk->localVersion); ?>
+                            </td>
+                            <td data-column="remote" data-column-label="<?php echo esc_attr($columns['remote']); ?>">
+                                <?php echo esc_html($remoteVersion); ?>
+                            </td>
+                            <td data-column="reasons" data-column-label="<?php echo esc_attr($columns['reasons']); ?>">
+                                <ul>
+                                    <?php foreach ($risk->reasons as $reason) : ?>
+                                        <li><?php echo esc_html($reason); ?></li>
+                                    <?php endforeach; ?>
+                                    <?php if (! empty($risk->details['vulnerabilities'])) : ?>
+                                        <li>
+                                            <?php esc_html_e('WPScan vulnerabilities:', 'wp-plugin-watchdog'); ?>
+                                            <ul>
+                                                <?php foreach ($risk->details['vulnerabilities'] as $vuln) : ?>
+                                                    <li>
+                                                        <?php echo esc_html($vuln['title'] ?? ''); ?>
+                                                        <?php if (! empty($vuln['cve'])) : ?>
+                                                            - <?php echo esc_html($vuln['cve']); ?>
+                                                        <?php endif; ?>
+                                                        <?php if (! empty($vuln['fixed_in'])) : ?>
+                                                            (<?php printf(esc_html__('Fixed in %s', 'wp-plugin-watchdog'), esc_html($vuln['fixed_in'])); ?>)
+                                                        <?php endif; ?>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        </li>
+                                    <?php endif; ?>
+                                </ul>
+                            </td>
+                            <td data-column="actions" data-column-label="<?php echo esc_attr($columns['actions']); ?>">
+                                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                                    <?php wp_nonce_field('wp_watchdog_ignore'); ?>
+                                    <input type="hidden" name="action" value="wp_watchdog_ignore">
+                                    <input type="hidden" name="plugin_slug" value="<?php echo esc_attr($risk->pluginSlug); ?>">
+                                    <button class="button" type="submit"><?php esc_html_e('Ignore', 'wp-plugin-watchdog'); ?></button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     <?php endif; ?>
 
     <h2><?php esc_html_e('Ignored Plugins', 'wp-plugin-watchdog'); ?></h2>
