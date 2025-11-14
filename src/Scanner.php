@@ -64,20 +64,20 @@ class Scanner
                 );
             }
 
-        if (
-            $remote &&
-            isset($remote->sections['changelog']) &&
-            $this->changelogHighlightsSecurity(
-                (string) $remote->sections['changelog'],
-                $localVersion,
-                $remoteVersion
-            )
-        ) {
-            $reasons[] = __(
-                'Changelog mentions security-related updates.',
-                'wp-plugin-watchdog'
-            );
-        }
+            if (
+                $remote &&
+                isset($remote->sections['changelog']) &&
+                $this->changelogHighlightsSecurity(
+                    (string) $remote->sections['changelog'],
+                    $localVersion,
+                    $remoteVersion
+                )
+            ) {
+                $reasons[] = __(
+                    'Changelog mentions security-related updates.',
+                    'wp-plugin-watchdog'
+                );
+            }
 
             $vulnerabilities = $this->wpscanClient->fetchVulnerabilities($slug);
             if (! empty($vulnerabilities)) {
@@ -132,8 +132,11 @@ class Scanner
         return $result;
     }
 
-    private function changelogHighlightsSecurity(string $changelogHtml, string $localVersion, ?string $remoteVersion): bool
-    {
+    private function changelogHighlightsSecurity(
+        string $changelogHtml,
+        string $localVersion,
+        ?string $remoteVersion
+    ): bool {
         if ($remoteVersion === null || $localVersion === '') {
             return false;
         }
@@ -149,7 +152,8 @@ class Scanner
 
         $normalized = strtolower(strip_tags($entryHtml));
 
-        return str_contains($normalized, 'security') || str_contains($normalized, 'vulnerability');
+        return str_contains($normalized, 'security')
+            || str_contains($normalized, 'vulnerability');
     }
 
     private function extractLatestChangelogEntry(string $changelogHtml, string $remoteVersion): string
