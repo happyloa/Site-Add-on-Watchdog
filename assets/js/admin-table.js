@@ -33,13 +33,111 @@
             state.sortOrder = initialHeader.getAttribute('data-sort-default') || 'asc';
         }
 
-        function getSortValue(row, key) {
+        const VERSION_SORT_KEYS = new Set(['sortLocal', 'sortRemote']);
+        const NUMERIC_TOKEN_PATTERN = /^\d+$/;
+
+        function getSortValue(row, key, options = {}) {
+            const { raw = false } = options;
+
+            if (VERSION_SORT_KEYS.has(key)) {
+                const columnKey = key === 'sortLocal' ? 'local' : 'remote';
+                const text = (row.querySelector(`[data-column="${columnKey}"]`)?.textContent || '').trim();
+                if (!text) {
+                    return raw ? '' : null;
+                }
+                if (text.toLowerCase() === 'n/a') {
+                    return raw ? 'N/A' : null;
+                }
+                return raw ? text : text.toLowerCase();
+            }
+
             const datasetKey = key.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
             const value = row.dataset[datasetKey];
             if (value !== undefined) {
-                return value.toLowerCase();
+                return raw ? value : value.toLowerCase();
             }
-            return (row.querySelector(`[data-column="${key}"]`)?.textContent || '').trim().toLowerCase();
+            const fallback = (row.querySelector(`[data-column="${key}"]`)?.textContent || '').trim();
+            return raw ? fallback : fallback.toLowerCase();
+        }
+
+        function parseVersionForSort(value) {
+            if (typeof value !== 'string') {
+                return { tokens: [], isMissing: true };
+            }
+
+            const trimmed = value.trim();
+            if (!trimmed || trimmed.toLowerCase() === 'n/a') {
+                return { tokens: [], isMissing: true };
+            }
+
+            const tokens = trimmed.match(/[0-9]+|[a-zA-Z]+/g) || [];
+            return { tokens, isMissing: tokens.length === 0 };
+        }
+
+        function compareVersionTokens(a, b) {
+            if (a.isMissing && b.isMissing) {
+                return 0;
+            }
+
+            if (a.isMissing) {
+                return 1;
+            }
+
+            if (b.isMissing) {
+                return -1;
+            }
+
+            const maxLength = Math.max(a.tokens.length, b.tokens.length);
+            for (let index = 0; index < maxLength; index += 1) {
+                const tokenA = a.tokens[index];
+                const tokenB = b.tokens[index];
+
+                if (tokenA === undefined && tokenB === undefined) {
+                    return 0;
+                }
+
+                if (tokenA === undefined) {
+                    if (tokenB === undefined) {
+                        return 0;
+                    }
+                    const bIsNumeric = NUMERIC_TOKEN_PATTERN.test(tokenB);
+                    return bIsNumeric ? -1 : 1;
+                }
+
+                if (tokenB === undefined) {
+                    const aIsNumeric = NUMERIC_TOKEN_PATTERN.test(tokenA);
+                    return aIsNumeric ? 1 : -1;
+                }
+
+                const aIsNumeric = NUMERIC_TOKEN_PATTERN.test(tokenA);
+                const bIsNumeric = NUMERIC_TOKEN_PATTERN.test(tokenB);
+
+                if (aIsNumeric && bIsNumeric) {
+                    const diff = parseInt(tokenA, 10) - parseInt(tokenB, 10);
+                    if (diff !== 0) {
+                        return diff;
+                    }
+                    continue;
+                }
+
+                if (aIsNumeric && !bIsNumeric) {
+                    return 1;
+                }
+
+                if (!aIsNumeric && bIsNumeric) {
+                    return -1;
+                }
+
+                const tokenALower = tokenA.toLowerCase();
+                const tokenBLower = tokenB.toLowerCase();
+                if (tokenALower === tokenBLower) {
+                    continue;
+                }
+
+                return tokenALower > tokenBLower ? 1 : -1;
+            }
+
+            return 0;
         }
 
         function updateSortIndicators() {
@@ -90,19 +188,29 @@
                 return;
             }
 
-            const sortedRows = rows.slice().sort((a, b) => {
-                const aValue = getSortValue(a, state.sortKey);
-                const bValue = getSortValue(b, state.sortKey);
+            const isVersionSort = VERSION_SORT_KEYS.has(state.sortKey);
 
-                if (aValue === bValue) {
-                    return 0;
+            const sortedRows = rows.slice().sort((a, b) => {
+                let comparison = 0;
+
+                if (isVersionSort) {
+                    const aVersion = parseVersionForSort(getSortValue(a, state.sortKey, { raw: true }));
+                    const bVersion = parseVersionForSort(getSortValue(b, state.sortKey, { raw: true }));
+                    comparison = compareVersionTokens(aVersion, bVersion);
+                } else {
+                    const aValue = getSortValue(a, state.sortKey);
+                    const bValue = getSortValue(b, state.sortKey);
+
+                    if (aValue !== bValue) {
+                        comparison = aValue > bValue ? 1 : -1;
+                    }
                 }
 
                 if (state.sortOrder === 'asc') {
-                    return aValue > bValue ? 1 : -1;
+                    return comparison;
                 }
 
-                return aValue < bValue ? 1 : -1;
+                return -comparison;
             });
 
             rows = sortedRows;
