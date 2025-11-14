@@ -4,7 +4,7 @@ Tags: security, plugins, monitoring, notifications
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 8.1
-Stable tag: 0.3.0
+Stable tag: 0.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,7 +18,7 @@ WP Plugin Watchdog keeps an eye on your site's plugins and warns you when:
 * The official changelog mentions security or vulnerability fixes.
 * (Optional) WPScan lists open CVEs for the plugin when you provide your own API key.
 
-The plugin runs on a schedule you control—choose daily, weekly, or rely on manual scans—and stores results locally. Nothing leaves your site unless you explicitly configure outgoing notifications.
+The plugin runs on a schedule you control—choose daily, weekly, a ten-minute testing cadence, or rely on manual scans—and stores results locally. Nothing leaves your site unless you explicitly configure outgoing notifications.
 
 === Privacy first ===
 
@@ -62,6 +62,9 @@ Register for a free account at [wpscan.com](https://wpscan.com/) and copy the AP
 Yes. Use the "Run manual scan" button on the Watchdog admin page.
 
 == Changelog ==
+
+= 0.4.0 =
+* Add a ten-minute testing frequency to the scan scheduler for staging and QA environments.
 
 = 0.3.0 =
 * Add schedule frequency options for daily, weekly, or manual-only scans.

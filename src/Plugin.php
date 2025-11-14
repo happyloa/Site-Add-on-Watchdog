@@ -38,7 +38,7 @@ class Plugin
     {
         $settings  = $this->settingsRepository->get();
         $frequency = $settings['notifications']['frequency'] ?? 'daily';
-        $allowed   = ['daily', 'weekly', 'manual'];
+        $allowed   = ['daily', 'weekly', 'testing', 'manual'];
         if (! in_array($frequency, $allowed, true)) {
             $frequency = 'daily';
         }
@@ -97,6 +97,13 @@ class Plugin
             $schedules['weekly'] = [
                 'interval' => WEEK_IN_SECONDS,
                 'display'  => __('Once Weekly', 'wp-plugin-watchdog'),
+            ];
+        }
+
+        if (! isset($schedules['testing'])) {
+            $schedules['testing'] = [
+                'interval' => 10 * MINUTE_IN_SECONDS,
+                'display'  => __('Every 10 Minutes (testing)', 'wp-plugin-watchdog'),
             ];
         }
 

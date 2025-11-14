@@ -195,6 +195,7 @@
                     <select id="wp-watchdog-notification-frequency" name="settings[notifications][frequency]">
                         <option value="daily" <?php selected($settings['notifications']['frequency'], 'daily'); ?>><?php esc_html_e('Daily', 'wp-plugin-watchdog'); ?></option>
                         <option value="weekly" <?php selected($settings['notifications']['frequency'], 'weekly'); ?>><?php esc_html_e('Weekly', 'wp-plugin-watchdog'); ?></option>
+                        <option value="testing" <?php selected($settings['notifications']['frequency'], 'testing'); ?>><?php esc_html_e('Testing (every 10 minutes)', 'wp-plugin-watchdog'); ?></option>
                         <option value="manual" <?php selected($settings['notifications']['frequency'], 'manual'); ?>><?php esc_html_e('Manual (no automatic scans)', 'wp-plugin-watchdog'); ?></option>
                     </select>
                     <p class="description"><?php esc_html_e('Choose how often the automatic scan should run.', 'wp-plugin-watchdog'); ?></p>

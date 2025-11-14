@@ -174,7 +174,7 @@ class SettingsRepository
 
     private function sanitizeFrequency(mixed $frequency): string
     {
-        $allowed = ['daily', 'weekly', 'manual'];
+        $allowed = ['daily', 'weekly', 'testing', 'manual'];
         if (! is_string($frequency)) {
             $frequency = '';
         }
