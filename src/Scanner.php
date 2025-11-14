@@ -64,14 +64,19 @@ class Scanner
                 );
             }
 
-            if ($remote && isset($remote->sections['changelog'])) {
-                $changelog = strtolower(strip_tags((string) $remote->sections['changelog']));
-                if (str_contains($changelog, 'security') || str_contains($changelog, 'vulnerability')) {
-                    $reasons[] = __(
-                        'Changelog mentions security-related updates.',
-                        'wp-plugin-watchdog'
-                    );
-                }
+            if (
+                $remote &&
+                isset($remote->sections['changelog']) &&
+                $this->changelogHighlightsSecurity(
+                    (string) $remote->sections['changelog'],
+                    $localVersion,
+                    $remoteVersion
+                )
+            ) {
+                $reasons[] = __(
+                    'Changelog mentions security-related updates.',
+                    'wp-plugin-watchdog'
+                );
             }
 
             $vulnerabilities = $this->wpscanClient->fetchVulnerabilities($slug);
@@ -116,7 +121,7 @@ class Scanner
             'slug'   => $slug,
             'fields' => [
                 'sections' => true,
-                'versions' => false,
+                'versions' => true,
             ],
         ]);
 
@@ -125,5 +130,52 @@ class Scanner
         }
 
         return $result;
+    }
+
+    private function changelogHighlightsSecurity(
+        string $changelogHtml,
+        string $localVersion,
+        ?string $remoteVersion
+    ): bool {
+        if ($remoteVersion === null || $localVersion === '') {
+            return false;
+        }
+
+        if (! version_compare($remoteVersion, $localVersion, '>')) {
+            return false;
+        }
+
+        $entryHtml = $this->extractLatestChangelogEntry($changelogHtml, $remoteVersion);
+        if ($entryHtml === '') {
+            return false;
+        }
+
+        $normalized = strtolower(strip_tags($entryHtml));
+
+        return str_contains($normalized, 'security')
+            || str_contains($normalized, 'vulnerability');
+    }
+
+    private function extractLatestChangelogEntry(string $changelogHtml, string $remoteVersion): string
+    {
+        $changelogHtml = trim($changelogHtml);
+        if ($changelogHtml === '') {
+            return '';
+        }
+
+        $patternForVersion = sprintf(
+            '/<h4[^>]*>[^<]*%s[^<]*<\/h4>\s*(.*?)(?=<h4|\z)/is',
+            preg_quote($remoteVersion, '/')
+        );
+
+        if (preg_match($patternForVersion, $changelogHtml, $match)) {
+            return $match[0];
+        }
+
+        if (preg_match('/<h4[^>]*>.*?<\/h4>\s*(.*?)(?=<h4|\z)/is', $changelogHtml, $match)) {
+            return $match[0];
+        }
+
+        return $changelogHtml;
     }
 }
