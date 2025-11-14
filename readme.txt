@@ -4,7 +4,7 @@ Tags: security, plugins, monitoring, notifications
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 8.1
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,7 +18,7 @@ WP Plugin Watchdog keeps an eye on your site's plugins and warns you when:
 * The official changelog mentions security or vulnerability fixes.
 * (Optional) WPScan lists open CVEs for the plugin when you provide your own API key.
 
-The plugin runs a daily scan via WP-Cron and stores results locally. Nothing leaves your site unless you explicitly configure outgoing notifications.
+The plugin runs on a schedule you control—choose daily, weekly, or rely on manual scans—and stores results locally. Nothing leaves your site unless you explicitly configure outgoing notifications.
 
 === Privacy first ===
 
@@ -36,7 +36,7 @@ The plugin runs a daily scan via WP-Cron and stores results locally. Nothing lea
 
 * Email: send to one or more recipients (comma separated).
 * Discord: post to a channel via webhook.
-* Generic webhook: post JSON payload to any endpoint you control.
+* Generic webhook: post JSON payload to any endpoint you control, with optional HMAC signatures and retry logic for failed deliveries.
 
 == Installation ==
 
@@ -60,6 +60,11 @@ Register for a free account at [wpscan.com](https://wpscan.com/) and copy the AP
 Yes. Use the "Run manual scan" button on the Watchdog admin page.
 
 == Changelog ==
+
+= 0.3.0 =
+* Add schedule frequency options for daily, weekly, or manual-only scans.
+* Improve webhook delivery with signature headers and better error handling.
+* Refresh the admin results table with sortable columns and clearer status badges.
 
 = 0.2.0 =
 * Prefill email notification recipients with site administrators.
