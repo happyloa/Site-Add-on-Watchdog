@@ -19,6 +19,14 @@ class SettingsRepository
                     'enabled' => false,
                     'webhook' => '',
                 ],
+                'slack'     => [
+                    'enabled' => false,
+                    'webhook' => '',
+                ],
+                'teams'     => [
+                    'enabled' => false,
+                    'webhook' => '',
+                ],
                 'webhook'   => [
                     'enabled' => false,
                     'url'     => '',
@@ -71,6 +79,16 @@ class SettingsRepository
             $discord = [];
         }
 
+        $slack = $notifications['slack'] ?? [];
+        if (! is_array($slack)) {
+            $slack = [];
+        }
+
+        $teams = $notifications['teams'] ?? [];
+        if (! is_array($teams)) {
+            $teams = [];
+        }
+
         $webhook = $notifications['webhook'] ?? [];
         if (! is_array($webhook)) {
             $webhook = [];
@@ -86,6 +104,14 @@ class SettingsRepository
                 'discord'   => [
                     'enabled' => ! empty($discord['enabled']),
                     'webhook' => esc_url_raw($discord['webhook'] ?? ''),
+                ],
+                'slack'     => [
+                    'enabled' => ! empty($slack['enabled']),
+                    'webhook' => esc_url_raw($slack['webhook'] ?? ''),
+                ],
+                'teams'     => [
+                    'enabled' => ! empty($teams['enabled']),
+                    'webhook' => esc_url_raw($teams['webhook'] ?? ''),
                 ],
                 'webhook'   => [
                     'enabled' => ! empty($webhook['enabled']),
@@ -125,6 +151,16 @@ class SettingsRepository
             $discord = [];
         }
 
+        $slack = $notifications['slack'] ?? [];
+        if (! is_array($slack)) {
+            $slack = [];
+        }
+
+        $teams = $notifications['teams'] ?? [];
+        if (! is_array($teams)) {
+            $teams = [];
+        }
+
         $webhook = $notifications['webhook'] ?? [];
         if (! is_array($webhook)) {
             $webhook = [];
@@ -138,6 +174,14 @@ class SettingsRepository
             'discord' => [
                 'enabled' => $stored['discord_enabled'] ?? null,
                 'webhook' => $stored['discord_webhook'] ?? null,
+            ],
+            'slack'   => [
+                'enabled' => $stored['slack_enabled'] ?? null,
+                'webhook' => $stored['slack_webhook'] ?? null,
+            ],
+            'teams'   => [
+                'enabled' => $stored['teams_enabled'] ?? null,
+                'webhook' => $stored['teams_webhook'] ?? null,
             ],
             'webhook' => [
                 'enabled' => $stored['webhook_enabled'] ?? null,
@@ -157,6 +201,14 @@ class SettingsRepository
             'discord'   => [
                 'enabled' => $discord['enabled'] ?? $legacy['discord']['enabled'],
                 'webhook' => $discord['webhook'] ?? $legacy['discord']['webhook'],
+            ],
+            'slack'     => [
+                'enabled' => $slack['enabled'] ?? $legacy['slack']['enabled'],
+                'webhook' => $slack['webhook'] ?? $legacy['slack']['webhook'],
+            ],
+            'teams'     => [
+                'enabled' => $teams['enabled'] ?? $legacy['teams']['enabled'],
+                'webhook' => $teams['webhook'] ?? $legacy['teams']['webhook'],
             ],
             'webhook'   => [
                 'enabled' => $webhook['enabled'] ?? $legacy['webhook']['enabled'],

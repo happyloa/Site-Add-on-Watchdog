@@ -79,6 +79,14 @@ class SettingsRepositoryTest extends TestCase
                             'enabled' => false,
                             'webhook' => '',
                         ],
+                        'slack'     => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'teams'     => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
                         'webhook'   => [
                             'enabled' => false,
                             'url'     => '',
@@ -111,6 +119,14 @@ class SettingsRepositoryTest extends TestCase
                             'recipients' => 'stored@example.com',
                         ],
                         'discord'   => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'slack'     => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'teams'     => [
                             'enabled' => false,
                             'webhook' => '',
                         ],
@@ -158,6 +174,14 @@ class SettingsRepositoryTest extends TestCase
                     'enabled' => false,
                     'webhook' => '',
                 ],
+                'slack'     => [
+                    'enabled' => true,
+                    'webhook' => 'https://example.com/slack',
+                ],
+                'teams'     => [
+                    'enabled' => true,
+                    'webhook' => 'https://example.com/teams',
+                ],
                 'webhook'   => [
                     'enabled' => false,
                     'url'     => '',
@@ -169,5 +193,9 @@ class SettingsRepositoryTest extends TestCase
 
         self::assertIsArray($updated);
         self::assertSame('testing', $updated['notifications']['frequency']);
+        self::assertTrue($updated['notifications']['slack']['enabled']);
+        self::assertSame('https://example.com/slack', $updated['notifications']['slack']['webhook']);
+        self::assertTrue($updated['notifications']['teams']['enabled']);
+        self::assertSame('https://example.com/teams', $updated['notifications']['teams']['webhook']);
     }
 }

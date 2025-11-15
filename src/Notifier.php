@@ -20,6 +20,8 @@ class Notifier
         $notifications   = $settings['notifications'];
         $emailSettings   = $notifications['email'];
         $discordSettings = $notifications['discord'];
+        $slackSettings   = is_array($notifications['slack'] ?? null) ? $notifications['slack'] : [];
+        $teamsSettings   = is_array($notifications['teams'] ?? null) ? $notifications['teams'] : [];
         $webhookSettings = $notifications['webhook'];
         $plainTextReport = $this->formatPlainTextMessage($risks);
         $emailReport     = $this->formatEmailMessage($risks);
@@ -50,6 +52,14 @@ class Notifier
                 'username'  => 'WP Plugin Watchdog',
                 'content'   => $plainTextReport,
             ]);
+        }
+
+        if (! empty($slackSettings['enabled']) && ! empty($slackSettings['webhook'])) {
+            $this->dispatchWebhook($slackSettings['webhook'], $this->formatSlackMessage($risks, $plainTextReport));
+        }
+
+        if (! empty($teamsSettings['enabled']) && ! empty($teamsSettings['webhook'])) {
+            $this->dispatchWebhook($teamsSettings['webhook'], $this->formatTeamsMessage($risks));
         }
 
         if (! empty($webhookSettings['enabled']) && ! empty($webhookSettings['url'])) {
@@ -150,6 +160,195 @@ class Notifier
             __('Update plugins here: %s', 'wp-plugin-watchdog'),
             esc_url(admin_url('update-core.php'))
         );
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @param Risk[] $risks
+     */
+    private function formatSlackMessage(array $risks, string $plainTextReport): array
+    {
+        $blocks = [
+            [
+                'type' => 'header',
+                'text' => [
+                    'type'  => 'plain_text',
+                    'text'  => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog'),
+                    'emoji' => true,
+                ],
+            ],
+            [
+                'type' => 'section',
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog'),
+                ],
+            ],
+        ];
+
+        foreach ($risks as $risk) {
+            $blocks[] = [
+                'type' => 'section',
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => $this->formatSlackRiskSection($risk),
+                ],
+            ];
+        }
+
+        $blocks[] = [
+            'type'     => 'actions',
+            'elements' => [
+                [
+                    'type' => 'button',
+                    'text' => [
+                        'type'  => 'plain_text',
+                        'text'  => __('Review updates', 'wp-plugin-watchdog'),
+                        'emoji' => true,
+                    ],
+                    'url'  => admin_url('update-core.php'),
+                ],
+            ],
+        ];
+
+        return [
+            'username' => 'WP Plugin Watchdog',
+            'text'     => $plainTextReport,
+            'blocks'   => $blocks,
+        ];
+    }
+
+    private function formatSlackRiskSection(Risk $risk): string
+    {
+        $lines   = [];
+        $lines[] = sprintf('*%s*', $risk->pluginName);
+        $lines[] = sprintf(
+            '%s %s',
+            __('Current version:', 'wp-plugin-watchdog'),
+            $risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog')
+        );
+        $lines[] = sprintf(
+            '%s %s',
+            __('Available version:', 'wp-plugin-watchdog'),
+            $risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog')
+        );
+
+        foreach ($risk->reasons as $reason) {
+            $lines[] = '• ' . $reason;
+        }
+
+        if (! empty($risk->details['vulnerabilities'])) {
+            foreach ($risk->details['vulnerabilities'] as $vulnerability) {
+                $summary = [];
+                if (! empty($vulnerability['severity_label'])) {
+                    $summary[] = '[' . $vulnerability['severity_label'] . ']';
+                }
+                if (! empty($vulnerability['title'])) {
+                    $summary[] = (string) $vulnerability['title'];
+                }
+                if (! empty($vulnerability['cve'])) {
+                    $summary[] = (string) $vulnerability['cve'];
+                }
+                if (! empty($vulnerability['fixed_in'])) {
+                    $summary[] = sprintf(
+                        /* translators: %s is a plugin version number */
+                        __('Fixed in %s', 'wp-plugin-watchdog'),
+                        $vulnerability['fixed_in']
+                    );
+                }
+
+                if (! empty($summary)) {
+                    $lines[] = '• ' . implode(' - ', $summary);
+                }
+            }
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @param Risk[] $risks
+     */
+    private function formatTeamsMessage(array $risks): array
+    {
+        $riskSections = [];
+
+        foreach ($risks as $risk) {
+            $riskSections[] = $this->formatTeamsRiskSection($risk);
+        }
+
+        return [
+            '@type'    => 'MessageCard',
+            '@context' => 'https://schema.org/extensions',
+            'summary'  => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog'),
+            'themeColor' => 'D32F2F',
+            'title'      => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog'),
+            'sections'   => [
+                [
+                    'activityTitle' => __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog'),
+                    'text'          => implode("\n\n", $riskSections),
+                ],
+            ],
+            'potentialAction' => [
+                [
+                    '@type'  => 'OpenUri',
+                    'name'   => __('Review updates', 'wp-plugin-watchdog'),
+                    'targets' => [
+                        [
+                            'os'  => 'default',
+                            'uri' => admin_url('update-core.php'),
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    private function formatTeamsRiskSection(Risk $risk): string
+    {
+        $lines   = [];
+        $lines[] = sprintf('**%s**', $risk->pluginName);
+        $lines[] = sprintf(
+            '- %s %s',
+            __('Current version:', 'wp-plugin-watchdog'),
+            $risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog')
+        );
+        $lines[] = sprintf(
+            '- %s %s',
+            __('Available version:', 'wp-plugin-watchdog'),
+            $risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog')
+        );
+
+        foreach ($risk->reasons as $reason) {
+            $lines[] = '- ' . $reason;
+        }
+
+        if (! empty($risk->details['vulnerabilities'])) {
+            foreach ($risk->details['vulnerabilities'] as $vulnerability) {
+                $summary = [];
+                if (! empty($vulnerability['severity_label'])) {
+                    $summary[] = '[' . $vulnerability['severity_label'] . ']';
+                }
+                if (! empty($vulnerability['title'])) {
+                    $summary[] = (string) $vulnerability['title'];
+                }
+                if (! empty($vulnerability['cve'])) {
+                    $summary[] = (string) $vulnerability['cve'];
+                }
+                if (! empty($vulnerability['fixed_in'])) {
+                    $summary[] = sprintf(
+                        /* translators: %s is a plugin version number */
+                        __('Fixed in %s', 'wp-plugin-watchdog'),
+                        $vulnerability['fixed_in']
+                    );
+                }
+
+                if (! empty($summary)) {
+                    $lines[] = '- ' . implode(' - ', $summary);
+                }
+            }
+        }
 
         return implode("\n", $lines);
     }

@@ -241,6 +241,36 @@
                 </td>
             </tr>
             <tr>
+                <th scope="row"><?php esc_html_e('Slack notifications', 'wp-plugin-watchdog'); ?></th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="settings[notifications][slack][enabled]" <?php checked($settings['notifications']['slack']['enabled']); ?> />
+                        <?php esc_html_e('Enabled', 'wp-plugin-watchdog'); ?>
+                    </label>
+                    <p>
+                        <label>
+                            <?php esc_html_e('Slack webhook URL', 'wp-plugin-watchdog'); ?><br />
+                            <input type="url" name="settings[notifications][slack][webhook]" value="<?php echo esc_attr($settings['notifications']['slack']['webhook']); ?>" class="regular-text" />
+                        </label>
+                    </p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php esc_html_e('Microsoft Teams notifications', 'wp-plugin-watchdog'); ?></th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="settings[notifications][teams][enabled]" <?php checked($settings['notifications']['teams']['enabled']); ?> />
+                        <?php esc_html_e('Enabled', 'wp-plugin-watchdog'); ?>
+                    </label>
+                    <p>
+                        <label>
+                            <?php esc_html_e('Teams webhook URL', 'wp-plugin-watchdog'); ?><br />
+                            <input type="url" name="settings[notifications][teams][webhook]" value="<?php echo esc_attr($settings['notifications']['teams']['webhook']); ?>" class="regular-text" />
+                        </label>
+                    </p>
+                </td>
+            </tr>
+            <tr>
                 <th scope="row"><?php esc_html_e('Generic webhook', 'wp-plugin-watchdog'); ?></th>
                 <td>
                     <label>
