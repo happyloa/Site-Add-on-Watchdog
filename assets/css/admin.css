@@ -97,6 +97,46 @@
     margin-bottom: 0.25rem;
 }
 
+.wp-watchdog-severity {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-right: 0.5rem;
+}
+
+.wp-watchdog-severity--low {
+    background: #e7f7ed;
+    color: #1c5f3a;
+}
+
+.wp-watchdog-severity--medium {
+    background: #fff4d6;
+    color: #7a5a00;
+}
+
+.wp-watchdog-severity--high {
+    background: #fde4df;
+    color: #922424;
+}
+
+.wp-watchdog-severity--severe {
+    background: #fbe0e6;
+    color: #80102a;
+}
+
+.wp-watchdog-vulnerability__title,
+.wp-watchdog-vulnerability__cve,
+.wp-watchdog-vulnerability__fixed {
+    display: inline-block;
+    margin-right: 0.25rem;
+}
+
 @media (max-width: 960px) {
     .wp-watchdog-risk-table__controls {
         flex-direction: column;

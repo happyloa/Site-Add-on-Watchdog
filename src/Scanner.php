@@ -81,6 +81,11 @@ class Scanner
 
             $vulnerabilities = $this->wpscanClient->fetchVulnerabilities($slug);
             if (! empty($vulnerabilities)) {
+                $vulnerabilities = array_map(
+                    fn (array $vulnerability): array => $this->enrichVulnerability($vulnerability),
+                    $vulnerabilities
+                );
+
                 $reasons[] = __(
                     'Active vulnerabilities reported by WPScan.',
                     'wp-plugin-watchdog'
@@ -101,6 +106,68 @@ class Scanner
         }
 
         return $risks;
+    }
+
+    private function enrichVulnerability(array $vulnerability): array
+    {
+        if (! array_key_exists('cvss_score', $vulnerability)) {
+            return $vulnerability;
+        }
+
+        $score = $vulnerability['cvss_score'];
+        $numericScore = null;
+
+        if (is_numeric($score)) {
+            $numericScore = (float) $score;
+        }
+
+        if ($numericScore === null) {
+            return $vulnerability;
+        }
+
+        $severity = $this->cvssScoreToSeverity($numericScore);
+
+        if ($severity === null) {
+            return $vulnerability;
+        }
+
+        $vulnerability['severity']       = $severity['key'];
+        $vulnerability['severity_label'] = $severity['label'];
+
+        return $vulnerability;
+    }
+
+    private function cvssScoreToSeverity(float $score): ?array
+    {
+        if ($score < 0) {
+            return null;
+        }
+
+        if ($score >= 9.0) {
+            return [
+                'key'   => 'severe',
+                'label' => __('Severe', 'wp-plugin-watchdog'),
+            ];
+        }
+
+        if ($score >= 7.0) {
+            return [
+                'key'   => 'high',
+                'label' => __('High', 'wp-plugin-watchdog'),
+            ];
+        }
+
+        if ($score >= 4.0) {
+            return [
+                'key'   => 'medium',
+                'label' => __('Medium', 'wp-plugin-watchdog'),
+            ];
+        }
+
+        return [
+            'key'   => 'low',
+            'label' => __('Low', 'wp-plugin-watchdog'),
+        ];
     }
 
     private function determineSlug(string $pluginFile): string

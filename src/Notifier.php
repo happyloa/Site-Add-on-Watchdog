@@ -175,6 +175,7 @@ class Notifier
                     $title = isset($vulnerability['title']) ? (string) $vulnerability['title'] : '';
                     $cve   = isset($vulnerability['cve']) ? (string) $vulnerability['cve'] : '';
                     $fixed = isset($vulnerability['fixed_in']) ? (string) $vulnerability['fixed_in'] : '';
+                    $badge = $this->formatSeverityBadge($vulnerability);
 
                     $label = trim($title . ($cve !== '' ? ' - ' . $cve : ''));
                     if ($fixed !== '') {
@@ -182,9 +183,15 @@ class Notifier
                     }
 
                     if ($label !== '') {
+                        $content = $badge;
+                        if ($content !== '' && $label !== '') {
+                            $content .= ' ';
+                        }
+                        $content .= esc_html($label);
+
                         $reasons .= sprintf(
                             '<li style="margin-bottom:4px;">%s</li>',
-                            esc_html($label)
+                            $content
                         );
                     }
                 }
@@ -245,6 +252,45 @@ class Notifier
             esc_html__('Update plugins here:', 'wp-plugin-watchdog'),
             esc_attr($linkStyle),
             $updateUrl
+        );
+    }
+
+    private function formatSeverityBadge(array $vulnerability): string
+    {
+        if (empty($vulnerability['severity']) || empty($vulnerability['severity_label'])) {
+            return '';
+        }
+
+        $severity = (string) $vulnerability['severity'];
+        $label    = (string) $vulnerability['severity_label'];
+        $style    = $this->getEmailSeverityStyle($severity);
+
+        return sprintf(
+            '<span style="%s">%s</span>',
+            esc_attr($style),
+            esc_html($label)
+        );
+    }
+
+    private function getEmailSeverityStyle(string $severity): string
+    {
+        $baseStyle = 'display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; '
+            . 'font-weight:600; text-transform:uppercase; letter-spacing:0.04em;';
+
+        $palette = [
+            'low'    => ['background' => '#e7f7ed', 'color' => '#1c5f3a'],
+            'medium' => ['background' => '#fff4d6', 'color' => '#7a5a00'],
+            'high'   => ['background' => '#fde4df', 'color' => '#922424'],
+            'severe' => ['background' => '#fbe0e6', 'color' => '#80102a'],
+        ];
+
+        $colors = $palette[$severity] ?? $palette['low'];
+
+        return sprintf(
+            '%s background:%s; color:%s;',
+            $baseStyle,
+            $colors['background'],
+            $colors['color']
         );
     }
 

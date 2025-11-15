@@ -92,6 +92,9 @@
                         $reasonParts   = $risk->reasons;
                         if (! empty($risk->details['vulnerabilities'])) {
                             foreach ($risk->details['vulnerabilities'] as $vulnerability) {
+                                if (! empty($vulnerability['severity_label'])) {
+                                    $reasonParts[] = $vulnerability['severity_label'];
+                                }
                                 if (! empty($vulnerability['title'])) {
                                     $reasonParts[] = $vulnerability['title'];
                                 }
@@ -135,12 +138,18 @@
                                             <ul>
                                                 <?php foreach ($risk->details['vulnerabilities'] as $vuln) : ?>
                                                     <li>
-                                                        <?php echo esc_html($vuln['title'] ?? ''); ?>
+                                                        <?php if (! empty($vuln['severity']) && ! empty($vuln['severity_label'])) : ?>
+                                                            <?php $severityClass = 'wp-watchdog-severity wp-watchdog-severity--' . sanitize_html_class((string) $vuln['severity']); ?>
+                                                            <span class="<?php echo esc_attr($severityClass); ?>"><?php echo esc_html($vuln['severity_label']); ?></span>
+                                                        <?php endif; ?>
+                                                        <?php if (! empty($vuln['title'])) : ?>
+                                                            <span class="wp-watchdog-vulnerability__title"><?php echo esc_html($vuln['title']); ?></span>
+                                                        <?php endif; ?>
                                                         <?php if (! empty($vuln['cve'])) : ?>
-                                                            - <?php echo esc_html($vuln['cve']); ?>
+                                                            <span class="wp-watchdog-vulnerability__cve">- <?php echo esc_html($vuln['cve']); ?></span>
                                                         <?php endif; ?>
                                                         <?php if (! empty($vuln['fixed_in'])) : ?>
-                                                            (<?php printf(esc_html__('Fixed in %s', 'wp-plugin-watchdog'), esc_html($vuln['fixed_in'])); ?>)
+                                                            <span class="wp-watchdog-vulnerability__fixed">(<?php printf(esc_html__('Fixed in %s', 'wp-plugin-watchdog'), esc_html($vuln['fixed_in'])); ?>)</span>
                                                         <?php endif; ?>
                                                     </li>
                                                 <?php endforeach; ?>
