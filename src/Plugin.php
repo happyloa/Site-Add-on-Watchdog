@@ -71,8 +71,10 @@ class Plugin
 
     /**
      * Executes the scan and persists results.
+     *
+     * @param bool $notify Whether notifications should be dispatched.
      */
-    public function runScan(): void
+    public function runScan(bool $notify = true): void
     {
         $risks = $this->scanner->scan();
         $this->riskRepository->save($risks);
@@ -81,10 +83,12 @@ class Plugin
         $settings = $this->settingsRepository->get();
 
         if ($hash !== ($settings['last_notification'] ?? '')) {
-            if (! empty($risks)) {
+            if ($notify && ! empty($risks)) {
                 $this->notifier->notify($risks);
             }
-            $this->settingsRepository->saveNotificationHash($hash);
+            if ($notify) {
+                $this->settingsRepository->saveNotificationHash($hash);
+            }
         }
     }
 

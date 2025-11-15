@@ -33,6 +33,7 @@ if (is_readable($autoload)) {
 }
 
 use Watchdog\AdminPage;
+use Watchdog\Cli\ScanCommand;
 use Watchdog\Notifier;
 use Watchdog\Plugin;
 use Watchdog\Repository\RiskRepository;
@@ -52,6 +53,10 @@ $adminPage          = new AdminPage($riskRepository, $settingsRepository, $plugi
 
 $plugin->register();
 $adminPage->register();
+
+if (defined('WP_CLI') && WP_CLI) {
+    \WP_CLI::add_command('watchdog scan', new ScanCommand($plugin));
+}
 
 register_activation_hook(__FILE__, static function () use ($plugin): void {
     $plugin->schedule();
