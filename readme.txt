@@ -46,7 +46,7 @@ _Future enhancement:_ automatic retries for failed webhook deliveries are on the
 
 1. Upload the plugin folder to `/wp-content/plugins/` or install via the admin dashboard.
 2. Activate the plugin through the 'Plugins' menu in WordPress.
-3. Visit Tools → Watchdog to review the risk table and adjust notifications.
+3. Open the top-level **Watchdog** menu in the WordPress sidebar to review the risk table and adjust notifications (older versions or custom admin menu placements may still show under Tools → Watchdog).
 4. (Optional) Add your WPScan API key in the settings to fetch vulnerability intelligence.
 
 == FAQ ==
