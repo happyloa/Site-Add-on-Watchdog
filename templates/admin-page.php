@@ -3,6 +3,10 @@
 /** @var string[] $ignored */
 /** @var array $settings */
 /** @var string $scanNonce */
+/** @var int $historyRetention */
+/** @var int $historyDisplay */
+/** @var array<int, array{run_at:int, risks:array<int, array<string, mixed>>, risk_count:int}> $historyRecords */
+/** @var array<int, array<string, string>> $historyDownloads */
 ?>
 <div class="wrap">
     <h1><?php esc_html_e('WP Plugin Watchdog', 'wp-plugin-watchdog'); ?></h1>
@@ -25,6 +29,9 @@
         <input type="hidden" name="action" value="wp_watchdog_scan">
         <p><button class="button button-primary" type="submit"><?php esc_html_e('Run manual scan', 'wp-plugin-watchdog'); ?></button></p>
     </form>
+
+    <h2><?php esc_html_e('Scan History', 'wp-plugin-watchdog'); ?></h2>
+    <?php require __DIR__ . '/history.php'; ?>
 
     <h2><?php esc_html_e('Potential Risks', 'wp-plugin-watchdog'); ?></h2>
     <?php if (empty($risks)) : ?>
@@ -197,6 +204,23 @@
         <?php wp_nonce_field('wp_watchdog_settings'); ?>
         <input type="hidden" name="action" value="wp_watchdog_save_settings">
         <table class="form-table" role="presentation">
+            <tr>
+                <th scope="row"><?php esc_html_e('History retention', 'wp-plugin-watchdog'); ?></th>
+                <td>
+                    <label for="wp-watchdog-history-retention" class="screen-reader-text"><?php esc_html_e('History retention', 'wp-plugin-watchdog'); ?></label>
+                    <input
+                        type="number"
+                        id="wp-watchdog-history-retention"
+                        name="settings[history][retention]"
+                        value="<?php echo esc_attr($settings['history']['retention'] ?? $historyRetention); ?>"
+                        min="1"
+                        step="1"
+                    />
+                    <p class="description">
+                        <?php esc_html_e('Number of recent scans to keep available for review and download.', 'wp-plugin-watchdog'); ?>
+                    </p>
+                </td>
+            </tr>
             <tr>
                 <th scope="row"><?php esc_html_e('Scan frequency', 'wp-plugin-watchdog'); ?></th>
                 <td>

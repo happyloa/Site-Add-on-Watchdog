@@ -1,6 +1,7 @@
 <?php
 
 use Brain\Monkey\Functions;
+use Watchdog\Repository\RiskRepository;
 use Watchdog\Repository\SettingsRepository;
 
 class SettingsRepositoryTest extends TestCase
@@ -197,5 +198,78 @@ class SettingsRepositoryTest extends TestCase
         self::assertSame('https://example.com/slack', $updated['notifications']['slack']['webhook']);
         self::assertTrue($updated['notifications']['teams']['enabled']);
         self::assertSame('https://example.com/teams', $updated['notifications']['teams']['webhook']);
+        self::assertSame(RiskRepository::DEFAULT_HISTORY_RETENTION, $updated['history']['retention']);
+    }
+
+    public function testSavesHistoryRetentionSetting(): void
+    {
+        Functions\when('get_option')->alias(static function ($option, $default = false) {
+            if ($option === 'wp_watchdog_settings') {
+                return [
+                    'notifications' => [
+                        'frequency' => 'daily',
+                        'email'     => [
+                            'enabled'    => true,
+                            'recipients' => 'stored@example.com',
+                        ],
+                        'discord'   => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'slack'     => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'teams'     => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'webhook'   => [
+                            'enabled' => false,
+                            'url'     => '',
+                            'secret'  => '',
+                        ],
+                        'wpscan_api_key' => '',
+                    ],
+                    'history' => [
+                        'retention' => RiskRepository::DEFAULT_HISTORY_RETENTION,
+                    ],
+                    'last_notification' => '',
+                ];
+            }
+
+            if ($option === 'admin_email') {
+                return 'owner@example.com';
+            }
+
+            return $default;
+        });
+
+        Functions\when('sanitize_text_field')->alias(static fn ($value) => $value);
+        Functions\when('esc_url_raw')->alias(static fn ($value) => $value);
+
+        $updated = null;
+        Functions\when('update_option')->alias(static function ($option, $value) use (&$updated) {
+            if ($option === 'wp_watchdog_settings') {
+                $updated = $value;
+
+                return true;
+            }
+
+            return false;
+        });
+
+        $repository = new SettingsRepository();
+        $current    = $repository->get();
+
+        $repository->save([
+            'notifications' => $current['notifications'],
+            'history'       => [
+                'retention' => '45',
+            ],
+        ]);
+
+        self::assertIsArray($updated);
+        self::assertSame(45, $updated['history']['retention']);
     }
 }
