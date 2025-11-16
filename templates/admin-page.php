@@ -224,6 +224,11 @@
             <tr>
                 <th scope="row"><?php esc_html_e('Scan frequency', 'wp-plugin-watchdog'); ?></th>
                 <td>
+                    <?php
+                    $defaultFrequencyMessage = __('Choose how often the automatic scan should run.', 'wp-plugin-watchdog');
+                    $testingFrequencyMessage = __('Ten-minute testing mode sends notifications every ten minutes to all configured channels and automatically switches back to daily scans after six hours.', 'wp-plugin-watchdog');
+                    $isTestingFrequency      = ($settings['notifications']['frequency'] ?? '') === 'testing';
+                    ?>
                     <label for="wp-watchdog-notification-frequency" class="screen-reader-text"><?php esc_html_e('Scan frequency', 'wp-plugin-watchdog'); ?></label>
                     <select id="wp-watchdog-notification-frequency" name="settings[notifications][frequency]">
                         <option value="daily" <?php selected($settings['notifications']['frequency'], 'daily'); ?>><?php esc_html_e('Daily', 'wp-plugin-watchdog'); ?></option>
@@ -231,89 +236,96 @@
                         <option value="testing" <?php selected($settings['notifications']['frequency'], 'testing'); ?>><?php esc_html_e('Testing (every 10 minutes)', 'wp-plugin-watchdog'); ?></option>
                         <option value="manual" <?php selected($settings['notifications']['frequency'], 'manual'); ?>><?php esc_html_e('Manual (no automatic scans)', 'wp-plugin-watchdog'); ?></option>
                     </select>
-                    <p class="description"><?php esc_html_e('Choose how often the automatic scan should run.', 'wp-plugin-watchdog'); ?></p>
+                    <p
+                        class="description wp-watchdog-frequency-description<?php echo $isTestingFrequency ? ' wp-watchdog-frequency-description--testing' : ''; ?>"
+                        data-watchdog-frequency-description
+                        data-default-message="<?php echo esc_attr($defaultFrequencyMessage); ?>"
+                        data-testing-message="<?php echo esc_attr($testingFrequencyMessage); ?>"
+                    >
+                        <?php echo esc_html($isTestingFrequency ? $testingFrequencyMessage : $defaultFrequencyMessage); ?>
+                    </p>
                 </td>
             </tr>
             <tr>
                 <th scope="row"><?php esc_html_e('Email notifications', 'wp-plugin-watchdog'); ?></th>
-                <td>
-                    <label>
-                        <input type="checkbox" name="settings[notifications][email][enabled]" <?php checked($settings['notifications']['email']['enabled']); ?> />
+                <td data-watchdog-notification>
+                    <label class="wp-watchdog-notification-toggle">
+                        <input type="checkbox" name="settings[notifications][email][enabled]" <?php checked($settings['notifications']['email']['enabled']); ?> data-watchdog-toggle />
                         <?php esc_html_e('Enabled', 'wp-plugin-watchdog'); ?>
                     </label>
-                    <p>
+                    <div class="wp-watchdog-notification-fields" data-watchdog-fields>
                         <label>
                             <?php esc_html_e('Recipients (comma separated)', 'wp-plugin-watchdog'); ?><br />
                             <input type="text" name="settings[notifications][email][recipients]" value="<?php echo esc_attr($settings['notifications']['email']['recipients']); ?>" class="regular-text" />
                         </label>
-                    </p>
+                    </div>
                 </td>
             </tr>
             <tr>
                 <th scope="row"><?php esc_html_e('Discord notifications', 'wp-plugin-watchdog'); ?></th>
-                <td>
-                    <label>
-                        <input type="checkbox" name="settings[notifications][discord][enabled]" <?php checked($settings['notifications']['discord']['enabled']); ?> />
+                <td data-watchdog-notification>
+                    <label class="wp-watchdog-notification-toggle">
+                        <input type="checkbox" name="settings[notifications][discord][enabled]" <?php checked($settings['notifications']['discord']['enabled']); ?> data-watchdog-toggle />
                         <?php esc_html_e('Enabled', 'wp-plugin-watchdog'); ?>
                     </label>
-                    <p>
+                    <div class="wp-watchdog-notification-fields" data-watchdog-fields>
                         <label>
                             <?php esc_html_e('Discord webhook URL', 'wp-plugin-watchdog'); ?><br />
                             <input type="url" name="settings[notifications][discord][webhook]" value="<?php echo esc_attr($settings['notifications']['discord']['webhook']); ?>" class="regular-text" />
                         </label>
-                    </p>
+                    </div>
                 </td>
             </tr>
             <tr>
                 <th scope="row"><?php esc_html_e('Slack notifications', 'wp-plugin-watchdog'); ?></th>
-                <td>
-                    <label>
-                        <input type="checkbox" name="settings[notifications][slack][enabled]" <?php checked($settings['notifications']['slack']['enabled']); ?> />
+                <td data-watchdog-notification>
+                    <label class="wp-watchdog-notification-toggle">
+                        <input type="checkbox" name="settings[notifications][slack][enabled]" <?php checked($settings['notifications']['slack']['enabled']); ?> data-watchdog-toggle />
                         <?php esc_html_e('Enabled', 'wp-plugin-watchdog'); ?>
                     </label>
-                    <p>
+                    <div class="wp-watchdog-notification-fields" data-watchdog-fields>
                         <label>
                             <?php esc_html_e('Slack webhook URL', 'wp-plugin-watchdog'); ?><br />
                             <input type="url" name="settings[notifications][slack][webhook]" value="<?php echo esc_attr($settings['notifications']['slack']['webhook']); ?>" class="regular-text" />
                         </label>
-                    </p>
+                    </div>
                 </td>
             </tr>
             <tr>
                 <th scope="row"><?php esc_html_e('Microsoft Teams notifications', 'wp-plugin-watchdog'); ?></th>
-                <td>
-                    <label>
-                        <input type="checkbox" name="settings[notifications][teams][enabled]" <?php checked($settings['notifications']['teams']['enabled']); ?> />
+                <td data-watchdog-notification>
+                    <label class="wp-watchdog-notification-toggle">
+                        <input type="checkbox" name="settings[notifications][teams][enabled]" <?php checked($settings['notifications']['teams']['enabled']); ?> data-watchdog-toggle />
                         <?php esc_html_e('Enabled', 'wp-plugin-watchdog'); ?>
                     </label>
-                    <p>
+                    <div class="wp-watchdog-notification-fields" data-watchdog-fields>
                         <label>
                             <?php esc_html_e('Teams webhook URL', 'wp-plugin-watchdog'); ?><br />
                             <input type="url" name="settings[notifications][teams][webhook]" value="<?php echo esc_attr($settings['notifications']['teams']['webhook']); ?>" class="regular-text" />
                         </label>
-                    </p>
+                    </div>
                 </td>
             </tr>
             <tr>
                 <th scope="row"><?php esc_html_e('Generic webhook', 'wp-plugin-watchdog'); ?></th>
-                <td>
-                    <label>
-                        <input type="checkbox" name="settings[notifications][webhook][enabled]" <?php checked($settings['notifications']['webhook']['enabled']); ?> />
+                <td data-watchdog-notification>
+                    <label class="wp-watchdog-notification-toggle">
+                        <input type="checkbox" name="settings[notifications][webhook][enabled]" <?php checked($settings['notifications']['webhook']['enabled']); ?> data-watchdog-toggle />
                         <?php esc_html_e('Enabled', 'wp-plugin-watchdog'); ?>
                     </label>
-                    <p>
+                    <div class="wp-watchdog-notification-fields" data-watchdog-fields>
                         <label>
                             <?php esc_html_e('Webhook URL', 'wp-plugin-watchdog'); ?><br />
                             <input type="url" name="settings[notifications][webhook][url]" value="<?php echo esc_attr($settings['notifications']['webhook']['url']); ?>" class="regular-text" />
                         </label>
-                    </p>
-                    <p>
-                        <label>
-                            <?php esc_html_e('Webhook secret (optional)', 'wp-plugin-watchdog'); ?><br />
-                            <input type="text" name="settings[notifications][webhook][secret]" value="<?php echo esc_attr($settings['notifications']['webhook']['secret'] ?? ''); ?>" class="regular-text" autocomplete="off" />
-                        </label>
-                        <span class="description"><?php esc_html_e('Used to sign webhook payloads with an HMAC signature.', 'wp-plugin-watchdog'); ?></span>
-                    </p>
+                        <p>
+                            <label>
+                                <?php esc_html_e('Webhook secret (optional)', 'wp-plugin-watchdog'); ?><br />
+                                <input type="text" name="settings[notifications][webhook][secret]" value="<?php echo esc_attr($settings['notifications']['webhook']['secret'] ?? ''); ?>" class="regular-text" autocomplete="off" />
+                            </label>
+                            <span class="description"><?php esc_html_e('Used to sign webhook payloads with an HMAC signature.', 'wp-plugin-watchdog'); ?></span>
+                        </p>
+                    </div>
                 </td>
             </tr>
             <tr>

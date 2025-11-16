@@ -265,9 +265,73 @@
         applyPagination();
     }
 
+    function initNotificationToggles() {
+        document.querySelectorAll('[data-watchdog-toggle]').forEach((toggle) => {
+            const container = toggle.closest('[data-watchdog-notification]');
+            if (!container) {
+                return;
+            }
+
+            const fieldWrapper = container.querySelector('[data-watchdog-fields]');
+            if (!fieldWrapper) {
+                return;
+            }
+
+            const controlledFields = fieldWrapper.querySelectorAll('input, textarea, select');
+
+            const syncState = () => {
+                const disabled = !toggle.checked;
+                fieldWrapper.classList.toggle('wp-watchdog-notification-fields--disabled', disabled);
+
+                controlledFields.forEach((field) => {
+                    if ('readOnly' in field) {
+                        field.readOnly = disabled;
+                    }
+
+                    if (disabled) {
+                        field.setAttribute('aria-disabled', 'true');
+                    } else {
+                        field.removeAttribute('aria-disabled');
+                    }
+                });
+            };
+
+            toggle.addEventListener('change', syncState);
+            syncState();
+        });
+    }
+
+    function initFrequencyDescription() {
+        const select = document.getElementById('wp-watchdog-notification-frequency');
+        const description = document.querySelector('[data-watchdog-frequency-description]');
+
+        if (!select || !description) {
+            return;
+        }
+
+        const defaultMessage = description.getAttribute('data-default-message') || description.textContent || '';
+        const testingMessage = description.getAttribute('data-testing-message') || defaultMessage;
+
+        const updateMessage = () => {
+            if (select.value === 'testing') {
+                description.textContent = testingMessage;
+                description.classList.add('wp-watchdog-frequency-description--testing');
+            } else {
+                description.textContent = defaultMessage;
+                description.classList.remove('wp-watchdog-frequency-description--testing');
+            }
+        };
+
+        select.addEventListener('change', updateMessage);
+        updateMessage();
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('[data-wp-watchdog-table]').forEach((tableWrapper) => {
             initTable(tableWrapper);
         });
+
+        initNotificationToggles();
+        initFrequencyDescription();
     });
 })();

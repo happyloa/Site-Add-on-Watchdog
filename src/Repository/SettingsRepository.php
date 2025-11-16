@@ -32,6 +32,7 @@ class SettingsRepository
                     'url'     => '',
                     'secret'  => '',
                 ],
+                'testing_expires_at' => 0,
                 'wpscan_api_key' => '',
             ],
             'last_notification' => '',
@@ -55,6 +56,9 @@ class SettingsRepository
         $settings   = array_replace_recursive($defaults, $normalized);
 
         $settings['notifications']['frequency'] = $this->sanitizeFrequency($settings['notifications']['frequency']);
+        $settings['notifications']['testing_expires_at'] = $this->sanitizeTestingExpiration(
+            $settings['notifications']['testing_expires_at'] ?? 0
+        );
 
         if ($settings['notifications']['email']['recipients'] === '') {
             $settings['notifications']['email']['recipients'] = $this->buildAdministratorEmailList();
@@ -67,8 +71,10 @@ class SettingsRepository
 
     public function save(array $settings): void
     {
-        $current       = $this->get();
-        $notifications = $settings['notifications'] ?? [];
+        $current           = $this->get();
+        $notifications     = $settings['notifications'] ?? [];
+        $previousFrequency = $this->sanitizeFrequency($current['notifications']['frequency'] ?? 'daily');
+        $previousTestingExpiration = $current['notifications']['testing_expires_at'] ?? 0;
 
         if (! is_array($notifications)) {
             $notifications = [];
@@ -138,6 +144,12 @@ class SettingsRepository
             ],
         ];
 
+        $filtered['notifications']['testing_expires_at'] = $this->determineTestingExpiration(
+            $previousFrequency,
+            $filtered['notifications']['frequency'],
+            $previousTestingExpiration
+        );
+
         update_option(self::OPTION, $filtered, false);
     }
 
@@ -145,6 +157,15 @@ class SettingsRepository
     {
         $settings                       = $this->get();
         $settings['last_notification'] = $hash;
+        update_option(self::OPTION, $settings, false);
+    }
+
+    public function updateNotificationFrequency(string $frequency, int $testingExpiresAt = 0): void
+    {
+        $settings = $this->get();
+        $settings['notifications']['frequency'] = $this->sanitizeFrequency($frequency);
+        $settings['notifications']['testing_expires_at'] = $this->sanitizeTestingExpiration($testingExpiresAt);
+
         update_option(self::OPTION, $settings, false);
     }
 
@@ -231,6 +252,7 @@ class SettingsRepository
                 'secret'  => $webhook['secret'] ?? $legacy['webhook']['secret'],
             ],
             'wpscan_api_key' => $notifications['wpscan_api_key'] ?? $legacy['wpscan_api_key'],
+            'testing_expires_at' => $notifications['testing_expires_at'] ?? null,
         ];
 
         $historyRetention = null;
@@ -261,6 +283,51 @@ class SettingsRepository
         }
 
         return $frequency;
+    }
+
+    private function determineTestingExpiration(
+        string $previousFrequency,
+        string $newFrequency,
+        mixed $previousExpiration
+    ): int {
+        if ($newFrequency !== 'testing') {
+            return 0;
+        }
+
+        $previous = $this->sanitizeTestingExpiration($previousExpiration);
+
+        if ($previousFrequency === 'testing' && $previous > 0) {
+            return $previous;
+        }
+
+        return time() + $this->testingModeDuration();
+    }
+
+    private function testingModeDuration(): int
+    {
+        return 6 * $this->getHourInSeconds();
+    }
+
+    private function sanitizeTestingExpiration(mixed $value): int
+    {
+        if (is_string($value) && $value !== '') {
+            if (is_numeric($value)) {
+                $value = (int) $value;
+            } else {
+                return 0;
+            }
+        }
+
+        if (! is_int($value)) {
+            return 0;
+        }
+
+        return max(0, $value);
+    }
+
+    private function getHourInSeconds(): int
+    {
+        return defined('HOUR_IN_SECONDS') ? HOUR_IN_SECONDS : 3600;
     }
 
     private function buildAdministratorEmailList(): string

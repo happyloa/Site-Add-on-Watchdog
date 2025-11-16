@@ -33,6 +33,13 @@ class ScanCommandTest extends TestCase
             ->method('get')
             ->willReturn([
                 'last_notification' => '',
+                'notifications'     => [
+                    'frequency'           => 'daily',
+                    'testing_expires_at'  => 0,
+                ],
+                'history'           => [
+                    'retention' => RiskRepository::DEFAULT_HISTORY_RETENTION,
+                ],
             ]);
         $expectedHash = md5(json_encode([
             [
@@ -81,6 +88,13 @@ class ScanCommandTest extends TestCase
             ->method('get')
             ->willReturn([
                 'last_notification' => '',
+                'notifications'     => [
+                    'frequency'           => 'daily',
+                    'testing_expires_at'  => 0,
+                ],
+                'history'           => [
+                    'retention' => RiskRepository::DEFAULT_HISTORY_RETENTION,
+                ],
             ]);
         $settingsRepository->expects($this->never())
             ->method('saveNotificationHash');
