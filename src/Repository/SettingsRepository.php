@@ -289,8 +289,7 @@ class SettingsRepository
         string $previousFrequency,
         string $newFrequency,
         mixed $previousExpiration
-    ): int
-    {
+    ): int {
         if ($newFrequency !== 'testing') {
             return 0;
         }
