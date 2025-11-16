@@ -30,12 +30,14 @@ The plugin runs on a schedule you control—choose daily, weekly, a ten-minute t
 
 * Dashboard page with the current risk list and manual scan button.
 * Ignore list to suppress noisy plugins.
-* Notification settings for email, Discord, or a generic webhook.
+* Notification settings for email, Discord, Slack, Microsoft Teams, or a generic webhook.
 
 === Notifications ===
 
 * Email: send to one or more recipients (comma separated).
 * Discord: post to a channel via webhook.
+* Slack: connect via an incoming webhook to post alerts into any workspace channel.
+* Microsoft Teams: send adaptive card style notices through an incoming webhook connector.
 * Generic webhook: post JSON payload to any endpoint you control, with optional HMAC signatures. Failed deliveries are logged and highlighted on the Watchdog admin screen so you can reconfigure or resend manually.
 
 _Future enhancement:_ automatic retries for failed webhook deliveries are on the roadmap. Track progress in [issue #42](https://github.com/pluginwatchdog/wp-plugin-watchdog/issues/42).
@@ -56,6 +58,10 @@ No. All scanning happens locally. Data only leaves your site if you enable a web
 = How do I get a WPScan API key? =
 
 Register for a free account at [wpscan.com](https://wpscan.com/) and copy the API token from your profile. Paste the token into the Watchdog settings page to enable vulnerability lookups.
+
+= How do I configure Slack or Microsoft Teams notifications? =
+
+Slack requires an Incoming Webhook URL that you can generate from your workspace's App Directory. Microsoft Teams uses an Incoming Webhook connector that supplies its own URL. Paste either URL into the Watchdog notification settings, choose which events to send, and Watchdog will post alerts directly into the selected channel.
 
 = Can I trigger scans manually? =
 
