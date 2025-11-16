@@ -13,6 +13,17 @@
     margin-top: 0.5rem;
 }
 
+.wp-watchdog-notification-fields--disabled {
+    opacity: 0.65;
+}
+
+.wp-watchdog-notification-fields--disabled input,
+.wp-watchdog-notification-fields--disabled textarea,
+.wp-watchdog-notification-fields--disabled select {
+    background-color: #f6f7f7;
+    cursor: not-allowed;
+}
+
 .wp-watchdog-frequency-description--testing {
     color: #b32d2e;
     font-weight: 600;

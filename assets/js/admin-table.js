@@ -281,8 +281,18 @@
 
             const syncState = () => {
                 const disabled = !toggle.checked;
+                fieldWrapper.classList.toggle('wp-watchdog-notification-fields--disabled', disabled);
+
                 controlledFields.forEach((field) => {
-                    field.disabled = disabled;
+                    if ('readOnly' in field) {
+                        field.readOnly = disabled;
+                    }
+
+                    if (disabled) {
+                        field.setAttribute('aria-disabled', 'true');
+                    } else {
+                        field.removeAttribute('aria-disabled');
+                    }
                 });
             };
 
