@@ -277,12 +277,17 @@ class AdminPage
                 $reasons = implode('; ', array_map(static fn ($reason): string => (string) $reason, $risk['reasons']));
             }
 
+            $remoteVersion = '';
+            if (isset($risk['remote_version']) && $risk['remote_version'] !== null) {
+                $remoteVersion = (string) $risk['remote_version'];
+            }
+
             fputcsv($handle, [
                 $entry['run_at'],
                 isset($risk['plugin_slug']) ? (string) $risk['plugin_slug'] : '',
                 isset($risk['plugin_name']) ? (string) $risk['plugin_name'] : '',
                 isset($risk['local_version']) ? (string) $risk['local_version'] : '',
-                isset($risk['remote_version']) && $risk['remote_version'] !== null ? (string) $risk['remote_version'] : '',
+                $remoteVersion,
                 $reasons,
             ]);
         }

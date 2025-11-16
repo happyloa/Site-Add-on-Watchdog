@@ -78,6 +78,6 @@ class RiskHistoryTest extends TestCase
 
         self::assertStringContainsString('json-url', $output);
         self::assertStringContainsString('csv-url', $output);
-        self::assertStringContainsString('200', $output);
+        self::assertStringContainsString(gmdate('Y-m-d H:i', 200), $output);
     }
 }

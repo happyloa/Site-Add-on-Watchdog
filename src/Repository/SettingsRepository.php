@@ -132,7 +132,9 @@ class SettingsRepository
             ],
             'last_notification' => $current['last_notification'] ?? '',
             'history'           => [
-                'retention' => $this->sanitizeRetention($history['retention'] ?? ($current['history']['retention'] ?? null)),
+                'retention' => $this->sanitizeRetention(
+                    $history['retention'] ?? ($current['history']['retention'] ?? null)
+                ),
             ],
         ];
 
