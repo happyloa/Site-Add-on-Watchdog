@@ -285,7 +285,11 @@ class SettingsRepository
         return $frequency;
     }
 
-    private function determineTestingExpiration(string $previousFrequency, string $newFrequency, mixed $previousExpiration): int
+    private function determineTestingExpiration(
+        string $previousFrequency,
+        string $newFrequency,
+        mixed $previousExpiration
+    ): int
     {
         if ($newFrequency !== 'testing') {
             return 0;
