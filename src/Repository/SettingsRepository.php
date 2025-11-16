@@ -35,6 +35,9 @@ class SettingsRepository
                 'wpscan_api_key' => '',
             ],
             'last_notification' => '',
+            'history'           => [
+                'retention' => RiskRepository::DEFAULT_HISTORY_RETENTION,
+            ],
         ];
 
         $stored = get_option(self::OPTION);
@@ -56,6 +59,8 @@ class SettingsRepository
         if ($settings['notifications']['email']['recipients'] === '') {
             $settings['notifications']['email']['recipients'] = $this->buildAdministratorEmailList();
         }
+
+        $settings['history']['retention'] = $this->sanitizeRetention($settings['history']['retention'] ?? null);
 
         return $settings;
     }
@@ -94,6 +99,11 @@ class SettingsRepository
             $webhook = [];
         }
 
+        $history = $settings['history'] ?? [];
+        if (! is_array($history)) {
+            $history = [];
+        }
+
         $filtered = [
             'notifications'     => [
                 'frequency' => $this->sanitizeFrequency($notifications['frequency'] ?? ''),
@@ -121,6 +131,9 @@ class SettingsRepository
                 'wpscan_api_key' => sanitize_text_field($notifications['wpscan_api_key'] ?? ''),
             ],
             'last_notification' => $current['last_notification'] ?? '',
+            'history'           => [
+                'retention' => $this->sanitizeRetention($history['retention'] ?? ($current['history']['retention'] ?? null)),
+            ],
         ];
 
         update_option(self::OPTION, $filtered, false);
@@ -218,9 +231,19 @@ class SettingsRepository
             'wpscan_api_key' => $notifications['wpscan_api_key'] ?? $legacy['wpscan_api_key'],
         ];
 
+        $historyRetention = null;
+        if (isset($stored['history']) && is_array($stored['history'])) {
+            $historyRetention = $stored['history']['retention'] ?? null;
+        } elseif (isset($stored['history_retention'])) {
+            $historyRetention = $stored['history_retention'];
+        }
+
         return [
             'notifications'     => $normalizedNotifications,
             'last_notification' => $stored['last_notification'] ?? '',
+            'history'           => [
+                'retention' => $historyRetention,
+            ],
         ];
     }
 
@@ -278,5 +301,22 @@ class SettingsRepository
         }
 
         return implode(', ', $unique);
+    }
+
+    private function sanitizeRetention(mixed $retention): int
+    {
+        if (is_string($retention) && $retention !== '') {
+            $retention = (int) $retention;
+        }
+
+        if (! is_int($retention)) {
+            $retention = RiskRepository::DEFAULT_HISTORY_RETENTION;
+        }
+
+        if ($retention < 1) {
+            $retention = RiskRepository::DEFAULT_HISTORY_RETENTION;
+        }
+
+        return $retention;
     }
 }

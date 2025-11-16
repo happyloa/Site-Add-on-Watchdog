@@ -77,10 +77,16 @@ class Plugin
     public function runScan(bool $notify = true): void
     {
         $risks = $this->scanner->scan();
-        $this->riskRepository->save($risks);
+        $settings = $this->settingsRepository->get();
+        $retention = (int) ($settings['history']['retention'] ?? RiskRepository::DEFAULT_HISTORY_RETENTION);
+        if ($retention < 1) {
+            $retention = RiskRepository::DEFAULT_HISTORY_RETENTION;
+        }
+
+        $runAt = time();
+        $this->riskRepository->save($risks, $runAt, $retention);
 
         $hash = md5(wp_json_encode(array_map(static fn (Risk $risk): array => $risk->toArray(), $risks)));
-        $settings = $this->settingsRepository->get();
 
         if ($hash !== ($settings['last_notification'] ?? '')) {
             if ($notify && ! empty($risks)) {
