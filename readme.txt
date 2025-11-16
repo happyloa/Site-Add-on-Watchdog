@@ -67,6 +67,21 @@ Slack requires an Incoming Webhook URL that you can generate from your workspace
 
 Yes. Use the "Run manual scan" button on the Watchdog admin page.
 
+== CLI Usage ==
+
+Watchdog bundles a WP-CLI command so you can run scans outside of the WordPress admin. All examples below assume the command is executed from a shell where `wp` (WP-CLI) is available.
+
+`wp watchdog scan [--notify=<bool>]`
+
+* `--notify` (optional): Accepts `true` or `false` (defaults to `true`). When set to `false`, Watchdog will skip any configured email or webhook notifications and only record the scan locally.
+
+Examples:
+
+* Run a scan and send notifications (default): `wp watchdog scan`
+* Run a scan silently (skip notifications): `wp watchdog scan --notify=false`
+
+Recommended workflow: on CI/CD platforms, add a job step that boots your WordPress/WP-CLI container, runs pending database migrations if needed, and then calls `wp watchdog scan --notify=false` to verify the plugin state without spamming production channels. Promote to production by rerunning the same command with notifications enabled when you are ready to alert your team.
+
 == Changelog ==
 
 = 0.5.0 =
