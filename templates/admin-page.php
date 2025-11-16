@@ -228,6 +228,9 @@
                     $defaultFrequencyMessage = __('Choose how often the automatic scan should run.', 'wp-plugin-watchdog');
                     $testingFrequencyMessage = __('Ten-minute testing mode sends notifications every ten minutes to all configured channels and automatically switches back to daily scans after six hours.', 'wp-plugin-watchdog');
                     $isTestingFrequency      = ($settings['notifications']['frequency'] ?? '') === 'testing';
+                    $testingExpiresAt        = (int) ($settings['notifications']['testing_expires_at'] ?? 0);
+                    $now                     = time();
+                    $showTestingExpiry       = $isTestingFrequency && $testingExpiresAt > $now;
                     ?>
                     <label for="wp-watchdog-notification-frequency" class="screen-reader-text"><?php esc_html_e('Scan frequency', 'wp-plugin-watchdog'); ?></label>
                     <select id="wp-watchdog-notification-frequency" name="settings[notifications][frequency]">
@@ -244,6 +247,23 @@
                     >
                         <?php echo esc_html($isTestingFrequency ? $testingFrequencyMessage : $defaultFrequencyMessage); ?>
                     </p>
+                    <?php if ($showTestingExpiry) : ?>
+                        <?php
+                        $testingExpiryMessage = sprintf(
+                            /* translators: 1: formatted expiration date/time, 2: human-readable remaining duration */
+                            __('Testing mode will automatically switch back to daily scans on %1$s (%2$s remaining).', 'wp-plugin-watchdog'),
+                            wp_date(
+                                get_option('date_format') . ' ' . get_option('time_format'),
+                                $testingExpiresAt,
+                                wp_timezone()
+                            ),
+                            human_time_diff($now, $testingExpiresAt)
+                        );
+                        ?>
+                        <p class="description wp-watchdog-frequency-description wp-watchdog-frequency-description--expires">
+                            <?php echo esc_html($testingExpiryMessage); ?>
+                        </p>
+                    <?php endif; ?>
                 </td>
             </tr>
             <tr>
