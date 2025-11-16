@@ -43,6 +43,15 @@ class Plugin
             $frequency = 'daily';
         }
 
+        if (
+            $frequency === 'testing'
+            && ($settings['notifications']['testing_expires_at'] ?? 0) > 0
+            && time() >= (int) $settings['notifications']['testing_expires_at']
+        ) {
+            $frequency = 'daily';
+            $this->settingsRepository->updateNotificationFrequency('daily');
+        }
+
         $this->clearScheduledHook(self::LEGACY_CRON_HOOK);
 
         $timestamp       = wp_next_scheduled(self::CRON_HOOK);
@@ -60,7 +69,7 @@ class Plugin
 
         $this->clearScheduledHook(self::CRON_HOOK);
 
-        wp_schedule_event(time() + HOUR_IN_SECONDS, $frequency, self::CRON_HOOK);
+        wp_schedule_event(time() + $this->scheduleDelayForFrequency($frequency), $frequency, self::CRON_HOOK);
     }
 
     public function deactivate(): void
@@ -86,15 +95,21 @@ class Plugin
         $runAt = time();
         $this->riskRepository->save($risks, $runAt, $retention);
 
-        $hash = md5(wp_json_encode(array_map(static fn (Risk $risk): array => $risk->toArray(), $risks)));
+        $hash          = md5(wp_json_encode(array_map(static fn (Risk $risk): array => $risk->toArray(), $risks)));
+        $lastHash      = $settings['last_notification'] ?? '';
+        $isTestingMode = ($settings['notifications']['frequency'] ?? 'daily') === 'testing';
 
-        if ($hash !== ($settings['last_notification'] ?? '')) {
-            if ($notify && ! empty($risks)) {
-                $this->notifier->notify($risks);
-            }
-            if ($notify) {
-                $this->settingsRepository->saveNotificationHash($hash);
-            }
+        $shouldNotify = $notify && ! empty($risks) && ($isTestingMode || $hash !== $lastHash);
+
+        if ($shouldNotify) {
+            $this->notifier->notify($risks);
+            $this->settingsRepository->saveNotificationHash($hash);
+
+            return;
+        }
+
+        if ($notify && $hash !== $lastHash) {
+            $this->settingsRepository->saveNotificationHash($hash);
         }
     }
 
@@ -127,5 +142,16 @@ class Plugin
             wp_unschedule_event($timestamp, $hook);
             $timestamp = wp_next_scheduled($hook);
         }
+    }
+
+    private function scheduleDelayForFrequency(string $frequency): int
+    {
+        if ($frequency === 'testing') {
+            $minute = defined('MINUTE_IN_SECONDS') ? MINUTE_IN_SECONDS : 60;
+
+            return 10 * $minute;
+        }
+
+        return defined('HOUR_IN_SECONDS') ? HOUR_IN_SECONDS : 3600;
     }
 }

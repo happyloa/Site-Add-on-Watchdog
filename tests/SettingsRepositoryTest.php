@@ -106,6 +106,7 @@ class SettingsRepositoryTest extends TestCase
         $settings   = $repository->get();
 
         self::assertSame('testing', $settings['notifications']['frequency']);
+        self::assertSame(0, $settings['notifications']['testing_expires_at']);
     }
 
     public function testSavesTestingFrequency(): void
@@ -164,6 +165,7 @@ class SettingsRepositoryTest extends TestCase
         });
 
         $repository = new SettingsRepository();
+        $startTime  = time();
         $repository->save([
             'notifications' => [
                 'frequency' => 'testing',
@@ -192,13 +194,221 @@ class SettingsRepositoryTest extends TestCase
             ],
         ]);
 
+        $endTime = time();
+
         self::assertIsArray($updated);
         self::assertSame('testing', $updated['notifications']['frequency']);
         self::assertTrue($updated['notifications']['slack']['enabled']);
         self::assertSame('https://example.com/slack', $updated['notifications']['slack']['webhook']);
         self::assertTrue($updated['notifications']['teams']['enabled']);
         self::assertSame('https://example.com/teams', $updated['notifications']['teams']['webhook']);
+        $expectedMin = $startTime + (6 * 3600);
+        $expectedMax = $endTime + (6 * 3600);
+        self::assertGreaterThanOrEqual($expectedMin, $updated['notifications']['testing_expires_at']);
+        self::assertLessThanOrEqual($expectedMax, $updated['notifications']['testing_expires_at']);
         self::assertSame(RiskRepository::DEFAULT_HISTORY_RETENTION, $updated['history']['retention']);
+    }
+
+    public function testKeepsExistingTestingExpirationWhenAlreadyInTestingMode(): void
+    {
+        Functions\when('get_option')->alias(static function ($option, $default = false) {
+            if ($option === 'wp_watchdog_settings') {
+                return [
+                    'notifications' => [
+                        'frequency'          => 'testing',
+                        'testing_expires_at' => 12345,
+                        'email'              => [
+                            'enabled'    => true,
+                            'recipients' => 'stored@example.com',
+                        ],
+                        'discord'            => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'slack'              => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'teams'              => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'webhook'            => [
+                            'enabled' => false,
+                            'url'     => '',
+                            'secret'  => '',
+                        ],
+                        'wpscan_api_key'     => '',
+                    ],
+                    'last_notification' => '',
+                ];
+            }
+
+            if ($option === 'admin_email') {
+                return 'owner@example.com';
+            }
+
+            return $default;
+        });
+
+        Functions\when('sanitize_text_field')->alias(static fn ($value) => $value);
+        Functions\when('esc_url_raw')->alias(static fn ($value) => $value);
+
+        $updated = null;
+        Functions\when('update_option')->alias(static function ($option, $value) use (&$updated) {
+            if ($option === 'wp_watchdog_settings') {
+                $updated = $value;
+
+                return true;
+            }
+
+            return false;
+        });
+
+        $repository = new SettingsRepository();
+        $repository->save([
+            'notifications' => [
+                'frequency' => 'testing',
+                'email'     => [
+                    'enabled'    => true,
+                    'recipients' => 'updated@example.com',
+                ],
+            ],
+        ]);
+
+        self::assertIsArray($updated);
+        self::assertSame(12345, $updated['notifications']['testing_expires_at']);
+    }
+
+    public function testClearsTestingExpirationWhenSwitchingToNonTestingMode(): void
+    {
+        Functions\when('get_option')->alias(static function ($option, $default = false) {
+            if ($option === 'wp_watchdog_settings') {
+                return [
+                    'notifications' => [
+                        'frequency'          => 'testing',
+                        'testing_expires_at' => 22222,
+                        'email'              => [
+                            'enabled'    => true,
+                            'recipients' => 'stored@example.com',
+                        ],
+                        'discord'            => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'slack'              => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'teams'              => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'webhook'            => [
+                            'enabled' => false,
+                            'url'     => '',
+                            'secret'  => '',
+                        ],
+                        'wpscan_api_key'     => '',
+                    ],
+                    'last_notification' => '',
+                ];
+            }
+
+            if ($option === 'admin_email') {
+                return 'owner@example.com';
+            }
+
+            return $default;
+        });
+
+        Functions\when('sanitize_text_field')->alias(static fn ($value) => $value);
+        Functions\when('esc_url_raw')->alias(static fn ($value) => $value);
+
+        $updated = null;
+        Functions\when('update_option')->alias(static function ($option, $value) use (&$updated) {
+            if ($option === 'wp_watchdog_settings') {
+                $updated = $value;
+
+                return true;
+            }
+
+            return false;
+        });
+
+        $repository = new SettingsRepository();
+        $repository->save([
+            'notifications' => [
+                'frequency' => 'daily',
+            ],
+        ]);
+
+        self::assertIsArray($updated);
+        self::assertSame(0, $updated['notifications']['testing_expires_at']);
+    }
+
+    public function testUpdateNotificationFrequencyAppliesValues(): void
+    {
+        Functions\when('get_option')->alias(static function ($option, $default = false) {
+            if ($option === 'wp_watchdog_settings') {
+                return [
+                    'notifications' => [
+                        'frequency'          => 'testing',
+                        'testing_expires_at' => 33333,
+                        'email'              => [
+                            'enabled'    => true,
+                            'recipients' => 'stored@example.com',
+                        ],
+                        'discord'            => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'slack'              => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'teams'              => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'webhook'            => [
+                            'enabled' => false,
+                            'url'     => '',
+                            'secret'  => '',
+                        ],
+                        'wpscan_api_key'     => '',
+                    ],
+                    'history' => [
+                        'retention' => RiskRepository::DEFAULT_HISTORY_RETENTION,
+                    ],
+                    'last_notification' => '',
+                ];
+            }
+
+            if ($option === 'admin_email') {
+                return 'owner@example.com';
+            }
+
+            return $default;
+        });
+
+        $captured = null;
+        Functions\when('update_option')->alias(static function ($option, $value) use (&$captured) {
+            if ($option === 'wp_watchdog_settings') {
+                $captured = $value;
+
+                return true;
+            }
+
+            return false;
+        });
+
+        $repository = new SettingsRepository();
+        $repository->updateNotificationFrequency('daily', 0);
+
+        self::assertIsArray($captured);
+        self::assertSame('daily', $captured['notifications']['frequency']);
+        self::assertSame(0, $captured['notifications']['testing_expires_at']);
     }
 
     public function testSavesHistoryRetentionSetting(): void

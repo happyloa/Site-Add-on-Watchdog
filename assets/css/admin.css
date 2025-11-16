@@ -2,6 +2,22 @@
     margin-top: 1.5rem;
 }
 
+.wp-watchdog-notification-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+.wp-watchdog-notification-fields {
+    margin-top: 0.5rem;
+}
+
+.wp-watchdog-frequency-description--testing {
+    color: #b32d2e;
+    font-weight: 600;
+}
+
 .wp-watchdog-risk-table__controls {
     display: flex;
     align-items: center;
