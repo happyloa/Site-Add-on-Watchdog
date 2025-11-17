@@ -2,6 +2,7 @@
 
 use function Brain\Monkey\Functions\expect;
 use function Brain\Monkey\Functions\when;
+use Watchdog\Models\Risk;
 use Watchdog\Notifier;
 use Watchdog\Plugin;
 use Watchdog\Repository\RiskRepository;
@@ -161,5 +162,63 @@ class PluginTest extends TestCase
 
         $plugin = new Plugin($scanner, $riskRepository, $settingsRepository, $notifier);
         $plugin->schedule();
+    }
+
+    public function testManualScanNotificationsAreThrottled(): void
+    {
+        $risk = new Risk('example/plugin', 'Example Plugin', '1.0.0', '1.1.0', ['Outdated plugin version']);
+
+        $scanner = $this->createMock(Scanner::class);
+        $scanner->method('scan')->willReturn([$risk]);
+
+        $riskRepository = $this->createMock(RiskRepository::class);
+        $riskRepository
+            ->expects(self::exactly(2))
+            ->method('save')
+            ->with([$risk], self::isType('int'), RiskRepository::DEFAULT_HISTORY_RETENTION);
+
+        $initialSettings = [
+            'notifications' => [
+                'frequency' => 'testing',
+                'testing_expires_at' => 0,
+                'last_manual_notification_at' => 0,
+            ],
+            'history' => ['retention' => RiskRepository::DEFAULT_HISTORY_RETENTION],
+            'last_notification' => '',
+        ];
+
+        $throttledSettings = [
+            'notifications' => [
+                'frequency' => 'testing',
+                'testing_expires_at' => 0,
+                'last_manual_notification_at' => time() - 20,
+            ],
+            'history' => ['retention' => RiskRepository::DEFAULT_HISTORY_RETENTION],
+            'last_notification' => '',
+        ];
+
+        $settingsRepository = $this->createMock(SettingsRepository::class);
+        $settingsRepository
+            ->expects(self::exactly(2))
+            ->method('get')
+            ->willReturnOnConsecutiveCalls($initialSettings, $throttledSettings);
+        $settingsRepository
+            ->expects(self::once())
+            ->method('saveNotificationHash')
+            ->with(self::isType('string'));
+        $settingsRepository
+            ->expects(self::once())
+            ->method('saveManualNotificationTime')
+            ->with(self::isType('int'));
+
+        $notifier = $this->createMock(Notifier::class);
+        $notifier->expects(self::once())->method('notify')->with([$risk]);
+
+        when('wp_json_encode')->alias(static fn ($data) => json_encode($data, JSON_THROW_ON_ERROR));
+
+        $plugin = new Plugin($scanner, $riskRepository, $settingsRepository, $notifier);
+
+        $plugin->runScan(true, 'manual');
+        $plugin->runScan(true, 'manual');
     }
 }

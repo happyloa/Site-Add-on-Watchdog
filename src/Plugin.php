@@ -12,6 +12,8 @@ class Plugin
     private const LEGACY_CRON_HOOK = 'wp_watchdog_daily_scan';
     private const CRON_STATUS_OPTION = 'wp_watchdog_cron_status';
 
+    private const MANUAL_NOTIFICATION_INTERVAL = 60;
+
     private bool $hooksRegistered = false;
 
     public function __construct(
@@ -98,7 +100,7 @@ class Plugin
      *
      * @param bool $notify Whether notifications should be dispatched.
      */
-    public function runScan(bool $notify = true): void
+    public function runScan(bool $notify = true, string $context = 'automatic'): void
     {
         $risks = $this->scanner->scan();
         $settings = $this->settingsRepository->get();
@@ -115,15 +117,25 @@ class Plugin
         $isTestingMode = ($settings['notifications']['frequency'] ?? 'daily') === 'testing';
 
         $shouldNotify = $notify && ($isTestingMode || (! empty($risks) && $hash !== $lastHash));
+        $manualThrottle = $context === 'manual'
+            && $this->isManualNotificationThrottled($settings, $runAt);
+
+        if ($shouldNotify && $manualThrottle) {
+            $shouldNotify = false;
+        }
 
         if ($shouldNotify) {
             $this->notifier->notify($risks);
             $this->settingsRepository->saveNotificationHash($hash);
 
+            if ($context === 'manual') {
+                $this->settingsRepository->saveManualNotificationTime($runAt);
+            }
+
             return;
         }
 
-        if ($notify && $hash !== $lastHash) {
+        if ($notify && $hash !== $lastHash && ! $manualThrottle) {
             $this->settingsRepository->saveNotificationHash($hash);
         }
     }
@@ -315,5 +327,16 @@ class Plugin
         }
 
         return false;
+    }
+
+    private function isManualNotificationThrottled(array $settings, int $now): bool
+    {
+        $lastManualNotification = (int) ($settings['notifications']['last_manual_notification_at'] ?? 0);
+
+        if ($lastManualNotification <= 0) {
+            return false;
+        }
+
+        return ($now - $lastManualNotification) < self::MANUAL_NOTIFICATION_INTERVAL;
     }
 }
