@@ -25,6 +25,10 @@ if (version_compare(PHP_VERSION, '8.1', '<')) {
     });
 
     if (is_admin() && current_user_can('activate_plugins')) {
+        if (! function_exists('deactivate_plugins')) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+
         deactivate_plugins(plugin_basename(__FILE__));
     }
 
