@@ -10,6 +10,7 @@ class Plugin
 {
     private const CRON_HOOK = 'wp_watchdog_scheduled_scan';
     private const LEGACY_CRON_HOOK = 'wp_watchdog_daily_scan';
+    private const CRON_STATUS_OPTION = 'wp_watchdog_cron_status';
 
     private bool $hooksRegistered = false;
 
@@ -30,6 +31,7 @@ class Plugin
         add_action(self::CRON_HOOK, [$this, 'runScan']);
         add_filter('cron_schedules', [$this, 'registerCronSchedules']);
         add_action('plugins_loaded', [$this, 'schedule']);
+        add_action('admin_notices', [$this, 'renderCronDiagnostics']);
 
         $this->hooksRegistered = true;
     }
@@ -56,12 +58,25 @@ class Plugin
 
         $timestamp       = wp_next_scheduled(self::CRON_HOOK);
         $currentSchedule = $timestamp ? wp_get_schedule(self::CRON_HOOK) : false;
+        $interval        = $this->cronIntervalForFrequency($frequency);
+        $isOverdue       = $timestamp !== false
+            && $interval > 0
+            && $this->isEventOverdue((int) $timestamp, $interval);
 
         if ($frequency === 'manual') {
             $this->clearScheduledHook(self::CRON_HOOK);
+            $this->recordCronStatus($this->isCronDisabled(), false);
 
             return;
         }
+
+        if ($isOverdue) {
+            $this->handleOverdueEvent($frequency, $interval);
+
+            return;
+        }
+
+        $this->recordCronStatus($this->isCronDisabled(), false);
 
         if ($timestamp && $currentSchedule === $frequency) {
             return;
@@ -153,5 +168,152 @@ class Plugin
         }
 
         return defined('HOUR_IN_SECONDS') ? HOUR_IN_SECONDS : 3600;
+    }
+
+    public function renderCronDiagnostics(): void
+    {
+        if (! is_admin() || ! current_user_can('manage_options')) {
+            return;
+        }
+
+        $status = get_option(self::CRON_STATUS_OPTION);
+        if (! is_array($status)) {
+            return;
+        }
+
+        if (! empty($status['cron_disabled'])) {
+            echo '<div class="notice notice-error"><p>'
+                . esc_html__(
+                    'WP-Cron appears disabled. Configure a system cron job to trigger wp-cron.php for Plugin Watchdog.',
+                    'wp-plugin-watchdog'
+                )
+                . '</p></div>';
+
+            return;
+        }
+
+        if (($status['overdue_streak'] ?? 0) >= 2) {
+            echo '<div class="notice notice-warning"><p>'
+                . esc_html__(
+                    'Plugin Watchdog scans are overdue. Ensure system cron calls wp-cron.php regularly.',
+                    'wp-plugin-watchdog'
+                )
+                . '</p></div>';
+        }
+    }
+
+    private function isEventOverdue(int $timestamp, int $interval): bool
+    {
+        $grace = max(60, (int) floor($interval * 0.25));
+
+        return $timestamp <= (time() - ($interval + $grace));
+    }
+
+    private function handleOverdueEvent(string $frequency, int $interval): void
+    {
+        $cronDisabled = $this->isCronDisabled();
+        $now          = time();
+
+        $this->recordCronStatus($cronDisabled, true);
+
+        if (! $cronDisabled) {
+            if (function_exists('spawn_cron')) {
+                spawn_cron($now);
+            } else {
+                $cronUrl = site_url('wp-cron.php');
+                wp_remote_post($cronUrl, [
+                    'timeout'   => 0.01,
+                    'blocking'  => false,
+                    'sslverify' => false,
+                ]);
+            }
+        }
+
+        if ($this->hasFutureEventScheduled($now)) {
+            return;
+        }
+
+        $catchUpDelay = $this->catchUpDelay($frequency, $interval);
+        wp_schedule_single_event($now + $catchUpDelay, self::CRON_HOOK);
+    }
+
+    private function isCronDisabled(): bool
+    {
+        return defined('DISABLE_WP_CRON') && DISABLE_WP_CRON;
+    }
+
+    private function recordCronStatus(bool $cronDisabled, bool $overdue): void
+    {
+        $status = get_option(self::CRON_STATUS_OPTION);
+        if (! is_array($status)) {
+            $status = [
+                'overdue_streak' => 0,
+                'cron_disabled'  => false,
+            ];
+        }
+
+        $status['cron_disabled'] = $cronDisabled;
+        $status['last_checked']  = time();
+
+        if ($overdue) {
+            $status['overdue_streak'] = min(10, (int) ($status['overdue_streak'] ?? 0) + 1);
+        } else {
+            $status['overdue_streak'] = 0;
+        }
+
+        update_option(self::CRON_STATUS_OPTION, $status, false);
+
+        if ($cronDisabled) {
+            error_log('[Plugin Watchdog] WP-Cron appears disabled. Configure system cron to trigger wp-cron.php.');
+        } elseif ($status['overdue_streak'] >= 2) {
+            error_log('[Plugin Watchdog] Scheduled scans are overdue. Ensure cron can reach wp-cron.php.');
+        }
+    }
+
+    private function cronIntervalForFrequency(string $frequency): int
+    {
+        $schedules = wp_get_schedules();
+        if (isset($schedules[$frequency]['interval'])) {
+            return (int) $schedules[$frequency]['interval'];
+        }
+
+        if ($frequency === 'testing') {
+            return 10 * (defined('MINUTE_IN_SECONDS') ? MINUTE_IN_SECONDS : 60);
+        }
+
+        if ($frequency === 'weekly') {
+            return defined('WEEK_IN_SECONDS') ? WEEK_IN_SECONDS : 7 * 24 * 3600;
+        }
+
+        return defined('DAY_IN_SECONDS') ? DAY_IN_SECONDS : 86400;
+    }
+
+    private function catchUpDelay(string $frequency, int $interval): int
+    {
+        if ($frequency === 'testing') {
+            return 60;
+        }
+
+        return min(300, max(60, (int) floor($interval / 6)));
+    }
+
+    private function hasFutureEventScheduled(int $now): bool
+    {
+        $crons = _get_cron_array();
+        if (! is_array($crons)) {
+            return false;
+        }
+
+        foreach ($crons as $timestamp => $hooks) {
+            if ($timestamp <= $now) {
+                continue;
+            }
+
+            if (isset($hooks[self::CRON_HOOK])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
