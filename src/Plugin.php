@@ -229,6 +229,10 @@ class Plugin
             }
         }
 
+        if ($this->hasFutureEventScheduled($now)) {
+            return;
+        }
+
         $catchUpDelay = $this->catchUpDelay($frequency, $interval);
         wp_schedule_single_event($now + $catchUpDelay, self::CRON_HOOK);
     }
@@ -291,5 +295,25 @@ class Plugin
         }
 
         return min(300, max(60, (int) floor($interval / 6)));
+    }
+
+    private function hasFutureEventScheduled(int $now): bool
+    {
+        $crons = _get_cron_array();
+        if (! is_array($crons)) {
+            return false;
+        }
+
+        foreach ($crons as $timestamp => $hooks) {
+            if ($timestamp <= $now) {
+                continue;
+            }
+
+            if (isset($hooks[self::CRON_HOOK])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
