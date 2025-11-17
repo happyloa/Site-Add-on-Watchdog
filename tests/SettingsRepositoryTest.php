@@ -482,4 +482,67 @@ class SettingsRepositoryTest extends TestCase
         self::assertIsArray($updated);
         self::assertSame(45, $updated['history']['retention']);
     }
+
+    public function testSaveManualNotificationTimePersistsTimestamp(): void
+    {
+        Functions\when('get_option')->alias(static function ($option, $default = false) {
+            if ($option === 'wp_watchdog_settings') {
+                return [
+                    'notifications' => [
+                        'frequency' => 'daily',
+                        'email'     => [
+                            'enabled'    => true,
+                            'recipients' => 'stored@example.com',
+                        ],
+                        'discord'   => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'slack'     => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'teams'     => [
+                            'enabled' => false,
+                            'webhook' => '',
+                        ],
+                        'webhook'   => [
+                            'enabled' => false,
+                            'url'     => '',
+                            'secret'  => '',
+                        ],
+                        'wpscan_api_key' => '',
+                        'last_manual_notification_at' => 0,
+                    ],
+                    'history' => [
+                        'retention' => RiskRepository::DEFAULT_HISTORY_RETENTION,
+                    ],
+                    'last_notification' => '',
+                ];
+            }
+
+            if ($option === 'admin_email') {
+                return 'owner@example.com';
+            }
+
+            return $default;
+        });
+
+        $captured = null;
+        Functions\when('update_option')->alias(static function ($option, $value) use (&$captured) {
+            if ($option === 'wp_watchdog_settings') {
+                $captured = $value;
+
+                return true;
+            }
+
+            return false;
+        });
+
+        $repository = new SettingsRepository();
+        $repository->saveManualNotificationTime(1_700_000_000);
+
+        self::assertIsArray($captured);
+        self::assertSame(1_700_000_000, $captured['notifications']['last_manual_notification_at']);
+    }
 }

@@ -147,7 +147,7 @@ class AdminPage
     {
         $this->guardAccess('wp_watchdog_scan');
 
-        $this->plugin->runScan();
+        $this->plugin->runScan(true, 'manual');
 
         wp_safe_redirect(
             add_query_arg(

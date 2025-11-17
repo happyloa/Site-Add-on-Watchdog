@@ -34,6 +34,7 @@ class SettingsRepository
                 ],
                 'testing_expires_at' => 0,
                 'wpscan_api_key' => '',
+                'last_manual_notification_at' => 0,
             ],
             'last_notification' => '',
             'history'           => [
@@ -58,6 +59,9 @@ class SettingsRepository
         $settings['notifications']['frequency'] = $this->sanitizeFrequency($settings['notifications']['frequency']);
         $settings['notifications']['testing_expires_at'] = $this->sanitizeTestingExpiration(
             $settings['notifications']['testing_expires_at'] ?? 0
+        );
+        $settings['notifications']['last_manual_notification_at'] = $this->sanitizeTimestamp(
+            $settings['notifications']['last_manual_notification_at'] ?? 0
         );
 
         if ($settings['notifications']['email']['recipients'] === '') {
@@ -135,6 +139,10 @@ class SettingsRepository
                     'secret'  => sanitize_text_field($webhook['secret'] ?? ''),
                 ],
                 'wpscan_api_key' => sanitize_text_field($notifications['wpscan_api_key'] ?? ''),
+                'last_manual_notification_at' => $this->sanitizeTimestamp(
+                    $notifications['last_manual_notification_at']
+                        ?? ($current['notifications']['last_manual_notification_at'] ?? 0)
+                ),
             ],
             'last_notification' => $current['last_notification'] ?? '',
             'history'           => [
@@ -165,6 +173,14 @@ class SettingsRepository
         $settings = $this->get();
         $settings['notifications']['frequency'] = $this->sanitizeFrequency($frequency);
         $settings['notifications']['testing_expires_at'] = $this->sanitizeTestingExpiration($testingExpiresAt);
+
+        update_option(self::OPTION, $settings, false);
+    }
+
+    public function saveManualNotificationTime(int $timestamp): void
+    {
+        $settings = $this->get();
+        $settings['notifications']['last_manual_notification_at'] = $this->sanitizeTimestamp($timestamp);
 
         update_option(self::OPTION, $settings, false);
     }
@@ -226,6 +242,7 @@ class SettingsRepository
             ],
             'frequency'      => $stored['notification_frequency'] ?? null,
             'wpscan_api_key' => $stored['wpscan_api_key'] ?? null,
+            'last_manual_notification_at' => $stored['last_manual_notification_at'] ?? null,
         ];
 
         $normalizedNotifications = [
@@ -253,6 +270,8 @@ class SettingsRepository
             ],
             'wpscan_api_key' => $notifications['wpscan_api_key'] ?? $legacy['wpscan_api_key'],
             'testing_expires_at' => $notifications['testing_expires_at'] ?? null,
+            'last_manual_notification_at' => $notifications['last_manual_notification_at']
+                ?? $legacy['last_manual_notification_at'],
         ];
 
         $historyRetention = null;
@@ -387,5 +406,22 @@ class SettingsRepository
         }
 
         return $retention;
+    }
+
+    private function sanitizeTimestamp(mixed $value): int
+    {
+        if (is_string($value) && $value !== '') {
+            if (is_numeric($value)) {
+                $value = (int) $value;
+            } else {
+                return 0;
+            }
+        }
+
+        if (! is_int($value)) {
+            return 0;
+        }
+
+        return max(0, $value);
     }
 }
