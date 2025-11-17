@@ -3,7 +3,7 @@
 /**
  * Plugin Name: WP Plugin Watchdog
  * Description: Monitors installed plugins for potential security risks and outdated versions.
- * Version:     1.0.0
+ * Version:     1.1.0
  * Author:      Aaron
  * Author URI:  https://www.worksbyaaron.com/
  * License:     GPLv2 or later
@@ -13,6 +13,23 @@
  */
 
 defined('ABSPATH') || exit;
+
+if (version_compare(PHP_VERSION, '8.1', '<')) {
+    add_action('admin_notices', static function () {
+        echo '<div class="notice notice-error"><p>'
+            . esc_html__(
+                'WP Plugin Watchdog requires PHP 8.1 or higher. The plugin has been disabled.',
+                'wp-plugin-watchdog'
+            )
+            . '</p></div>';
+    });
+
+    if (is_admin() && current_user_can('activate_plugins')) {
+        deactivate_plugins(plugin_basename(__FILE__));
+    }
+
+    return;
+}
 
 $autoload = __DIR__ . '/vendor/autoload.php';
 if (is_readable($autoload)) {
