@@ -132,6 +132,17 @@ class Notifier
      */
     private function formatPlainTextMessage(array $risks): string
     {
+        if (empty($risks)) {
+            return implode("\n", [
+                __('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog'),
+                '',
+                sprintf(
+                    __('Review plugins here: %s', 'wp-plugin-watchdog'),
+                    esc_url(admin_url('plugins.php'))
+                ),
+            ]);
+        }
+
         $lines = [
             __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog'),
             '',
@@ -169,6 +180,7 @@ class Notifier
      */
     private function formatSlackMessage(array $risks, string $plainTextReport): array
     {
+        $hasRisks = ! empty($risks);
         $blocks = [
             [
                 'type' => 'header',
@@ -182,7 +194,9 @@ class Notifier
                 'type' => 'section',
                 'text' => [
                     'type' => 'mrkdwn',
-                    'text' => __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog'),
+                    'text' => $hasRisks
+                        ? __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog')
+                        : __('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog'),
                 ],
             ],
         ];
@@ -273,6 +287,7 @@ class Notifier
     private function formatTeamsMessage(array $risks): array
     {
         $riskSections = [];
+        $hasRisks     = ! empty($risks);
 
         foreach ($risks as $risk) {
             $riskSections[] = $this->formatTeamsRiskSection($risk);
@@ -286,8 +301,10 @@ class Notifier
             'title'      => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog'),
             'sections'   => [
                 [
-                    'activityTitle' => __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog'),
-                    'text'          => implode("\n\n", $riskSections),
+                    'activityTitle' => $hasRisks
+                        ? __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog')
+                        : __('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog'),
+                    'text'          => $hasRisks ? implode("\n\n", $riskSections) : '',
                 ],
             ],
             'potentialAction' => [
@@ -358,6 +375,26 @@ class Notifier
      */
     private function formatEmailMessage(array $risks): string
     {
+        if (empty($risks)) {
+            $containerStyle = 'font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", ';
+            $containerStyle .= 'Roboto, sans-serif; color:#1d2327;';
+            $linkStyle = 'color:#2271b1;';
+
+            return sprintf(
+                '<div style="%1$s">
+                    <h2 style="font-size:20px; font-weight:600;">%2$s</h2>
+                    <p style="font-size:14px; line-height:1.6;">%3$s</p>
+                    <p style="font-size:14px; line-height:1.6;">%4$s <a style="%5$s" href="%6$s">%6$s</a></p>
+                </div>',
+                esc_attr($containerStyle),
+                esc_html__('No plugin risks detected on your site', 'wp-plugin-watchdog'),
+                esc_html__('The latest scan did not find any plugins that require attention.', 'wp-plugin-watchdog'),
+                esc_html__('Review your plugins here:', 'wp-plugin-watchdog'),
+                esc_attr($linkStyle),
+                esc_url(admin_url('plugins.php'))
+            );
+        }
+
         $rows = '';
 
         foreach ($risks as $risk) {
