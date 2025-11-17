@@ -79,6 +79,87 @@ class NotifierTest extends TestCase
         ]);
     }
 
+    public function testNotifierRendersNoRiskPayload(): void
+    {
+        $settings = [
+            'notifications' => [
+                'frequency' => 'testing',
+                'email'     => [
+                    'enabled'    => true,
+                    'recipients' => 'user@example.com',
+                ],
+                'discord'   => [
+                    'enabled' => false,
+                    'webhook' => '',
+                ],
+                'slack'     => [
+                    'enabled' => false,
+                    'webhook' => '',
+                ],
+                'teams'     => [
+                    'enabled' => false,
+                    'webhook' => '',
+                ],
+                'webhook'   => [
+                    'enabled' => true,
+                    'url'     => 'https://example.com/hook',
+                ],
+                'wpscan_api_key' => '',
+            ],
+        ];
+
+        $repository = $this->createMock(SettingsRepository::class);
+        $repository->method('get')->willReturn($settings);
+
+        when('get_users')->alias(static fn () => []);
+        when('admin_url')->alias(static fn ($path = '') => 'https://example.com/wp-admin/' . ltrim($path, '/'));
+        when('esc_url')->alias(static fn ($url) => $url);
+        when('esc_html')->alias(static fn ($text) => $text);
+        when('esc_attr')->alias(static fn ($text) => $text);
+        when('__')->alias(static fn ($text) => $text);
+        when('esc_html__')->alias(static fn ($text) => $text);
+        when('sanitize_email')->alias(static fn ($email) => strtolower(trim((string) $email)));
+        when('is_email')->alias(static fn ($email) => $email !== '' && str_contains($email, '@'));
+        when('wp_json_encode')->alias(static fn ($data) => json_encode($data, JSON_THROW_ON_ERROR));
+        when('is_wp_error')->alias(static fn () => false);
+        when('wp_remote_retrieve_response_code')->alias(static fn ($response) => $response['response']['code'] ?? 0);
+        when('wp_remote_retrieve_body')->alias(static fn () => '');
+
+        expect('wp_mail')
+            ->once()
+            ->withArgs(function ($recipients, $subject, $body, $headers) {
+                self::assertSame(['user@example.com'], $recipients);
+                self::assertSame('Plugin Watchdog Risk Alert', $subject);
+                self::assertStringContainsString('No plugin risks detected on your site', $body);
+                self::assertStringNotContainsString('<table', $body);
+
+                return $headers === ['Content-Type: text/html; charset=UTF-8'];
+            });
+
+        expect('wp_remote_post')
+            ->once()
+            ->withArgs(function ($url, $args) {
+                self::assertSame('https://example.com/hook', $url);
+
+                $payload = json_decode($args['body'], true, 512, JSON_THROW_ON_ERROR);
+                self::assertStringContainsString('No plugin risks detected on your site at this time.', $payload['message']);
+                self::assertSame([], $payload['risks']);
+
+                return $args['headers']['Content-Type'] === 'application/json';
+            })
+            ->andReturn([
+                'response' => ['code' => 204],
+                'body'     => '',
+            ]);
+
+        expect('delete_transient')
+            ->once()
+            ->with('wp_watchdog_webhook_error');
+
+        $notifier = new Notifier($repository);
+        $notifier->notify([]);
+    }
+
     public function testConfiguredRecipientsAreMergedAndDeduplicatedWithAdministrators(): void
     {
         $settings = [

@@ -99,7 +99,7 @@ class Plugin
         $lastHash      = $settings['last_notification'] ?? '';
         $isTestingMode = ($settings['notifications']['frequency'] ?? 'daily') === 'testing';
 
-        $shouldNotify = $notify && ! empty($risks) && ($isTestingMode || $hash !== $lastHash);
+        $shouldNotify = $notify && ($isTestingMode || (! empty($risks) && $hash !== $lastHash));
 
         if ($shouldNotify) {
             $this->notifier->notify($risks);
