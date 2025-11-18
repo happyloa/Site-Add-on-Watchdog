@@ -7,7 +7,7 @@
  * Author:      Aaron
  * Author URI:  https://www.worksbyaaron.com/
  * License:     GPLv2 or later
- * Text Domain: wp-plugin-watchdog
+ * Text Domain: wp-plugin-watchdog-main
  * Requires PHP: 8.1
  * Tested up to: 6.8
  */
@@ -19,7 +19,7 @@ if (version_compare(PHP_VERSION, '8.1', '<')) {
         echo '<div class="notice notice-error"><p>'
             . esc_html__(
                 'WP Plugin Watchdog requires PHP 8.1 or higher. The plugin has been disabled.',
-                'wp-plugin-watchdog'
+                'wp-plugin-watchdog-main'
             )
             . '</p></div>';
     });

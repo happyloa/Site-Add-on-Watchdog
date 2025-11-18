@@ -148,14 +148,14 @@ class Plugin
         if (! isset($schedules['weekly'])) {
             $schedules['weekly'] = [
                 'interval' => WEEK_IN_SECONDS,
-                'display'  => __('Once Weekly', 'wp-plugin-watchdog'),
+                'display'  => __('Once Weekly', 'wp-plugin-watchdog-main'),
             ];
         }
 
         if (! isset($schedules['testing'])) {
             $schedules['testing'] = [
                 'interval' => 10 * MINUTE_IN_SECONDS,
-                'display'  => __('Every 10 Minutes (testing)', 'wp-plugin-watchdog'),
+                'display'  => __('Every 10 Minutes (testing)', 'wp-plugin-watchdog-main'),
             ];
         }
 
@@ -197,7 +197,7 @@ class Plugin
             echo '<div class="notice notice-error"><p>'
                 . esc_html__(
                     'WP-Cron appears disabled. Configure a system cron job to trigger wp-cron.php for Plugin Watchdog.',
-                    'wp-plugin-watchdog'
+                    'wp-plugin-watchdog-main'
                 )
                 . '</p></div>';
 
@@ -208,7 +208,7 @@ class Plugin
             echo '<div class="notice notice-warning"><p>'
                 . esc_html__(
                     'Plugin Watchdog scans are overdue. Ensure system cron calls wp-cron.php regularly.',
-                    'wp-plugin-watchdog'
+                    'wp-plugin-watchdog-main'
                 )
                 . '</p></div>';
         }
