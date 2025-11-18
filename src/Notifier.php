@@ -40,7 +40,7 @@ class Notifier
             if (! empty($recipients)) {
                 wp_mail(
                     $recipients,
-                    __('Plugin Watchdog Risk Alert', 'wp-plugin-watchdog'),
+                    __('Plugin Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
                     $emailReport,
                     ['Content-Type: text/html; charset=UTF-8']
                 );
@@ -134,17 +134,17 @@ class Notifier
     {
         if (empty($risks)) {
             return implode("\n", [
-                __('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog'),
+                __('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog-main'),
                 '',
                 sprintf(
-                    __('Review plugins here: %s', 'wp-plugin-watchdog'),
+                    __('Review plugins here: %s', 'wp-plugin-watchdog-main'),
                     esc_url(admin_url('plugins.php'))
                 ),
             ]);
         }
 
         $lines = [
-            __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog'),
+            __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog-main'),
             '',
         ];
 
@@ -154,12 +154,12 @@ class Notifier
                 $risk->pluginName
             );
             $lines[] = sprintf(
-                __('Current version: %s', 'wp-plugin-watchdog'),
-                $risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog')
+                __('Current version: %s', 'wp-plugin-watchdog-main'),
+                $risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog-main')
             );
             $lines[] = sprintf(
-                __('Available version: %s', 'wp-plugin-watchdog'),
-                $risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog')
+                __('Available version: %s', 'wp-plugin-watchdog-main'),
+                $risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog-main')
             );
             foreach ($risk->reasons as $reason) {
                 $lines[] = sprintf('- %s', $reason);
@@ -168,7 +168,7 @@ class Notifier
         }
 
         $lines[] = sprintf(
-            __('Update plugins here: %s', 'wp-plugin-watchdog'),
+            __('Update plugins here: %s', 'wp-plugin-watchdog-main'),
             esc_url(admin_url('update-core.php'))
         );
 
@@ -186,7 +186,7 @@ class Notifier
                 'type' => 'header',
                 'text' => [
                     'type'  => 'plain_text',
-                    'text'  => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog'),
+                    'text'  => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
                     'emoji' => true,
                 ],
             ],
@@ -195,8 +195,8 @@ class Notifier
                 'text' => [
                     'type' => 'mrkdwn',
                     'text' => $hasRisks
-                        ? __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog')
-                        : __('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog'),
+                        ? __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog-main')
+                        : __('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog-main'),
                 ],
             ],
         ];
@@ -218,7 +218,7 @@ class Notifier
                     'type' => 'button',
                     'text' => [
                         'type'  => 'plain_text',
-                        'text'  => __('Review updates', 'wp-plugin-watchdog'),
+                        'text'  => __('Review updates', 'wp-plugin-watchdog-main'),
                         'emoji' => true,
                     ],
                     'url'  => admin_url('update-core.php'),
@@ -239,13 +239,13 @@ class Notifier
         $lines[] = sprintf('*%s*', $risk->pluginName);
         $lines[] = sprintf(
             '%s %s',
-            __('Current version:', 'wp-plugin-watchdog'),
-            $risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog')
+            __('Current version:', 'wp-plugin-watchdog-main'),
+            $risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog-main')
         );
         $lines[] = sprintf(
             '%s %s',
-            __('Available version:', 'wp-plugin-watchdog'),
-            $risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog')
+            __('Available version:', 'wp-plugin-watchdog-main'),
+            $risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog-main')
         );
 
         foreach ($risk->reasons as $reason) {
@@ -267,7 +267,7 @@ class Notifier
                 if (! empty($vulnerability['fixed_in'])) {
                     $summary[] = sprintf(
                         /* translators: %s is a plugin version number */
-                        __('Fixed in %s', 'wp-plugin-watchdog'),
+                        __('Fixed in %s', 'wp-plugin-watchdog-main'),
                         $vulnerability['fixed_in']
                     );
                 }
@@ -296,21 +296,21 @@ class Notifier
         return [
             '@type'    => 'MessageCard',
             '@context' => 'https://schema.org/extensions',
-            'summary'  => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog'),
+            'summary'  => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
             'themeColor' => 'D32F2F',
-            'title'      => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog'),
+            'title'      => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
             'sections'   => [
                 [
                     'activityTitle' => $hasRisks
-                        ? __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog')
-                        : __('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog'),
+                        ? __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog-main')
+                        : __('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog-main'),
                     'text'          => $hasRisks ? implode("\n\n", $riskSections) : '',
                 ],
             ],
             'potentialAction' => [
                 [
                     '@type'  => 'OpenUri',
-                    'name'   => __('Review updates', 'wp-plugin-watchdog'),
+                    'name'   => __('Review updates', 'wp-plugin-watchdog-main'),
                     'targets' => [
                         [
                             'os'  => 'default',
@@ -328,13 +328,13 @@ class Notifier
         $lines[] = sprintf('**%s**', $risk->pluginName);
         $lines[] = sprintf(
             '- %s %s',
-            __('Current version:', 'wp-plugin-watchdog'),
-            $risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog')
+            __('Current version:', 'wp-plugin-watchdog-main'),
+            $risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog-main')
         );
         $lines[] = sprintf(
             '- %s %s',
-            __('Available version:', 'wp-plugin-watchdog'),
-            $risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog')
+            __('Available version:', 'wp-plugin-watchdog-main'),
+            $risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog-main')
         );
 
         foreach ($risk->reasons as $reason) {
@@ -356,7 +356,7 @@ class Notifier
                 if (! empty($vulnerability['fixed_in'])) {
                     $summary[] = sprintf(
                         /* translators: %s is a plugin version number */
-                        __('Fixed in %s', 'wp-plugin-watchdog'),
+                        __('Fixed in %s', 'wp-plugin-watchdog-main'),
                         $vulnerability['fixed_in']
                     );
                 }
@@ -380,6 +380,11 @@ class Notifier
             $containerStyle .= 'Roboto, sans-serif; color:#1d2327;';
             $linkStyle = 'color:#2271b1;';
 
+            $noRisksMessage = esc_html__(
+                'The latest scan did not find any plugins that require attention.',
+                'wp-plugin-watchdog-main'
+            );
+
             return sprintf(
                 '<div style="%1$s">
                     <h2 style="font-size:20px; font-weight:600;">%2$s</h2>
@@ -387,9 +392,9 @@ class Notifier
                     <p style="font-size:14px; line-height:1.6;">%4$s <a style="%5$s" href="%6$s">%6$s</a></p>
                 </div>',
                 esc_attr($containerStyle),
-                esc_html__('No plugin risks detected on your site', 'wp-plugin-watchdog'),
-                esc_html__('The latest scan did not find any plugins that require attention.', 'wp-plugin-watchdog'),
-                esc_html__('Review your plugins here:', 'wp-plugin-watchdog'),
+                esc_html__('No plugin risks detected on your site', 'wp-plugin-watchdog-main'),
+                $noRisksMessage,
+                esc_html__('Review your plugins here:', 'wp-plugin-watchdog-main'),
                 esc_attr($linkStyle),
                 esc_url(admin_url('plugins.php'))
             );
@@ -415,7 +420,7 @@ class Notifier
 
                     $label = trim($title . ($cve !== '' ? ' - ' . $cve : ''));
                     if ($fixed !== '') {
-                        $label .= ' ' . sprintf(__('(Fixed in %s)', 'wp-plugin-watchdog'), $fixed);
+                        $label .= ' ' . sprintf(__('(Fixed in %s)', 'wp-plugin-watchdog-main'), $fixed);
                     }
 
                     if ($label !== '') {
@@ -444,8 +449,8 @@ class Notifier
                 </tr>',
                 esc_html($risk->pluginName),
                 $reasons,
-                esc_html($risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog')),
-                esc_html($risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog'))
+                esc_html($risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog-main')),
+                esc_html($risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog-main'))
             );
         }
 
@@ -457,7 +462,7 @@ class Notifier
         $introText = esc_html__(
             'These plugins are flagged for security or maintenance updates.'
             . ' Review the details below and update as soon as possible.',
-            'wp-plugin-watchdog'
+            'wp-plugin-watchdog-main'
         );
         $updateUrl = esc_url(admin_url('update-core.php'));
 
@@ -478,14 +483,14 @@ class Notifier
                 <p style="font-size:14px; line-height:1.6;">%9$s <a style="%10$s" href="%11$s">%11$s</a></p>
             </div>',
             esc_attr($containerStyle),
-            esc_html__('Plugin updates required on your site', 'wp-plugin-watchdog'),
+            esc_html__('Plugin updates required on your site', 'wp-plugin-watchdog-main'),
             $introText,
             esc_attr($tableStyle),
-            esc_html__('Plugin', 'wp-plugin-watchdog'),
-            esc_html__('Current Version', 'wp-plugin-watchdog'),
-            esc_html__('Available Version', 'wp-plugin-watchdog'),
+            esc_html__('Plugin', 'wp-plugin-watchdog-main'),
+            esc_html__('Current Version', 'wp-plugin-watchdog-main'),
+            esc_html__('Available Version', 'wp-plugin-watchdog-main'),
             $rows,
-            esc_html__('Update plugins here:', 'wp-plugin-watchdog'),
+            esc_html__('Update plugins here:', 'wp-plugin-watchdog-main'),
             esc_attr($linkStyle),
             $updateUrl
         );

@@ -34,8 +34,8 @@ class AdminPage
     public function addMenu(): void
     {
         $this->menuHook = add_menu_page(
-            __('Plugin Watchdog', 'wp-plugin-watchdog'),
-            __('Watchdog', 'wp-plugin-watchdog'),
+            __('Plugin Watchdog', 'wp-plugin-watchdog-main'),
+            __('Watchdog', 'wp-plugin-watchdog-main'),
             'manage_options',
             'wp-plugin-watchdog',
             [$this, 'render'],
@@ -46,7 +46,7 @@ class AdminPage
     public function render(): void
     {
         if (! current_user_can('manage_options')) {
-            wp_die(__('You do not have permission to access this page.', 'wp-plugin-watchdog'));
+            wp_die(__('You do not have permission to access this page.', 'wp-plugin-watchdog-main'));
         }
 
         $this->enqueuePageAssets();
@@ -165,7 +165,7 @@ class AdminPage
 
         $runAt = isset($_GET['run_at']) ? (int) $_GET['run_at'] : 0;
         if ($runAt <= 0) {
-            wp_die(__('Invalid history request.', 'wp-plugin-watchdog'));
+            wp_die(__('Invalid history request.', 'wp-plugin-watchdog-main'));
         }
 
         $formatParam = $_GET['format'] ?? 'json';
@@ -180,7 +180,7 @@ class AdminPage
 
         $entry = $this->riskRepository->historyEntry($runAt);
         if ($entry === null) {
-            wp_die(__('History entry not found.', 'wp-plugin-watchdog'));
+            wp_die(__('History entry not found.', 'wp-plugin-watchdog-main'));
         }
 
         if ($format === 'csv') {
@@ -193,7 +193,7 @@ class AdminPage
     private function guardAccess(string $action): void
     {
         if (! current_user_can('manage_options')) {
-            wp_die(__('You do not have permission to perform this action.', 'wp-plugin-watchdog'));
+            wp_die(__('You do not have permission to perform this action.', 'wp-plugin-watchdog-main'));
         }
 
         check_admin_referer($action);
@@ -216,7 +216,7 @@ class AdminPage
         wp_enqueue_style('wp-plugin-watchdog-admin', $styleUrl, [], $styleVersion);
         wp_enqueue_script('wp-plugin-watchdog-admin-table', $scriptUrl, [], $scriptVersion, true);
         wp_localize_script('wp-plugin-watchdog-admin-table', 'wpWatchdogTable', [
-            'pageStatus' => __('Page %1$d of %2$d', 'wp-plugin-watchdog'),
+            'pageStatus' => __('Page %1$d of %2$d', 'wp-plugin-watchdog-main'),
         ]);
 
         $this->assetsEnqueued = true;
@@ -266,7 +266,7 @@ class AdminPage
 
         $handle = fopen('php://output', 'w');
         if ($handle === false) {
-            wp_die(__('Unable to generate history export.', 'wp-plugin-watchdog'));
+            wp_die(__('Unable to generate history export.', 'wp-plugin-watchdog-main'));
         }
 
         fputcsv($handle, ['run_at', 'plugin_slug', 'plugin_name', 'local_version', 'remote_version', 'reasons']);
