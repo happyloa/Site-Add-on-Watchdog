@@ -380,6 +380,11 @@ class Notifier
             $containerStyle .= 'Roboto, sans-serif; color:#1d2327;';
             $linkStyle = 'color:#2271b1;';
 
+            $noRisksMessage = esc_html__(
+                'The latest scan did not find any plugins that require attention.',
+                'wp-plugin-watchdog-main'
+            );
+
             return sprintf(
                 '<div style="%1$s">
                     <h2 style="font-size:20px; font-weight:600;">%2$s</h2>
@@ -388,7 +393,7 @@ class Notifier
                 </div>',
                 esc_attr($containerStyle),
                 esc_html__('No plugin risks detected on your site', 'wp-plugin-watchdog-main'),
-                esc_html__('The latest scan did not find any plugins that require attention.', 'wp-plugin-watchdog-main'),
+                $noRisksMessage,
                 esc_html__('Review your plugins here:', 'wp-plugin-watchdog-main'),
                 esc_attr($linkStyle),
                 esc_url(admin_url('plugins.php'))
