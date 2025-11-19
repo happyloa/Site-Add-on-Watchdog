@@ -11,11 +11,13 @@
 <?php else : ?>
     <p class="description">
         <?php
-        printf(
-            /* translators: 1: number of scans shown, 2: total scans retained */
-            esc_html__('Showing the last %1$s scans (retaining %2$s in total).', 'wp-plugin-watchdog-main'),
-            esc_html(number_format_i18n($historyDisplay)),
-            esc_html(number_format_i18n($historyRetention))
+        echo esc_html(
+            sprintf(
+                /* translators: 1: number of scans shown, 2: total scans retained */
+                esc_html__('Showing the last %1$s scans (retaining %2$s in total).', 'wp-plugin-watchdog-main'),
+                number_format_i18n($historyDisplay),
+                number_format_i18n($historyRetention)
+            )
         );
         ?>
     </p>
