@@ -6,12 +6,15 @@ use Watchdog\Models\Risk;
 use Watchdog\Repository\RiskRepository;
 use Watchdog\Repository\SettingsRepository;
 
+use WP_Filesystem_Direct;
+
 class AdminPage
 {
     private const HISTORY_DOWNLOAD_ACTION = 'wp_watchdog_history_download';
 
     private ?string $menuHook = null;
     private bool $assetsEnqueued = false;
+    private ?WP_Filesystem_Direct $filesystem = null;
 
     public function __construct(
         private readonly RiskRepository $riskRepository,
@@ -176,12 +179,13 @@ class AdminPage
         }
 
         $formatParam = $_GET['format'] ?? 'json';
+        $formatParam = wp_unslash($formatParam);
         if (is_array($formatParam)) {
             $formatParam = reset($formatParam) ?: 'json';
         }
 
-        $format = sanitize_key(wp_unslash((string) $formatParam));
-        if ($format === '') {
+        $format = sanitize_key((string) $formatParam);
+        if ($format === '' || ! in_array($format, ['json', 'csv'], true)) {
             $format = 'json';
         }
 
@@ -289,12 +293,9 @@ class AdminPage
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
 
-        $handle = fopen('php://output', 'w');
-        if ($handle === false) {
-            wp_die(__('Unable to generate history export.', 'wp-plugin-watchdog-main'));
-        }
-
-        fputcsv($handle, ['run_at', 'plugin_slug', 'plugin_name', 'local_version', 'remote_version', 'reasons']);
+        $rows = [
+            ['run_at', 'plugin_slug', 'plugin_name', 'local_version', 'remote_version', 'reasons'],
+        ];
 
         foreach ($entry['risks'] as $risk) {
             $reasons = '';
@@ -307,17 +308,79 @@ class AdminPage
                 $remoteVersion = (string) $risk['remote_version'];
             }
 
-            fputcsv($handle, [
-                $entry['run_at'],
+            $rows[] = [
+                (string) $entry['run_at'],
                 isset($risk['plugin_slug']) ? (string) $risk['plugin_slug'] : '',
                 isset($risk['plugin_name']) ? (string) $risk['plugin_name'] : '',
                 isset($risk['local_version']) ? (string) $risk['local_version'] : '',
                 $remoteVersion,
                 $reasons,
-            ]);
+            ];
         }
 
-        fclose($handle);
+        $filesystem = $this->getFilesystem();
+        $csvContent = $this->buildCsvContent($rows);
+
+        if (! $filesystem->put_contents('php://output', $csvContent)) {
+            wp_die(__('Unable to generate history export.', 'wp-plugin-watchdog-main'));
+        }
         exit;
+    }
+
+    /**
+     * @param array<int, array<int, string>> $rows
+     */
+    private function buildCsvContent(array $rows): string
+    {
+        $lines = array_map([$this, 'formatCsvRow'], $rows);
+
+        return implode("\r\n", $lines) . "\r\n";
+    }
+
+    /**
+     * @param array<int, string> $row
+     */
+    private function formatCsvRow(array $row): string
+    {
+        $row     = array_map(static fn ($value): string => (string) $value, $row);
+        $escaped = array_map(static function (string $field): string {
+            $needsQuotes = strpbrk($field, ",\"\r\n") !== false;
+            $field       = str_replace('"', '""', $field);
+
+            if ($needsQuotes) {
+                $field = '"' . $field . '"';
+            }
+
+            return $field;
+        }, $row);
+
+        return implode(',', $escaped);
+    }
+
+    private function getFilesystem(): WP_Filesystem_Direct
+    {
+        if ($this->filesystem instanceof WP_Filesystem_Direct) {
+            return $this->filesystem;
+        }
+
+        if (! function_exists('request_filesystem_credentials')) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+
+        global $wp_filesystem;
+
+        if (! $wp_filesystem instanceof WP_Filesystem_Direct) {
+            WP_Filesystem();
+        }
+
+        if ($wp_filesystem instanceof WP_Filesystem_Direct) {
+            $this->filesystem = $wp_filesystem;
+
+            return $this->filesystem;
+        }
+
+        $this->filesystem = new WP_Filesystem_Direct(false);
+
+        return $this->filesystem;
     }
 }

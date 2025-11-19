@@ -217,7 +217,7 @@ class Scanner
             return false;
         }
 
-        $normalized = strtolower(strip_tags($entryHtml));
+        $normalized = strtolower(wp_strip_all_tags($entryHtml));
 
         return str_contains($normalized, 'security')
             || str_contains($normalized, 'vulnerability');
