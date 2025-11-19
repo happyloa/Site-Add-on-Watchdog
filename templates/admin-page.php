@@ -245,8 +245,14 @@
                         <option value="testing" <?php selected($settings['notifications']['frequency'], 'testing'); ?>><?php esc_html_e('Testing (every 10 minutes)', 'wp-plugin-watchdog-main'); ?></option>
                         <option value="manual" <?php selected($settings['notifications']['frequency'], 'manual'); ?>><?php esc_html_e('Manual (no automatic scans)', 'wp-plugin-watchdog-main'); ?></option>
                     </select>
+                    <?php
+                    $frequencyDescriptionClass = 'description wp-watchdog-frequency-description';
+                    if ($isTestingFrequency) {
+                        $frequencyDescriptionClass .= ' wp-watchdog-frequency-description--testing';
+                    }
+                    ?>
                     <p
-                        class="description wp-watchdog-frequency-description<?php echo $isTestingFrequency ? ' wp-watchdog-frequency-description--testing' : ''; ?>"
+                        class="<?php echo esc_attr($frequencyDescriptionClass); ?>"
                         data-watchdog-frequency-description
                         data-default-message="<?php echo esc_attr($defaultFrequencyMessage); ?>"
                         data-testing-message="<?php echo esc_attr($testingFrequencyMessage); ?>"
