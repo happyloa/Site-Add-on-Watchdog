@@ -261,13 +261,44 @@
                     </p>
                     <?php if ($showTestingExpiry) : ?>
                         <?php
+                        $timezone = null;
+                        if (function_exists('wp_timezone')) {
+                            $timezone = wp_timezone();
+                        } else {
+                            $timezoneString = (string) get_option('timezone_string');
+                            if ($timezoneString !== '') {
+                                try {
+                                    $timezone = new DateTimeZone($timezoneString);
+                                } catch (Exception $exception) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+                                }
+                            }
+
+                            if (! $timezone) {
+                                $gmtOffset = get_option('gmt_offset');
+                                if (is_numeric($gmtOffset)) {
+                                    $secondsInHour = defined('HOUR_IN_SECONDS') ? HOUR_IN_SECONDS : 3600;
+                                    $secondsOffset = (int) round((float) $gmtOffset * $secondsInHour);
+                                    $timezoneName  = timezone_name_from_abbr('', $secondsOffset, 0);
+                                    if ($timezoneName !== false) {
+                                        try {
+                                            $timezone = new DateTimeZone($timezoneName);
+                                        } catch (Exception $exception) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (! $timezone) {
+                            $timezone = new DateTimeZone('UTC');
+                        }
                         $testingExpiryMessage = sprintf(
                             /* translators: 1: formatted expiration date/time, 2: human-readable remaining duration */
                             __('Testing mode will automatically switch back to daily scans on %1$s (%2$s remaining).', 'wp-plugin-watchdog-main'),
                             wp_date(
                                 get_option('date_format') . ' ' . get_option('time_format'),
                                 $testingExpiresAt,
-                                wp_timezone()
+                                $timezone
                             ),
                             human_time_diff($now, $testingExpiresAt)
                         );
