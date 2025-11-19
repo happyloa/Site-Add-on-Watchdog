@@ -14,7 +14,10 @@ class AdminPage
 
     private ?string $menuHook = null;
     private bool $assetsEnqueued = false;
-    private ?WP_Filesystem_Direct $filesystem = null;
+    /**
+     * @var WP_Filesystem_Direct|null
+     */
+    private $filesystem = null;
 
     public function __construct(
         private readonly RiskRepository $riskRepository,
@@ -357,15 +360,13 @@ class AdminPage
         return implode(',', $escaped);
     }
 
-    private function getFilesystem(): WP_Filesystem_Direct
+    private function getFilesystem()
     {
-        if ($this->filesystem instanceof WP_Filesystem_Direct) {
+        if ($this->filesystem !== null) {
             return $this->filesystem;
         }
 
-        if (! function_exists('request_filesystem_credentials')) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-        }
+        $this->ensureFilesystemDependenciesLoaded();
 
         global $wp_filesystem;
 
@@ -382,5 +383,20 @@ class AdminPage
         $this->filesystem = new WP_Filesystem_Direct(false);
 
         return $this->filesystem;
+    }
+
+    private function ensureFilesystemDependenciesLoaded(): void
+    {
+        if (! function_exists('request_filesystem_credentials')) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+
+        if (! class_exists('WP_Filesystem_Base')) {
+            require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-base.php';
+        }
+
+        if (! class_exists('WP_Filesystem_Direct')) {
+            require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-direct.php';
+        }
     }
 }
