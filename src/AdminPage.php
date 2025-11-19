@@ -199,6 +199,8 @@ class AdminPage
 
         if ($format === 'csv') {
             $this->streamHistoryCsv($entry);
+
+            return;
         }
 
         $this->streamHistoryJson($entry);
@@ -321,6 +323,9 @@ class AdminPage
         }
 
         $target = 'php://output';
+        $delimiter = ',';
+        $enclosure = '"';
+        $escape    = '\\';
 
         if ($target === 'php://output') {
             $handle = fopen($target, 'wb');
@@ -332,7 +337,7 @@ class AdminPage
             foreach ($rows as $row) {
                 $row = array_map(static fn ($value): string => (string) $value, $row);
 
-                if (fputcsv($handle, $row, ',', '"', '\') === false) {
+                if (fputcsv($handle, $row, $delimiter, $enclosure, $escape) === false) {
                     fclose($handle);
                     wp_die(__('Unable to generate history export.', 'wp-plugin-watchdog-main'));
                 }
