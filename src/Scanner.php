@@ -217,10 +217,19 @@ class Scanner
             return false;
         }
 
-        $normalized = strtolower(strip_tags($entryHtml));
+        $normalized = strtolower($this->stripAllTags($entryHtml));
 
         return str_contains($normalized, 'security')
             || str_contains($normalized, 'vulnerability');
+    }
+
+    private function stripAllTags(string $text): string
+    {
+        if (function_exists('wp_strip_all_tags')) {
+            return wp_strip_all_tags($text);
+        }
+
+        return strip_tags($text);
     }
 
     private function extractLatestChangelogEntry(string $changelogHtml, string $remoteVersion): string
