@@ -93,12 +93,15 @@ class AdminPage
 
     public function handleSettings(): void
     {
-        $this->guardAccess('wp_watchdog_settings');
+        $this->guardAccess();
+        check_admin_referer('wp_watchdog_settings');
 
         $payload = wp_unslash($_POST['settings'] ?? []);
         if (! is_array($payload)) {
             $payload = [];
         }
+
+        $payload = $this->sanitizeSettingsInput($payload);
 
         if (! isset($payload['notifications']) || ! is_array($payload['notifications'])) {
             $payload['notifications'] = [];
@@ -119,7 +122,8 @@ class AdminPage
 
     public function handleIgnore(): void
     {
-        $this->guardAccess('wp_watchdog_ignore');
+        $this->guardAccess();
+        check_admin_referer('wp_watchdog_ignore');
 
         $slug = sanitize_text_field(wp_unslash($_POST['plugin_slug'] ?? ''));
         if ($slug !== '') {
@@ -132,7 +136,8 @@ class AdminPage
 
     public function handleUnignore(): void
     {
-        $this->guardAccess('wp_watchdog_unignore');
+        $this->guardAccess();
+        check_admin_referer('wp_watchdog_unignore');
 
         $slug = sanitize_text_field(wp_unslash($_POST['plugin_slug'] ?? ''));
         if ($slug !== '') {
@@ -145,7 +150,8 @@ class AdminPage
 
     public function handleManualScan(): void
     {
-        $this->guardAccess('wp_watchdog_scan');
+        $this->guardAccess();
+        check_admin_referer('wp_watchdog_scan');
 
         $this->plugin->runScan(true, 'manual');
 
@@ -161,7 +167,8 @@ class AdminPage
 
     public function handleHistoryDownload(): void
     {
-        $this->guardAccess(self::HISTORY_DOWNLOAD_ACTION);
+        $this->guardAccess();
+        check_admin_referer(self::HISTORY_DOWNLOAD_ACTION);
 
         $runAt = isset($_GET['run_at']) ? (int) $_GET['run_at'] : 0;
         if ($runAt <= 0) {
@@ -190,13 +197,30 @@ class AdminPage
         $this->streamHistoryJson($entry);
     }
 
-    private function guardAccess(string $action): void
+    private function guardAccess(): void
     {
         if (! current_user_can('manage_options')) {
             wp_die(__('You do not have permission to perform this action.', 'wp-plugin-watchdog-main'));
         }
+    }
 
-        check_admin_referer($action);
+    /**
+     * @param array<string, mixed> $settings
+     * @return array<string, mixed>
+     */
+    private function sanitizeSettingsInput(array $settings): array
+    {
+        return array_map(function ($value) {
+            if (is_array($value)) {
+                return $this->sanitizeSettingsInput($value);
+            }
+
+            if (is_scalar($value) || $value === null) {
+                return sanitize_text_field((string) $value);
+            }
+
+            return '';
+        }, $settings);
     }
 
     private function enqueuePageAssets(): void
