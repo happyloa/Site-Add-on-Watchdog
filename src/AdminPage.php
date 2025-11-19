@@ -332,7 +332,7 @@ class AdminPage
             foreach ($rows as $row) {
                 $row = array_map(static fn ($value): string => (string) $value, $row);
 
-                if (fputcsv($handle, $row) === false) {
+                if (fputcsv($handle, $row, ',', '"', '\') === false) {
                     fclose($handle);
                     wp_die(__('Unable to generate history export.', 'wp-plugin-watchdog-main'));
                 }
