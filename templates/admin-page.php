@@ -156,7 +156,13 @@
                                                             <span class="wp-watchdog-vulnerability__cve">- <?php echo esc_html($vuln['cve']); ?></span>
                                                         <?php endif; ?>
                                                         <?php if (! empty($vuln['fixed_in'])) : ?>
-                                                            <span class="wp-watchdog-vulnerability__fixed">(<?php printf(esc_html__('Fixed in %s', 'wp-plugin-watchdog-main'), esc_html($vuln['fixed_in'])); ?>)</span>
+                                                            <span class="wp-watchdog-vulnerability__fixed">(<?php
+                                                            printf(
+                                                                /* translators: %s is a plugin version number */
+                                                                esc_html__('Fixed in %s', 'wp-plugin-watchdog-main'),
+                                                                esc_html($vuln['fixed_in'])
+                                                            );
+                                                            ?>)</span>
                                                         <?php endif; ?>
                                                     </li>
                                                 <?php endforeach; ?>

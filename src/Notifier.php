@@ -137,6 +137,7 @@ class Notifier
                 __('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog-main'),
                 '',
                 sprintf(
+                    /* translators: %s is the URL to the Plugins page in the WordPress admin. */
                     __('Review plugins here: %s', 'wp-plugin-watchdog-main'),
                     esc_url(admin_url('plugins.php'))
                 ),
@@ -154,10 +155,12 @@ class Notifier
                 $risk->pluginName
             );
             $lines[] = sprintf(
+                /* translators: %s is the currently installed plugin version. */
                 __('Current version: %s', 'wp-plugin-watchdog-main'),
                 $risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog-main')
             );
             $lines[] = sprintf(
+                /* translators: %s is the latest plugin version available in the directory. */
                 __('Available version: %s', 'wp-plugin-watchdog-main'),
                 $risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog-main')
             );
@@ -168,6 +171,7 @@ class Notifier
         }
 
         $lines[] = sprintf(
+            /* translators: %s is the URL to the Updates page in the WordPress admin. */
             __('Update plugins here: %s', 'wp-plugin-watchdog-main'),
             esc_url(admin_url('update-core.php'))
         );
@@ -420,6 +424,7 @@ class Notifier
 
                     $label = trim($title . ($cve !== '' ? ' - ' . $cve : ''));
                     if ($fixed !== '') {
+                        /* translators: %s is a plugin version number. */
                         $label .= ' ' . sprintf(__('(Fixed in %s)', 'wp-plugin-watchdog-main'), $fixed);
                     }
 

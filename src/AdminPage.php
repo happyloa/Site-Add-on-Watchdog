@@ -216,6 +216,7 @@ class AdminPage
         wp_enqueue_style('wp-plugin-watchdog-admin', $styleUrl, [], $styleVersion);
         wp_enqueue_script('wp-plugin-watchdog-admin-table', $scriptUrl, [], $scriptVersion, true);
         wp_localize_script('wp-plugin-watchdog-admin-table', 'wpWatchdogTable', [
+            /* translators: 1: current page number, 2: total number of pages. */
             'pageStatus' => __('Page %1$d of %2$d', 'wp-plugin-watchdog-main'),
         ]);
 
