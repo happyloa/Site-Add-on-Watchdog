@@ -66,7 +66,7 @@ class AdminPage
             $historyRetention = RiskRepository::DEFAULT_HISTORY_RETENTION;
         }
 
-        $historyDisplay = (int) apply_filters('wp_watchdog_admin_history_display', min($historyRetention, 10));
+        $historyDisplay = (int) apply_filters('wp_watchdog_main_admin_history_display', min($historyRetention, 10));
         if ($historyDisplay < 1) {
             $historyDisplay = min($historyRetention, RiskRepository::DEFAULT_HISTORY_RETENTION);
         }

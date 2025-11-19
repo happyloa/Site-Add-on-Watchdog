@@ -9,8 +9,6 @@ if (! defined('ABSPATH')) {
     define('ABSPATH', __DIR__ . '/.config/');
 }
 
-ini_set('error_log', sys_get_temp_dir() . '/wp-watchdog-test-error.log');
-
 abstract class TestCase extends PHPUnitTestCase
 {
     protected function setUp(): void
