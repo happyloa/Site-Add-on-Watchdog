@@ -5,7 +5,6 @@ namespace Watchdog;
 use Watchdog\Models\Risk;
 use Watchdog\Repository\RiskRepository;
 use Watchdog\Repository\SettingsRepository;
-
 use WP_Filesystem_Direct;
 
 class AdminPage
