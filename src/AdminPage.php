@@ -199,6 +199,8 @@ class AdminPage
 
         if ($format === 'csv') {
             $this->streamHistoryCsv($entry);
+
+            return;
         }
 
         $this->streamHistoryJson($entry);
@@ -320,11 +322,35 @@ class AdminPage
             ];
         }
 
-        $filesystem = $this->getFilesystem();
-        $csvContent = $this->buildCsvContent($rows);
+        $target = 'php://output';
+        $delimiter = ',';
+        $enclosure = '"';
+        $escape    = '\\';
 
-        if (! $filesystem->put_contents('php://output', $csvContent)) {
-            wp_die(__('Unable to generate history export.', 'wp-plugin-watchdog-main'));
+        if ($target === 'php://output') {
+            $handle = fopen($target, 'wb');
+
+            if ($handle === false) {
+                wp_die(__('Unable to generate history export.', 'wp-plugin-watchdog-main'));
+            }
+
+            foreach ($rows as $row) {
+                $row = array_map(static fn ($value): string => (string) $value, $row);
+
+                if (fputcsv($handle, $row, $delimiter, $enclosure, $escape) === false) {
+                    fclose($handle);
+                    wp_die(__('Unable to generate history export.', 'wp-plugin-watchdog-main'));
+                }
+            }
+
+            fclose($handle);
+        } else {
+            $filesystem = $this->getFilesystem();
+            $csvContent  = $this->buildCsvContent($rows);
+
+            if (! $filesystem->put_contents($target, $csvContent)) {
+                wp_die(__('Unable to generate history export.', 'wp-plugin-watchdog-main'));
+            }
         }
         exit;
     }
