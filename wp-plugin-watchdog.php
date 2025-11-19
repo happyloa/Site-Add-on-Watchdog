@@ -14,10 +14,6 @@
 
 defined('ABSPATH') || exit;
 
-if (! defined('WP_PLUGIN_WATCHDOG_VERSION')) {
-    define('WP_PLUGIN_WATCHDOG_VERSION', '1.2.0');
-}
-
 if (version_compare(PHP_VERSION, '8.1', '<')) {
     add_action('admin_notices', static function () {
         echo '<div class="notice notice-error"><p>'
