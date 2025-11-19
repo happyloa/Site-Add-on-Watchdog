@@ -240,11 +240,10 @@ class AdminPage
         $scriptPath    = dirname(__DIR__) . '/assets/js/admin-table.js';
         $styleUrl      = plugins_url('assets/css/admin.css', $pluginFile);
         $scriptUrl     = plugins_url('assets/js/admin-table.js', $pluginFile);
-        $styleVersion  = file_exists($stylePath) ? (string) filemtime($stylePath) : false;
-        $scriptVersion = file_exists($scriptPath) ? (string) filemtime($scriptPath) : false;
+        $assetVersion  = defined('WP_PLUGIN_WATCHDOG_VERSION') ? WP_PLUGIN_WATCHDOG_VERSION : '1.2.0';
 
-        wp_enqueue_style('wp-plugin-watchdog-admin', $styleUrl, [], $styleVersion);
-        wp_enqueue_script('wp-plugin-watchdog-admin-table', $scriptUrl, [], $scriptVersion, true);
+        wp_enqueue_style('wp-plugin-watchdog-admin', $styleUrl, [], $assetVersion);
+        wp_enqueue_script('wp-plugin-watchdog-admin-table', $scriptUrl, [], $assetVersion, true);
         wp_localize_script('wp-plugin-watchdog-admin-table', 'wpWatchdogTable', [
             /* translators: 1: current page number, 2: total number of pages. */
             'pageStatus' => __('Page %1$d of %2$d', 'wp-plugin-watchdog-main'),

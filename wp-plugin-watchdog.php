@@ -3,7 +3,7 @@
 /**
  * Plugin Name: WP Plugin Watchdog
  * Description: Monitors installed plugins for potential security risks and outdated versions.
- * Version:     1.1.0
+ * Version:     1.2.0
  * Author:      Aaron
  * Author URI:  https://www.worksbyaaron.com/
  * License:     GPLv2 or later
@@ -13,6 +13,10 @@
  */
 
 defined('ABSPATH') || exit;
+
+if (! defined('WP_PLUGIN_WATCHDOG_VERSION')) {
+    define('WP_PLUGIN_WATCHDOG_VERSION', '1.2.0');
+}
 
 if (version_compare(PHP_VERSION, '8.1', '<')) {
     add_action('admin_notices', static function () {
