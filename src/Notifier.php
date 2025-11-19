@@ -99,7 +99,7 @@ class Notifier
                 $response->get_error_message()
             );
 
-            error_log($message);
+            $this->logWebhookFailure($message);
             set_transient('wp_watchdog_webhook_error', $message, $expiration);
 
             return;
@@ -118,13 +118,26 @@ class Notifier
                 $message .= ': ' . $bodyMessage;
             }
 
-            error_log($message);
+            $this->logWebhookFailure($message);
             set_transient('wp_watchdog_webhook_error', $message, $expiration);
 
             return;
         }
 
         delete_transient('wp_watchdog_webhook_error');
+    }
+
+    private function logWebhookFailure(string $message): void
+    {
+        if (function_exists('wp_debug_log')) {
+            wp_debug_log($message);
+
+            return;
+        }
+
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log($message);
+        }
     }
 
     /**

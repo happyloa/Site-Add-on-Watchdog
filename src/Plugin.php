@@ -276,9 +276,22 @@ class Plugin
         update_option(self::CRON_STATUS_OPTION, $status, false);
 
         if ($cronDisabled) {
-            error_log('[Plugin Watchdog] WP-Cron appears disabled. Configure system cron to trigger wp-cron.php.');
+            $this->logCronWarning('[Plugin Watchdog] WP-Cron appears disabled. Configure system cron to trigger wp-cron.php.');
         } elseif ($status['overdue_streak'] >= 2) {
-            error_log('[Plugin Watchdog] Scheduled scans are overdue. Ensure cron can reach wp-cron.php.');
+            $this->logCronWarning('[Plugin Watchdog] Scheduled scans are overdue. Ensure cron can reach wp-cron.php.');
+        }
+    }
+
+    private function logCronWarning(string $message): void
+    {
+        if (function_exists('wp_debug_log')) {
+            wp_debug_log($message);
+
+            return;
+        }
+
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log($message);
         }
     }
 
