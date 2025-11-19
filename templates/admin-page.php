@@ -11,9 +11,9 @@
 <div class="wrap">
     <h1><?php esc_html_e('WP Plugin Watchdog', 'wp-plugin-watchdog-main'); ?></h1>
 
-    <?php $webhookError = get_transient('wp_watchdog_webhook_error'); ?>
-    <?php if (! empty($webhookError)) : ?>
-        <div class="notice notice-error is-dismissible"><p><?php echo esc_html($webhookError); ?></p></div>
+    <?php $wp_watchdog_webhook_error = get_transient('wp_watchdog_webhook_error'); ?>
+    <?php if (! empty($wp_watchdog_webhook_error)) : ?>
+        <div class="notice notice-error is-dismissible"><p><?php echo esc_html($wp_watchdog_webhook_error); ?></p></div>
     <?php endif; ?>
 
     <?php if (isset($_GET['updated'])) : ?>
@@ -45,7 +45,7 @@
             'reasons'  => __('Reasons', 'wp-plugin-watchdog-main'),
             'actions'  => __('Actions', 'wp-plugin-watchdog-main'),
         ];
-        $perPage = (int) apply_filters('wp_watchdog_admin_risks_per_page', 10);
+        $perPage = (int) apply_filters('wp_watchdog_main_admin_risks_per_page', 10);
         $normalizeForSort = static function (string $value): string {
             $normalized = function_exists('remove_accents') ? remove_accents($value) : $value;
 
