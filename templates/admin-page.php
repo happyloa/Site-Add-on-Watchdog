@@ -261,13 +261,14 @@
                     </p>
                     <?php if ($showTestingExpiry) : ?>
                         <?php
+                        $timezone = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone(wp_timezone_string() ?: 'UTC');
                         $testingExpiryMessage = sprintf(
                             /* translators: 1: formatted expiration date/time, 2: human-readable remaining duration */
                             __('Testing mode will automatically switch back to daily scans on %1$s (%2$s remaining).', 'wp-plugin-watchdog-main'),
                             wp_date(
                                 get_option('date_format') . ' ' . get_option('time_format'),
                                 $testingExpiresAt,
-                                wp_timezone()
+                                $timezone
                             ),
                             human_time_diff($now, $testingExpiresAt)
                         );
