@@ -7,7 +7,7 @@
  */
 ?>
 <?php if (empty($historyRecords)) : ?>
-    <p><?php esc_html_e('No scans have been recorded yet. Run a scan to populate your history.', 'wp-plugin-watchdog-main'); ?></p>
+    <p><?php echo esc_html__('No scans have been recorded yet. Run a scan to populate your history.', 'wp-plugin-watchdog-main'); ?></p>
 <?php else : ?>
     <p class="description">
         <?php
