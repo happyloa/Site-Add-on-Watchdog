@@ -22,6 +22,35 @@ class RiskRepository
             return [];
         }
 
+        $normalized = [];
+
+        foreach ($stored as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            if (! isset($entry['plugin_slug'], $entry['plugin_name'], $entry['local_version'])) {
+                continue;
+            }
+
+            $normalized[] = [
+                'plugin_slug'   => (string) $entry['plugin_slug'],
+                'plugin_name'   => (string) $entry['plugin_name'],
+                'local_version' => (string) $entry['local_version'],
+                'remote_version' => isset($entry['remote_version']) && $entry['remote_version'] !== ''
+                    ? (string) $entry['remote_version']
+                    : null,
+                'reasons' => isset($entry['reasons']) && is_array($entry['reasons'])
+                    ? array_values(array_map(static fn ($reason): string => (string) $reason, $entry['reasons']))
+                    : [],
+                'details' => isset($entry['details']) && is_array($entry['details']) ? $entry['details'] : [],
+            ];
+        }
+
+        if ($normalized === []) {
+            return [];
+        }
+
         return array_values(array_map(
             static function (array $item): Risk {
                 return new Risk(
@@ -33,7 +62,7 @@ class RiskRepository
                     $item['details'] ?? []
                 );
             },
-            $stored
+            $normalized
         ));
     }
 
