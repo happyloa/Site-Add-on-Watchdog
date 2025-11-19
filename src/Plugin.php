@@ -276,9 +276,11 @@ class Plugin
         update_option(self::CRON_STATUS_OPTION, $status, false);
 
         if ($cronDisabled) {
-            $this->logCronWarning('[Plugin Watchdog] WP-Cron appears disabled. Configure system cron to trigger wp-cron.php.');
+            $this->logCronWarning('[Plugin Watchdog] WP-Cron appears disabled. '
+                . 'Configure system cron to trigger wp-cron.php.');
         } elseif ($status['overdue_streak'] >= 2) {
-            $this->logCronWarning('[Plugin Watchdog] Scheduled scans are overdue. Ensure cron can reach wp-cron.php.');
+            $this->logCronWarning('[Plugin Watchdog] Scheduled scans are overdue. '
+                . 'Ensure cron can reach wp-cron.php.');
         }
     }
 
