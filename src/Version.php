@@ -4,5 +4,5 @@ namespace Watchdog;
 
 final class Version
 {
-    public const NUMBER = '1.2.0';
+    public const NUMBER = '1.3.0';
 }
