@@ -38,6 +38,7 @@ class Plugin
         }
 
         add_action(self::CRON_HOOK, [$this, 'runScan']);
+        add_action(self::CRON_HOOK, [$this, 'flushNotificationQueue'], 11);
         add_filter('cron_schedules', [$this, 'registerCronSchedules']);
         add_action('plugins_loaded', [$this, 'schedule']);
         add_action('admin_notices', [$this, 'renderCronDiagnostics']);
@@ -288,6 +289,11 @@ class Plugin
         return (string) ($settings['notifications']['cron_secret'] ?? '');
     }
 
+    public function flushNotificationQueue(): array
+    {
+        return $this->notifier->processQueue();
+    }
+
     public function getCronEndpointUrl(): string
     {
         $base = rest_url(self::REST_NAMESPACE . '/cron');
@@ -461,17 +467,23 @@ class Plugin
         if ($notifyOnly) {
             $result = $this->sendNotifications($force, false);
 
+            $queueResult = $this->flushNotificationQueue();
+
             return [
                 'status'  => $result,
                 'message' => __('Notifications processed.', 'wp-plugin-watchdog-main'),
+                'queue'   => $queueResult,
             ];
         }
 
         $this->runScan(true, $force ? 'rest-force' : 'rest');
 
+        $queueResult = $this->flushNotificationQueue();
+
         return [
             'status'  => 'ok',
             'message' => __('Scan triggered successfully.', 'wp-plugin-watchdog-main'),
+            'queue'   => $queueResult,
         ];
     }
 

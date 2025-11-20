@@ -3,6 +3,7 @@
 namespace Watchdog;
 
 use Watchdog\Models\Risk;
+use Watchdog\Notifier;
 use Watchdog\Repository\RiskRepository;
 use Watchdog\Repository\SettingsRepository;
 use Watchdog\Version;
@@ -22,7 +23,8 @@ class AdminPage
     public function __construct(
         private readonly RiskRepository $riskRepository,
         private readonly SettingsRepository $settingsRepository,
-        private readonly Plugin $plugin
+        private readonly Plugin $plugin,
+        private readonly Notifier $notifier
     ) {
     }
 
@@ -35,6 +37,8 @@ class AdminPage
         add_action('admin_post_wp_watchdog_scan', [$this, 'handleManualScan']);
         add_action('admin_post_wp_watchdog_send_notifications', [$this, 'handleSendNotifications']);
         add_action('admin_post_wp_watchdog_download_history', [$this, 'handleHistoryDownload']);
+        add_action('admin_post_wp_watchdog_resend_failed_notification', [$this, 'handleResendFailedNotification']);
+        add_action('admin_post_wp_watchdog_download_failed_notification', [$this, 'handleFailedNotificationDownload']);
         add_action('admin_enqueue_scripts', [$this, 'enqueueAssets']);
     }
 
@@ -88,6 +92,8 @@ class AdminPage
                 'csv'  => $this->buildHistoryDownloadUrl($record['run_at'], 'csv'),
             ];
         }
+
+        $lastFailedNotification = $this->notifier->getLastFailedNotification();
 
         require __DIR__ . '/../templates/admin-page.php';
     }
@@ -209,6 +215,43 @@ class AdminPage
                 wp_get_referer() ?: admin_url('admin.php?page=wp-plugin-watchdog')
             )
         );
+        exit;
+    }
+
+    public function handleResendFailedNotification(): void
+    {
+        $this->guardAccess();
+        check_admin_referer('wp_watchdog_resend_failed_notification');
+
+        $resent = $this->notifier->requeueLastFailedNotification();
+
+        $status = $resent ? 'resent' : 'missing';
+
+        wp_safe_redirect(
+            add_query_arg(
+                'failed_notification',
+                $status,
+                wp_get_referer() ?: admin_url('admin.php?page=wp-plugin-watchdog')
+            )
+        );
+        exit;
+    }
+
+    public function handleFailedNotificationDownload(): void
+    {
+        $this->guardAccess();
+        check_admin_referer('wp_watchdog_download_failed_notification');
+
+        $failed = $this->notifier->getLastFailedNotification();
+        if ($failed === null) {
+            wp_die(__('No failed notification payload is available.', 'wp-plugin-watchdog-main'));
+        }
+
+        nocache_headers();
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="watchdog-failed-notification.json"');
+
+        echo wp_json_encode($failed, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         exit;
     }
 

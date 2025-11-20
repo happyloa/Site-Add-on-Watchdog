@@ -5,6 +5,7 @@ use function Brain\Monkey\Functions\when;
 use Watchdog\Models\Risk;
 use Watchdog\Notifier;
 use Watchdog\Repository\SettingsRepository;
+use Watchdog\Services\NotificationQueue;
 
 class NotifierTest extends TestCase
 {
@@ -73,7 +74,7 @@ class NotifierTest extends TestCase
                 return true;
             });
 
-        $notifier = new Notifier($repository);
+        $notifier = $this->makeNotifier($repository);
         $notifier->notify([
             new Risk('plugin-slug', 'Plugin Name', '1.0.0', null, ['Example reason']),
         ]);
@@ -156,7 +157,7 @@ class NotifierTest extends TestCase
             ->once()
             ->with('wp_watchdog_webhook_error');
 
-        $notifier = new Notifier($repository);
+        $notifier = $this->makeNotifier($repository);
         $notifier->notify([]);
     }
 
@@ -228,7 +229,7 @@ class NotifierTest extends TestCase
                 return true;
             });
 
-        $notifier = new Notifier($repository);
+        $notifier = $this->makeNotifier($repository);
         $notifier->notify([
             new Risk('plugin-slug', 'Plugin Name', '1.0.0', null, ['Example reason']),
         ]);
@@ -303,7 +304,7 @@ class NotifierTest extends TestCase
 
         expect('set_transient')->never();
 
-        $notifier = new Notifier($repository);
+        $notifier = $this->makeNotifier($repository);
         $notifier->notify([
             new Risk('plugin-slug', 'Plugin Name', '1.0.0', null, ['Example reason']),
         ]);
@@ -373,7 +374,7 @@ class NotifierTest extends TestCase
 
         expect('delete_transient')->never();
 
-        $notifier = new Notifier($repository);
+        $notifier = $this->makeNotifier($repository);
         $notifier->notify([
             new Risk('plugin-slug', 'Plugin Name', '1.0.0', null, ['Example reason']),
         ]);
@@ -438,7 +439,7 @@ class NotifierTest extends TestCase
 
         expect('delete_transient')->never();
 
-        $notifier = new Notifier($repository);
+        $notifier = $this->makeNotifier($repository);
         $notifier->notify([
             new Risk('plugin-slug', 'Plugin Name', '1.0.0', null, ['Example reason']),
         ]);
@@ -512,7 +513,7 @@ class NotifierTest extends TestCase
 
         expect('set_transient')->never();
 
-        $notifier = new Notifier($repository);
+        $notifier = $this->makeNotifier($repository);
         $notifier->notify([
             new Risk('plugin-slug', 'Plugin Name', '1.0.0', '2.0.0', ['Example reason']),
         ]);
@@ -586,9 +587,47 @@ class NotifierTest extends TestCase
 
         expect('set_transient')->never();
 
-        $notifier = new Notifier($repository);
+        $notifier = $this->makeNotifier($repository);
         $notifier->notify([
             new Risk('plugin-slug', 'Plugin Name', '1.0.0', '2.0.0', ['Example reason']),
         ]);
+    }
+
+    private function makeNotifier(SettingsRepository $repository): Notifier
+    {
+        $queue = $this->createMock(NotificationQueue::class);
+        $jobs  = [];
+
+        $queue->expects($this->once())
+            ->method('enqueue')
+            ->with($this->callback(static function ($queued) use (&$jobs): bool {
+                $jobs = $queued;
+
+                return is_array($queued) && ! empty($queued);
+            }));
+
+        $queue->expects($this->once())
+            ->method('process')
+            ->with($this->callback(static fn () => true))
+            ->willReturnCallback(static function (callable $callback) use (&$jobs): array {
+                $processed = 0;
+                $succeeded = 0;
+
+                foreach ($jobs as $job) {
+                    $processed++;
+                    $result = $callback($job);
+
+                    if ($result === true) {
+                        $succeeded++;
+                    }
+                }
+
+                return [
+                    'processed' => $processed,
+                    'succeeded' => $succeeded,
+                ];
+            });
+
+        return new Notifier($repository, $queue);
     }
 }

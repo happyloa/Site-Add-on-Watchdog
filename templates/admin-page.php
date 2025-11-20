@@ -87,6 +87,15 @@
         <?php endif; ?>
     <?php endif; ?>
 
+    <?php if (isset($_GET['failed_notification'])) : ?>
+        <?php $failedStatus = sanitize_key((string) $_GET['failed_notification']); ?>
+        <?php if ($failedStatus === 'resent') : ?>
+            <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Queued the captured notification payload for resend.', 'wp-plugin-watchdog-main'); ?></p></div>
+        <?php elseif ($failedStatus === 'missing') : ?>
+            <div class="notice notice-error is-dismissible"><p><?php esc_html_e('No failed notification payload was available to resend.', 'wp-plugin-watchdog-main'); ?></p></div>
+        <?php endif; ?>
+    <?php endif; ?>
+
     <div class="wp-watchdog-grid">
         <div class="wp-watchdog-surface">
             <div class="wp-watchdog-section-title">
@@ -115,6 +124,53 @@
                 <code><?php echo esc_html($cronEndpoint); ?></code>
             </p>
             <p class="wp-watchdog-muted"><?php esc_html_e('Call this URL from a system cron or monitoring service to trigger scans or notification retries even when wp-cron is disabled.', 'wp-plugin-watchdog-main'); ?></p>
+            <div class="wp-watchdog-divider"></div>
+            <div>
+                <p class="wp-watchdog-muted" style="margin-bottom:8px;"><strong><?php esc_html_e('Captured notification payloads', 'wp-plugin-watchdog-main'); ?></strong></p>
+                <?php if (! empty($lastFailedNotification)) : ?>
+                    <?php
+                    $failedTime = isset($lastFailedNotification['failed_at'])
+                        ? (int) $lastFailedNotification['failed_at']
+                        : time();
+                    $failedChannel = $lastFailedNotification['description']
+                        ?: ($lastFailedNotification['channel'] ?? __('Unknown channel', 'wp-plugin-watchdog-main'));
+                    $failedError = $lastFailedNotification['last_error'] ?? '';
+                    ?>
+                    <p class="wp-watchdog-muted">
+                        <?php
+                        printf(
+                            /* translators: 1: human readable time, 2: channel name */
+                            esc_html__('Last failure recorded %1$s via %2$s.', 'wp-plugin-watchdog-main'),
+                            esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), $failedTime)),
+                            esc_html($failedChannel)
+                        );
+                        if ($failedError !== '') {
+                            echo '<br />' . esc_html($failedError);
+                        }
+                        ?>
+                    </p>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                            <?php wp_nonce_field('wp_watchdog_resend_failed_notification'); ?>
+                            <input type="hidden" name="action" value="wp_watchdog_resend_failed_notification" />
+                            <button class="button button-primary" type="submit">
+                                <span class="dashicons dashicons-controls-repeat" aria-hidden="true"></span>
+                                <?php esc_html_e('Re-queue payload', 'wp-plugin-watchdog-main'); ?>
+                            </button>
+                        </form>
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                            <?php wp_nonce_field('wp_watchdog_download_failed_notification'); ?>
+                            <input type="hidden" name="action" value="wp_watchdog_download_failed_notification" />
+                            <button class="button" type="submit">
+                                <span class="dashicons dashicons-download" aria-hidden="true"></span>
+                                <?php esc_html_e('Download payload', 'wp-plugin-watchdog-main'); ?>
+                            </button>
+                        </form>
+                    </div>
+                <?php else : ?>
+                    <p class="wp-watchdog-muted"><?php esc_html_e('No failed notification payload has been captured yet.', 'wp-plugin-watchdog-main'); ?></p>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 
