@@ -379,7 +379,10 @@ class Plugin
             $this->lastUpdateCheckScan = $lastScan;
         }
 
-        if ($this->lastUpdateCheckScan === null || ($now - $this->lastUpdateCheckScan) >= self::UPDATE_CHECK_SCAN_INTERVAL) {
+        if (
+            $this->lastUpdateCheckScan === null
+            || ($now - $this->lastUpdateCheckScan) >= self::UPDATE_CHECK_SCAN_INTERVAL
+        ) {
             $this->runScan(true, 'update_check');
             $this->lastUpdateCheckScan = $now;
             update_option('wp_watchdog_update_check_scan_at', $now, false);

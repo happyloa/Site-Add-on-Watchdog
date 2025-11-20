@@ -434,7 +434,9 @@ class Notifier
             foreach ($risk->details['vulnerabilities'] as $vulnerability) {
                 $summary = [];
                 if (! empty($vulnerability['severity_label'])) {
-                    $summary[] = $this->formatSlackSeverity((string) $vulnerability['severity'], (string) $vulnerability['severity_label']);
+                    $severity      = (string) $vulnerability['severity'];
+                    $severityLabel = (string) $vulnerability['severity_label'];
+                    $summary[]     = $this->formatSlackSeverity($severity, $severityLabel);
                 }
                 if (! empty($vulnerability['title'])) {
                     $summary[] = (string) $vulnerability['title'];
@@ -556,6 +558,11 @@ class Notifier
         $adminUrl   = admin_url('admin.php?page=wp-plugin-watchdog');
         $updateUrl  = admin_url('update-core.php');
         $riskBlocks = [];
+        $introText  = __(
+            'Review the cards below for plugin, version, and vulnerability details.',
+            'wp-plugin-watchdog-main'
+        );
+        $noRiskText = __('Everything looks good after the latest scan.', 'wp-plugin-watchdog-main');
 
         foreach ($risks as $risk) {
             $riskBlocks[] = [
@@ -571,9 +578,7 @@ class Notifier
                     ? __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog-main')
                     : __('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog-main'),
                 'markdown'      => true,
-                'text'          => $hasRisks
-                    ? __('Review the cards below for plugin, version, and vulnerability details.', 'wp-plugin-watchdog-main')
-                    : __('Everything looks good after the latest scan.', 'wp-plugin-watchdog-main'),
+                'text'          => $hasRisks ? $introText : $noRiskText,
             ],
         ];
 
@@ -677,10 +682,16 @@ class Notifier
      */
     private function formatEmailMessage(array $risks): string
     {
-        $brandColor   = '#1d2327';
-        $accentColor  = '#2271b1';
-        $background   = '#f6f7f7';
-        $containerCss = 'margin:0 auto; max-width:680px; width:100%; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color:#1d2327;';
+        $brandColor  = '#1d2327';
+        $accentColor = '#2271b1';
+        $background  = '#f6f7f7';
+        $containerCss = implode(' ', [
+            'margin:0 auto;',
+            'max-width:680px;',
+            'width:100%;',
+            'font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;',
+            'color:#1d2327;',
+        ]);
 
         if (empty($risks)) {
             $pluginsUrl = esc_url(admin_url('plugins.php'));
@@ -689,7 +700,8 @@ class Notifier
                 . '<h1 style="margin:0 0 10px 0; font-size:22px; color:%2$s;">%3$s</h1>'
                 . '<p style="font-size:14px; line-height:1.7; margin:0 0 10px 0;">%4$s</p>'
                 . '<p style="font-size:14px; line-height:1.7; margin:0 0 16px 0;">%5$s</p>'
-                . '<a href="%6$s" style="display:inline-block; padding:10px 16px; background:%7$s; color:#ffffff; text-decoration:none; border-radius:6px; font-weight:600;">%8$s</a>'
+                . '<a href="%6$s" style="display:inline-block; padding:10px 16px; background:%7$s;'
+                . ' color:#ffffff; text-decoration:none; border-radius:6px; font-weight:600;">%8$s</a>'
                 . '</div>'
                 . '<p style="font-size:12px; color:#4b5563; margin:12px 0 0 0;">%9$s</p>',
                 esc_attr($background),
@@ -737,23 +749,25 @@ class Notifier
             }
 
             $cards .= sprintf(
-                '<tr><td style="padding:10px 12px;">
-                    <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="border:1px solid #e6e6e6; border-radius:10px; overflow:hidden;">
-                        <tr>
-                            <td style="background:%1$s; color:#ffffff; padding:14px 16px; font-weight:700; font-size:16px;">%2$s</td>
-                        </tr>
-                        <tr>
-                            <td style="padding:14px 16px; background:#ffffff;">
-                                <p style="margin:0 0 6px 0; font-size:13px; color:#4b5563;">
-                                    %3$s: <strong style="color:#1d2327;">%4$s</strong>
-                                    <span style="color:#4b5563;"> | </span>
-                                    %5$s: <strong style="color:#1d2327;">%6$s</strong>
-                                </p>
-                                <ul style="margin:10px 0 0 18px; padding:0; color:#1d2327;">%7$s</ul>
-                            </td>
-                        </tr>
-                    </table>
-                </td></tr>',
+                '<tr><td style="padding:10px 12px;">'
+                . '<table role="presentation" width="100%%" cellspacing="0" cellpadding="0"'
+                . ' style="border:1px solid #e6e6e6; border-radius:10px; overflow:hidden;">'
+                . '<tr>'
+                . '<td style="background:%1$s; color:#ffffff; padding:14px 16px;'
+                . ' font-weight:700; font-size:16px;">%2$s</td>'
+                . '</tr>'
+                . '<tr>'
+                . '<td style="padding:14px 16px; background:#ffffff;">'
+                . '<p style="margin:0 0 6px 0; font-size:13px; color:#4b5563;">'
+                . '%3$s: <strong style="color:#1d2327;">%4$s</strong>'
+                . '<span style="color:#4b5563;"> | </span>'
+                . '%5$s: <strong style="color:#1d2327;">%6$s</strong>'
+                . '</p>'
+                . '<ul style="margin:10px 0 0 18px; padding:0; color:#1d2327;">%7$s</ul>'
+                . '</td>'
+                . '</tr>'
+                . '</table>'
+                . '</td></tr>',
                 esc_attr($accentColor),
                 esc_html($risk->pluginName),
                 esc_html__('Current Version', 'wp-plugin-watchdog-main'),
@@ -767,38 +781,47 @@ class Notifier
         $updateUrl = esc_url(admin_url('update-core.php'));
 
         return sprintf(
-            '<table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="background:%1$s; padding:24px 0;">' .
-            '<tr><td align="center">
-                <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="%2$s">
-                    <tr>
-                        <td style="background:%3$s; color:#ffffff; padding:22px 26px; border-radius:10px 10px 0 0;">
-                            <h1 style="margin:0; font-size:22px;">%4$s</h1>
-                            <p style="margin:6px 0 0; font-size:14px;">%5$s</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="background:#ffffff; border-left:1px solid #dcdcde; border-right:1px solid #dcdcde;">
-                            <table role="presentation" width="100%%" cellspacing="0" cellpadding="0">%6$s</table>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="background:#ffffff; border:1px solid #dcdcde; border-top:0; padding:16px 26px 22px 26px;">
-                            <p style="margin:0 0 14px 0; font-size:14px; line-height:1.6;">%7$s</p>
-                            <a href="%8$s" style="display:inline-block; padding:10px 16px; background:%9$s; color:#ffffff; text-decoration:none; border-radius:6px; font-weight:600;">%10$s</a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="text-align:center; font-size:12px; color:#4b5563; padding:14px 10px;">%11$s</td>
-                    </tr>
-                </table>
-            </td></tr></table>',
+            '<table role="presentation" width="100%%" cellspacing="0" cellpadding="0"'
+            . ' style="background:%1$s; padding:24px 0;">'
+            . '<tr><td align="center">'
+            . '<table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="%2$s">'
+            . '<tr>'
+            . '<td style="background:%3$s; color:#ffffff; padding:22px 26px;'
+            . ' border-radius:10px 10px 0 0;">'
+            . '<h1 style="margin:0; font-size:22px;">%4$s</h1>'
+            . '<p style="margin:6px 0 0; font-size:14px;">%5$s</p>'
+            . '</td>'
+            . '</tr>'
+            . '<tr>'
+            . '<td style="background:#ffffff; border-left:1px solid #dcdcde;'
+            . ' border-right:1px solid #dcdcde;">'
+            . '<table role="presentation" width="100%%" cellspacing="0" cellpadding="0">%6$s</table>'
+            . '</td>'
+            . '</tr>'
+            . '<tr>'
+            . '<td style="background:#ffffff; border:1px solid #dcdcde; border-top:0;'
+            . ' padding:16px 26px 22px 26px;">'
+            . '<p style="margin:0 0 14px 0; font-size:14px; line-height:1.6;">%7$s</p>'
+            . '<a href="%8$s" style="display:inline-block; padding:10px 16px; background:%9$s; color:#ffffff;'
+            . ' text-decoration:none; border-radius:6px; font-weight:600;">%10$s</a>'
+            . '</td>'
+            . '</tr>'
+            . '<tr>'
+            . '<td style="text-align:center; font-size:12px; color:#4b5563; padding:14px 10px;">%11$s</td>'
+            . '</tr>'
+            . '</table>'
+            . '</td></tr></table>',
             esc_attr($background),
             esc_attr($containerCss),
             esc_attr($brandColor),
             esc_html__('WP Plugin Watchdog', 'wp-plugin-watchdog-main'),
             esc_html__('Potential plugin risks detected on your site', 'wp-plugin-watchdog-main'),
             $cards,
-            esc_html__('These plugins are flagged for security or maintenance updates. Review the details below and update as soon as possible.', 'wp-plugin-watchdog-main'),
+            esc_html__(
+                'These plugins are flagged for security or maintenance updates. '
+                . 'Review the details below and update as soon as possible.',
+                'wp-plugin-watchdog-main'
+            ),
             $updateUrl,
             esc_attr($accentColor),
             esc_html__('Review updates', 'wp-plugin-watchdog-main'),
