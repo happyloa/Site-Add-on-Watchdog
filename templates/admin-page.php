@@ -16,6 +16,10 @@
         <div class="notice notice-error is-dismissible"><p><?php echo esc_html($wp_watchdog_webhook_error); ?></p></div>
     <?php endif; ?>
 
+    <?php if (! empty($settingsError)) : ?>
+        <div class="notice notice-error is-dismissible"><p><?php echo esc_html($settingsError); ?></p></div>
+    <?php endif; ?>
+
     <?php if (isset($_GET['updated'])) : ?>
         <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Settings saved.', 'wp-plugin-watchdog-main'); ?></p></div>
     <?php endif; ?>
@@ -220,10 +224,11 @@
                         name="settings[history][retention]"
                         value="<?php echo esc_attr($settings['history']['retention'] ?? $historyRetention); ?>"
                         min="1"
+                        max="15"
                         step="1"
                     />
                     <p class="description">
-                        <?php esc_html_e('Number of recent scans to keep available for review and download.', 'wp-plugin-watchdog-main'); ?>
+                        <?php esc_html_e('Number of recent scans to keep available for review and download (maximum 15).', 'wp-plugin-watchdog-main'); ?>
                     </p>
                 </td>
             </tr>

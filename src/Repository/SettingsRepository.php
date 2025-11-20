@@ -402,7 +402,11 @@ class SettingsRepository
         }
 
         if ($retention < 1) {
-            $retention = RiskRepository::DEFAULT_HISTORY_RETENTION;
+            $retention = 1;
+        }
+
+        if ($retention > 15) {
+            return 15;
         }
 
         return $retention;

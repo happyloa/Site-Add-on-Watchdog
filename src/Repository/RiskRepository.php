@@ -10,7 +10,7 @@ class RiskRepository
     private const IGNORE_OPTION = 'wp_watchdog_ignore';
     private const HISTORY_OPTION = 'wp_watchdog_risk_history';
 
-    public const DEFAULT_HISTORY_RETENTION = 30;
+    public const DEFAULT_HISTORY_RETENTION = 5;
 
     /**
      * @return Risk[]
