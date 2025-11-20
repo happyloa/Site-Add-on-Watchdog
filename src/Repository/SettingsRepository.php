@@ -44,11 +44,11 @@ class SettingsRepository
         ];
 
         $stored = get_option(self::OPTION);
+        $shouldPersistDefaults = false;
         if (! is_array($stored)) {
             if ($stored === false) {
                 $defaults['notifications']['email']['recipients'] = $this->buildAdministratorEmailList();
-
-                return $defaults;
+                $shouldPersistDefaults = true;
             }
 
             $stored = [];
@@ -70,7 +70,7 @@ class SettingsRepository
 
         if ($settings['notifications']['cron_secret'] === '') {
             $settings['notifications']['cron_secret'] = $this->generateSecret();
-            update_option(self::OPTION, $settings, false);
+            $shouldPersistDefaults = true;
         }
 
         if ($settings['notifications']['email']['recipients'] === '') {
@@ -78,6 +78,10 @@ class SettingsRepository
         }
 
         $settings['history']['retention'] = $this->sanitizeRetention($settings['history']['retention'] ?? null);
+
+        if ($shouldPersistDefaults) {
+            update_option(self::OPTION, $settings, false);
+        }
 
         return $settings;
     }
