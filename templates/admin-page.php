@@ -37,14 +37,25 @@
             </h1>
             <p class="wp-watchdog-muted"><?php esc_html_e('Monitor plugin health, history, and alerts from a single place.', 'wp-plugin-watchdog-main'); ?></p>
         </div>
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-            <?php wp_nonce_field('wp_watchdog_scan'); ?>
-            <input type="hidden" name="action" value="wp_watchdog_scan">
-            <button class="button button-primary button-hero" type="submit">
-                <span class="dashicons dashicons-update" aria-hidden="true"></span>
-                <?php esc_html_e('Run manual scan', 'wp-plugin-watchdog-main'); ?>
-            </button>
-        </form>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                <?php wp_nonce_field('wp_watchdog_scan'); ?>
+                <input type="hidden" name="action" value="wp_watchdog_scan">
+                <button class="button button-primary button-hero" type="submit">
+                    <span class="dashicons dashicons-update" aria-hidden="true"></span>
+                    <?php esc_html_e('Run manual scan', 'wp-plugin-watchdog-main'); ?>
+                </button>
+            </form>
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                <?php wp_nonce_field('wp_watchdog_send_notifications'); ?>
+                <input type="hidden" name="action" value="wp_watchdog_send_notifications">
+                <input type="hidden" name="force" value="1" />
+                <button class="button button-secondary button-hero" type="submit">
+                    <span class="dashicons dashicons-megaphone" aria-hidden="true"></span>
+                    <?php esc_html_e('Send notifications now', 'wp-plugin-watchdog-main'); ?>
+                </button>
+            </form>
+        </div>
     </div>
 
     <?php $wp_watchdog_webhook_error = get_transient('wp_watchdog_webhook_error'); ?>
@@ -63,6 +74,48 @@
     <?php if (isset($_GET['scan'])) : ?>
         <div class="notice notice-info is-dismissible"><p><?php esc_html_e('Manual scan completed.', 'wp-plugin-watchdog-main'); ?></p></div>
     <?php endif; ?>
+
+    <?php if (isset($_GET['notifications'])) : ?>
+        <?php $notificationResult = sanitize_key((string) $_GET['notifications']); ?>
+        <?php if ($notificationResult === 'sent') : ?>
+            <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Notifications were dispatched.', 'wp-plugin-watchdog-main'); ?></p></div>
+        <?php elseif ($notificationResult === 'throttled') : ?>
+            <div class="notice notice-warning is-dismissible"><p><?php esc_html_e('Notifications skipped to avoid rapid re-sends. Please wait a moment and try again.', 'wp-plugin-watchdog-main'); ?></p></div>
+        <?php elseif ($notificationResult === 'unchanged') : ?>
+            <div class="notice notice-info is-dismissible"><p><?php esc_html_e('No notification changes detected since the last send.', 'wp-plugin-watchdog-main'); ?></p></div>
+        <?php endif; ?>
+    <?php endif; ?>
+
+    <div class="wp-watchdog-grid">
+        <div class="wp-watchdog-surface">
+            <div class="wp-watchdog-section-title">
+                <span class="dashicons dashicons-heart" aria-hidden="true"></span>
+                <?php esc_html_e('Delivery health', 'wp-plugin-watchdog-main'); ?>
+            </div>
+            <?php $isCronDisabled = ! empty($cronStatus['cron_disabled']); ?>
+            <?php if ($isCronDisabled) : ?>
+                <p class="wp-watchdog-muted"><?php esc_html_e('WP-Cron appears disabled. Use a real cron job or the server endpoint below to keep scans running.', 'wp-plugin-watchdog-main'); ?></p>
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin:12px 0;">
+                    <?php wp_nonce_field('wp_watchdog_send_notifications'); ?>
+                    <input type="hidden" name="action" value="wp_watchdog_send_notifications">
+                    <input type="hidden" name="force" value="1" />
+                    <input type="hidden" name="ignore_throttle" value="1" />
+                    <button class="button button-primary" type="submit">
+                        <span class="dashicons dashicons-controls-repeat" aria-hidden="true"></span>
+                        <?php esc_html_e('Retry notifications', 'wp-plugin-watchdog-main'); ?>
+                    </button>
+                </form>
+            <?php else : ?>
+                <p class="wp-watchdog-muted"><?php esc_html_e('WP-Cron is running. Watchdog will use scheduled scans and backup triggers to deliver alerts.', 'wp-plugin-watchdog-main'); ?></p>
+            <?php endif; ?>
+            <div class="wp-watchdog-divider"></div>
+            <p class="wp-watchdog-muted" style="word-break:break-word;">
+                <strong><?php esc_html_e('Server cron endpoint:', 'wp-plugin-watchdog-main'); ?></strong><br />
+                <code><?php echo esc_html($cronEndpoint); ?></code>
+            </p>
+            <p class="wp-watchdog-muted"><?php esc_html_e('Call this URL from a system cron or monitoring service to trigger scans or notification retries even when wp-cron is disabled.', 'wp-plugin-watchdog-main'); ?></p>
+        </div>
+    </div>
 
     <div class="wp-watchdog-grid">
         <div class="wp-watchdog-surface">
