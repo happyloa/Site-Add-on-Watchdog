@@ -62,6 +62,11 @@ class AdminPage
         $settings  = $this->settingsRepository->get();
         $scanNonce = wp_create_nonce('wp_watchdog_scan');
 
+        $settingsError = get_transient('wp_watchdog_settings_error');
+        if ($settingsError !== false) {
+            delete_transient('wp_watchdog_settings_error');
+        }
+
         $historyRetention = (int) ($settings['history']['retention'] ?? RiskRepository::DEFAULT_HISTORY_RETENTION);
         if ($historyRetention < 1) {
             $historyRetention = RiskRepository::DEFAULT_HISTORY_RETENTION;
@@ -108,6 +113,16 @@ class AdminPage
         }
 
         $payload = $this->sanitizeSettingsInput($payload);
+
+        $rawRetention = $payload['history']['retention'] ?? null;
+        if (is_numeric($rawRetention) && (int) $rawRetention > 15) {
+            $payload['history']['retention'] = '15';
+            set_transient(
+                'wp_watchdog_settings_error',
+                __('History retention cannot exceed 15 scans. The value has been limited to 15.', 'wp-plugin-watchdog-main'),
+                30
+            );
+        }
 
         if (! isset($payload['notifications']) || ! is_array($payload['notifications'])) {
             $payload['notifications'] = [];

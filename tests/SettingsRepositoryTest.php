@@ -480,7 +480,7 @@ class SettingsRepositoryTest extends TestCase
         ]);
 
         self::assertIsArray($updated);
-        self::assertSame(45, $updated['history']['retention']);
+        self::assertSame(15, $updated['history']['retention']);
     }
 
     public function testSaveManualNotificationTimePersistsTimestamp(): void
