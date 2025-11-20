@@ -48,10 +48,7 @@ class Notifier
         }
 
         if (! empty($discordSettings['enabled']) && ! empty($discordSettings['webhook'])) {
-            $this->dispatchWebhook($discordSettings['webhook'], [
-                'username'  => 'WP Plugin Watchdog',
-                'content'   => $plainTextReport,
-            ]);
+            $this->dispatchWebhook($discordSettings['webhook'], $this->formatDiscordMessage($risks, $plainTextReport));
         }
 
         if (! empty($slackSettings['enabled']) && ! empty($slackSettings['webhook'])) {
@@ -66,6 +63,15 @@ class Notifier
             $this->dispatchWebhook($webhookSettings['url'], [
                 'message' => $plainTextReport,
                 'risks'   => array_map(static fn (Risk $risk): array => $risk->toArray(), $risks),
+                'links'   => [
+                    'dashboard' => admin_url('admin.php?page=wp-plugin-watchdog'),
+                    'updates'   => admin_url('update-core.php'),
+                ],
+                'meta'    => [
+                    'count'      => count($risks),
+                    'generated'  => time(),
+                    'source'     => 'WP Plugin Watchdog',
+                ],
             ], $webhookSettings['secret'] ?? null);
         }
     }
@@ -197,8 +203,10 @@ class Notifier
      */
     private function formatSlackMessage(array $risks, string $plainTextReport): array
     {
-        $hasRisks = ! empty($risks);
-        $blocks = [
+        $hasRisks  = ! empty($risks);
+        $adminUrl  = admin_url('admin.php?page=wp-plugin-watchdog');
+        $updateUrl = admin_url('update-core.php');
+        $blocks    = [
             [
                 'type' => 'header',
                 'text' => [
@@ -218,6 +226,10 @@ class Notifier
             ],
         ];
 
+        if ($hasRisks) {
+            $blocks[] = ['type' => 'divider'];
+        }
+
         foreach ($risks as $risk) {
             $blocks[] = [
                 'type' => 'section',
@@ -229,6 +241,20 @@ class Notifier
         }
 
         $blocks[] = [
+            'type' => 'context',
+            'elements' => [
+                [
+                    'type' => 'mrkdwn',
+                    'text' => sprintf(
+                        '<%s|%s>',
+                        $adminUrl,
+                        __('Open the Watchdog dashboard', 'wp-plugin-watchdog-main')
+                    ),
+                ],
+            ],
+        ];
+
+        $blocks[] = [
             'type'     => 'actions',
             'elements' => [
                 [
@@ -238,15 +264,31 @@ class Notifier
                         'text'  => __('Review updates', 'wp-plugin-watchdog-main'),
                         'emoji' => true,
                     ],
-                    'url'  => admin_url('update-core.php'),
+                    'url'  => $updateUrl,
+                    'style' => 'primary',
+                ],
+                [
+                    'type' => 'button',
+                    'text' => [
+                        'type'  => 'plain_text',
+                        'text'  => __('View dashboard', 'wp-plugin-watchdog-main'),
+                        'emoji' => true,
+                    ],
+                    'url'  => $adminUrl,
                 ],
             ],
         ];
 
         return [
-            'username' => 'WP Plugin Watchdog',
-            'text'     => $plainTextReport,
-            'blocks'   => $blocks,
+            'username'    => 'WP Plugin Watchdog',
+            'text'        => $plainTextReport,
+            'blocks'      => $blocks,
+            'attachments' => [
+                [
+                    'color' => '#2271b1',
+                    'text'  => __('Stay ahead of plugin risks with WP Plugin Watchdog.', 'wp-plugin-watchdog-main'),
+                ],
+            ],
         ];
     }
 
@@ -255,13 +297,13 @@ class Notifier
         $lines   = [];
         $lines[] = sprintf('*%s*', $risk->pluginName);
         $lines[] = sprintf(
-            '%s %s',
-            __('Current version:', 'wp-plugin-watchdog-main'),
+            '• %s %s',
+            __('Current version', 'wp-plugin-watchdog-main'),
             $risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog-main')
         );
         $lines[] = sprintf(
-            '%s %s',
-            __('Available version:', 'wp-plugin-watchdog-main'),
+            '• %s %s',
+            __('Directory version', 'wp-plugin-watchdog-main'),
             $risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog-main')
         );
 
@@ -273,7 +315,7 @@ class Notifier
             foreach ($risk->details['vulnerabilities'] as $vulnerability) {
                 $summary = [];
                 if (! empty($vulnerability['severity_label'])) {
-                    $summary[] = '[' . $vulnerability['severity_label'] . ']';
+                    $summary[] = $this->formatSlackSeverity((string) $vulnerability['severity'], (string) $vulnerability['severity_label']);
                 }
                 if (! empty($vulnerability['title'])) {
                     $summary[] = (string) $vulnerability['title'];
@@ -298,32 +340,135 @@ class Notifier
         return implode("\n", $lines);
     }
 
+    private function formatSlackSeverity(string $severity, string $label): string
+    {
+        $emojiMap = [
+            'severe' => '🚨',
+            'high'   => '🔴',
+            'medium' => '🟠',
+            'low'    => '🟢',
+        ];
+
+        $emoji = $emojiMap[strtolower($severity)] ?? '⚪';
+
+        return $emoji . ' ' . $label;
+    }
+
+    private function formatDiscordMessage(array $risks, string $plainTextReport): array
+    {
+        $hasRisks = ! empty($risks);
+        $adminUrl = admin_url('admin.php?page=wp-plugin-watchdog');
+        $updateUrl = admin_url('update-core.php');
+        $color    = hexdec('2271b1');
+
+        $fields = [];
+        foreach ($risks as $risk) {
+            $reasons = $risk->reasons;
+            if (! empty($risk->details['vulnerabilities'])) {
+                foreach ($risk->details['vulnerabilities'] as $vulnerability) {
+                    $label = [];
+                    if (! empty($vulnerability['severity_label'])) {
+                        $label[] = '[' . $vulnerability['severity_label'] . ']';
+                    }
+                    if (! empty($vulnerability['title'])) {
+                        $label[] = (string) $vulnerability['title'];
+                    }
+                    if (! empty($vulnerability['cve'])) {
+                        $label[] = (string) $vulnerability['cve'];
+                    }
+                    if (! empty($vulnerability['fixed_in'])) {
+                        $label[] = sprintf(
+                            /* translators: %s is a plugin version number */
+                            __('Fixed in %s', 'wp-plugin-watchdog-main'),
+                            $vulnerability['fixed_in']
+                        );
+                    }
+
+                    if (! empty($label)) {
+                        $reasons[] = implode(' - ', $label);
+                    }
+                }
+            }
+
+            $fields[] = [
+                'name'   => $risk->pluginName,
+                'value'  => sprintf(
+                    "*%s:* %s\n*%s:* %s\n%s",
+                    __('Current', 'wp-plugin-watchdog-main'),
+                    $risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog-main'),
+                    __('Directory', 'wp-plugin-watchdog-main'),
+                    $risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog-main'),
+                    implode("\n", array_map(static fn ($reason) => '• ' . $reason, $reasons))
+                ),
+                'inline' => false,
+            ];
+        }
+
+        return [
+            'username' => 'WP Plugin Watchdog',
+            'content'  => $plainTextReport,
+            'embeds'   => [
+                [
+                    'title'       => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
+                    'description' => $hasRisks
+                        ? __('Potential plugin risks detected on your site.', 'wp-plugin-watchdog-main')
+                        : __('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog-main'),
+                    'color'       => $color,
+                    'url'         => $adminUrl,
+                    'fields'      => $fields,
+                    'footer'      => [
+                        'text' => sprintf(
+                            '%s • %s',
+                            __('Review updates', 'wp-plugin-watchdog-main'),
+                            $updateUrl
+                        ),
+                    ],
+                ],
+            ],
+        ];
+    }
+
     /**
      * @param Risk[] $risks
      */
     private function formatTeamsMessage(array $risks): array
     {
-        $riskSections = [];
-        $hasRisks     = ! empty($risks);
+        $hasRisks   = ! empty($risks);
+        $adminUrl   = admin_url('admin.php?page=wp-plugin-watchdog');
+        $updateUrl  = admin_url('update-core.php');
+        $riskBlocks = [];
 
         foreach ($risks as $risk) {
-            $riskSections[] = $this->formatTeamsRiskSection($risk);
+            $riskBlocks[] = [
+                'activityTitle' => $risk->pluginName,
+                'facts'         => $this->formatTeamsRiskFacts($risk),
+                'markdown'      => true,
+            ];
+        }
+
+        $sections = [
+            [
+                'activityTitle' => $hasRisks
+                    ? __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog-main')
+                    : __('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog-main'),
+                'markdown'      => true,
+                'text'          => $hasRisks
+                    ? __('Review the cards below for plugin, version, and vulnerability details.', 'wp-plugin-watchdog-main')
+                    : __('Everything looks good after the latest scan.', 'wp-plugin-watchdog-main'),
+            ],
+        ];
+
+        if ($hasRisks) {
+            $sections = array_merge($sections, $riskBlocks);
         }
 
         return [
             '@type'    => 'MessageCard',
             '@context' => 'https://schema.org/extensions',
             'summary'  => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
-            'themeColor' => 'D32F2F',
+            'themeColor' => '2271B1',
             'title'      => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
-            'sections'   => [
-                [
-                    'activityTitle' => $hasRisks
-                        ? __('Potential plugin risks detected on your site:', 'wp-plugin-watchdog-main')
-                        : __('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog-main'),
-                    'text'          => $hasRisks ? implode("\n\n", $riskSections) : '',
-                ],
-            ],
+            'sections'   => $sections,
             'potentialAction' => [
                 [
                     '@type'  => 'OpenUri',
@@ -331,7 +476,17 @@ class Notifier
                     'targets' => [
                         [
                             'os'  => 'default',
-                            'uri' => admin_url('update-core.php'),
+                            'uri' => $updateUrl,
+                        ],
+                    ],
+                ],
+                [
+                    '@type'  => 'OpenUri',
+                    'name'   => __('Open Watchdog dashboard', 'wp-plugin-watchdog-main'),
+                    'targets' => [
+                        [
+                            'os'  => 'default',
+                            'uri' => $adminUrl,
                         ],
                     ],
                 ],
@@ -339,26 +494,30 @@ class Notifier
         ];
     }
 
-    private function formatTeamsRiskSection(Risk $risk): string
+    /**
+     * @return array<int, array{name:string, value:string}>
+     */
+    private function formatTeamsRiskFacts(Risk $risk): array
     {
-        $lines   = [];
-        $lines[] = sprintf('**%s**', $risk->pluginName);
-        $lines[] = sprintf(
-            '- %s %s',
-            __('Current version:', 'wp-plugin-watchdog-main'),
-            $risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog-main')
-        );
-        $lines[] = sprintf(
-            '- %s %s',
-            __('Available version:', 'wp-plugin-watchdog-main'),
-            $risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog-main')
-        );
+        $facts   = [];
+        $facts[] = [
+            'name'  => __('Current version', 'wp-plugin-watchdog-main'),
+            'value' => (string) ($risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog-main')),
+        ];
+        $facts[] = [
+            'name'  => __('Directory version', 'wp-plugin-watchdog-main'),
+            'value' => (string) ($risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog-main')),
+        ];
 
-        foreach ($risk->reasons as $reason) {
-            $lines[] = '- ' . $reason;
+        if (! empty($risk->reasons)) {
+            $facts[] = [
+                'name'  => __('Reasons', 'wp-plugin-watchdog-main'),
+                'value' => implode("\n", $risk->reasons),
+            ];
         }
 
         if (! empty($risk->details['vulnerabilities'])) {
+            $labels = [];
             foreach ($risk->details['vulnerabilities'] as $vulnerability) {
                 $summary = [];
                 if (! empty($vulnerability['severity_label'])) {
@@ -379,12 +538,19 @@ class Notifier
                 }
 
                 if (! empty($summary)) {
-                    $lines[] = '- ' . implode(' - ', $summary);
+                    $labels[] = implode(' - ', $summary);
                 }
+            }
+
+            if (! empty($labels)) {
+                $facts[] = [
+                    'name'  => __('Vulnerabilities', 'wp-plugin-watchdog-main'),
+                    'value' => implode("\n", $labels),
+                ];
             }
         }
 
-        return implode("\n", $lines);
+        return $facts;
     }
 
     /**
@@ -392,40 +558,54 @@ class Notifier
      */
     private function formatEmailMessage(array $risks): string
     {
+        $brandColor   = '#1d2327';
+        $accentColor  = '#2271b1';
+        $background   = '#f6f7f7';
+        $containerCss = 'margin:0 auto; max-width:680px; width:100%; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color:#1d2327;';
+
         if (empty($risks)) {
-            $containerStyle = 'font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", ';
-            $containerStyle .= 'Roboto, sans-serif; color:#1d2327;';
-            $linkStyle = 'color:#2271b1;';
-
-            $noRisksMessage = esc_html__(
-                'The latest scan did not find any plugins that require attention.',
-                'wp-plugin-watchdog-main'
-            );
-
+            $pluginsUrl = esc_url(admin_url('plugins.php'));
             return sprintf(
-                '<div style="%1$s">
-                    <h2 style="font-size:20px; font-weight:600;">%2$s</h2>
-                    <p style="font-size:14px; line-height:1.6;">%3$s</p>
-                    <p style="font-size:14px; line-height:1.6;">%4$s <a style="%5$s" href="%6$s">%6$s</a></p>
-                </div>',
-                esc_attr($containerStyle),
-                esc_html__('No plugin risks detected on your site', 'wp-plugin-watchdog-main'),
-                $noRisksMessage,
-                esc_html__('Review your plugins here:', 'wp-plugin-watchdog-main'),
-                esc_attr($linkStyle),
-                esc_url(admin_url('plugins.php'))
+                '<table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="background:%1$s; padding:24px 0;">' .
+                '<tr><td align="center">
+                    <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="%2$s">
+                        <tr>
+                            <td style="background:%3$s; color:#ffffff; padding:22px 26px; border-radius:10px 10px 0 0;">
+                                <h1 style="margin:0; font-size:22px;">%4$s</h1>
+                                <p style="margin:6px 0 0; font-size:14px;">%5$s</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="background:#ffffff; padding:24px 26px; border:1px solid #dcdcde; border-top:0;">
+                                <p style="font-size:14px; line-height:1.7; margin:0 0 12px 0;">%6$s</p>
+                                <p style="font-size:14px; line-height:1.7; margin:0 0 18px 0;">%7$s</p>
+                                <a href="%8$s" style="display:inline-block; padding:10px 16px; background:%9$s; color:#ffffff; text-decoration:none; border-radius:6px; font-weight:600;">%10$s</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:center; font-size:12px; color:#4b5563; padding:14px 10px;">%11$s</td>
+                        </tr>
+                    </table>
+                </td></tr></table>',
+                esc_attr($background),
+                esc_attr($containerCss),
+                esc_attr($brandColor),
+                esc_html__('WP Plugin Watchdog', 'wp-plugin-watchdog-main'),
+                esc_html__('Latest scan completed — no risks detected.', 'wp-plugin-watchdog-main'),
+                esc_html__('The latest scan did not find any plugins that require attention.', 'wp-plugin-watchdog-main'),
+                esc_html__('You can still review your plugins at any time from the admin area.', 'wp-plugin-watchdog-main'),
+                $pluginsUrl,
+                esc_attr($accentColor),
+                esc_html__('Review plugins', 'wp-plugin-watchdog-main'),
+                esc_html__('You are receiving this update from WP Plugin Watchdog.', 'wp-plugin-watchdog-main')
             );
         }
-
-        $rows = '';
+        $cards = '';
 
         foreach ($risks as $risk) {
             $reasons = '';
             foreach ($risk->reasons as $reason) {
-                $reasons .= sprintf(
-                    '<li style="margin-bottom:4px;">%s</li>',
-                    esc_html($reason)
-                );
+                $reasons .= sprintf('<li style="margin-bottom:6px; line-height:1.5;">%s</li>', esc_html($reason));
             }
 
             if (! empty($risk->details['vulnerabilities'])) {
@@ -448,69 +628,78 @@ class Notifier
                         }
                         $content .= esc_html($label);
 
-                        $reasons .= sprintf(
-                            '<li style="margin-bottom:4px;">%s</li>',
-                            $content
-                        );
+                        $reasons .= sprintf('<li style="margin-bottom:6px; line-height:1.5;">%s</li>', $content);
                     }
                 }
             }
 
-            $rows .= sprintf(
-                '<tr>
-                    <td style="padding:12px 16px; border-bottom:1px solid #e6e6e6;">
-                        <strong>%1$s</strong>
-                        <ul style="margin:8px 0 0 18px; padding:0; list-style:disc; color:#333;">%2$s</ul>
-                    </td>
-                    <td style="padding:12px 16px; border-bottom:1px solid #e6e6e6; color:#333;">%3$s</td>
-                    <td style="padding:12px 16px; border-bottom:1px solid #e6e6e6; color:#333;">%4$s</td>
-                </tr>',
+            $cards .= sprintf(
+                '<tr><td style="padding:10px 12px;">
+                    <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="border:1px solid #e6e6e6; border-radius:10px; overflow:hidden;">
+                        <tr>
+                            <td style="background:%1$s; color:#ffffff; padding:14px 16px; font-weight:700; font-size:16px;">%2$s</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:14px 16px; background:#ffffff;">
+                                <p style="margin:0 0 6px 0; font-size:13px; color:#4b5563;">
+                                    %3$s <strong style="color:#1d2327;">%4$s</strong>
+                                    <span style="color:#4b5563;"> | </span>
+                                    %5$s <strong style="color:#1d2327;">%6$s</strong>
+                                </p>
+                                <ul style="margin:10px 0 0 18px; padding:0; color:#1d2327;">%7$s</ul>
+                            </td>
+                        </tr>
+                    </table>
+                </td></tr>',
+                esc_attr($accentColor),
                 esc_html($risk->pluginName),
-                $reasons,
+                esc_html__('Current', 'wp-plugin-watchdog-main'),
                 esc_html($risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog-main')),
-                esc_html($risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog-main'))
+                esc_html__('Directory', 'wp-plugin-watchdog-main'),
+                esc_html($risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog-main')),
+                $reasons
             );
         }
 
-        $containerStyle = 'font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", ';
-        $containerStyle .= 'Roboto, sans-serif; color:#1d2327;';
-        $tableStyle = 'border-collapse:collapse; width:100%; max-width:640px; background:#ffffff; ';
-        $tableStyle .= 'border:1px solid #dcdcde;';
-        $linkStyle = 'color:#2271b1;';
-        $introText = esc_html__(
-            'These plugins are flagged for security or maintenance updates.'
-            . ' Review the details below and update as soon as possible.',
-            'wp-plugin-watchdog-main'
-        );
         $updateUrl = esc_url(admin_url('update-core.php'));
 
         return sprintf(
-            '<div style="%1$s">
-                <h2 style="font-size:20px; font-weight:600;">%2$s</h2>
-                <p style="font-size:14px; line-height:1.6;">%3$s</p>
-                <table style="%4$s">
-                    <thead>
-                        <tr style="background:#f6f7f7; text-align:left; color:#1d2327;">
-                            <th style="padding:12px 16px; border-bottom:1px solid #dcdcde;">%5$s</th>
-                            <th style="padding:12px 16px; border-bottom:1px solid #dcdcde;">%6$s</th>
-                            <th style="padding:12px 16px; border-bottom:1px solid #dcdcde;">%7$s</th>
-                        </tr>
-                    </thead>
-                    <tbody>%8$s</tbody>
+            '<table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="background:%1$s; padding:24px 0;">' .
+            '<tr><td align="center">
+                <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="%2$s">
+                    <tr>
+                        <td style="background:%3$s; color:#ffffff; padding:22px 26px; border-radius:10px 10px 0 0;">
+                            <h1 style="margin:0; font-size:22px;">%4$s</h1>
+                            <p style="margin:6px 0 0; font-size:14px;">%5$s</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background:#ffffff; border-left:1px solid #dcdcde; border-right:1px solid #dcdcde;">
+                            <table role="presentation" width="100%%" cellspacing="0" cellpadding="0">%6$s</table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background:#ffffff; border:1px solid #dcdcde; border-top:0; padding:16px 26px 22px 26px;">
+                            <p style="margin:0 0 14px 0; font-size:14px; line-height:1.6;">%7$s</p>
+                            <a href="%8$s" style="display:inline-block; padding:10px 16px; background:%9$s; color:#ffffff; text-decoration:none; border-radius:6px; font-weight:600;">%10$s</a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center; font-size:12px; color:#4b5563; padding:14px 10px;">%11$s</td>
+                    </tr>
                 </table>
-                <p style="font-size:14px; line-height:1.6;">%9$s <a style="%10$s" href="%11$s">%11$s</a></p>
-            </div>',
-            esc_attr($containerStyle),
-            esc_html__('Plugin updates required on your site', 'wp-plugin-watchdog-main'),
-            $introText,
-            esc_attr($tableStyle),
-            esc_html__('Plugin', 'wp-plugin-watchdog-main'),
-            esc_html__('Current Version', 'wp-plugin-watchdog-main'),
-            esc_html__('Available Version', 'wp-plugin-watchdog-main'),
-            $rows,
-            esc_html__('Update plugins here:', 'wp-plugin-watchdog-main'),
-            esc_attr($linkStyle),
-            $updateUrl
+            </td></tr></table>',
+            esc_attr($background),
+            esc_attr($containerCss),
+            esc_attr($brandColor),
+            esc_html__('WP Plugin Watchdog', 'wp-plugin-watchdog-main'),
+            esc_html__('Potential plugin risks detected on your site', 'wp-plugin-watchdog-main'),
+            $cards,
+            esc_html__('These plugins are flagged for security or maintenance updates. Review the details below and update as soon as possible.', 'wp-plugin-watchdog-main'),
+            $updateUrl,
+            esc_attr($accentColor),
+            esc_html__('Review updates', 'wp-plugin-watchdog-main'),
+            esc_html__('You are receiving this update from WP Plugin Watchdog.', 'wp-plugin-watchdog-main')
         );
     }
 

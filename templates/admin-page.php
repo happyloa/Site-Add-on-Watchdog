@@ -8,8 +8,44 @@
 /** @var array<int, array{run_at:int, risks:array<int, array<string, mixed>>, risk_count:int}> $historyRecords */
 /** @var array<int, array<string, string>> $historyDownloads */
 ?>
-<div class="wrap">
-    <h1><?php esc_html_e('WP Plugin Watchdog', 'wp-plugin-watchdog-main'); ?></h1>
+<div class="wrap wp-watchdog-admin">
+    <style>
+        .wp-watchdog-admin .wp-watchdog-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin:16px 0; }
+        .wp-watchdog-admin .wp-watchdog-surface { background:#fff; border:1px solid #dcdcde; border-radius:10px; padding:16px; box-shadow:0 1px 1px rgba(0,0,0,0.04); }
+        .wp-watchdog-admin .wp-watchdog-section-title { display:flex; align-items:center; gap:8px; margin-bottom:12px; font-size:16px; font-weight:600; }
+        .wp-watchdog-admin .wp-watchdog-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.02em; }
+        .wp-watchdog-admin .wp-watchdog-badge--success { background:#e7f7ed; color:#1c5f3a; }
+        .wp-watchdog-admin .wp-watchdog-badge--warning { background:#fff4d6; color:#7a5a00; }
+        .wp-watchdog-admin .wp-watchdog-badge--muted { background:#eef1f3; color:#1d2327; }
+        .wp-watchdog-admin .wp-watchdog-section-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+        .wp-watchdog-admin .wp-watchdog-inline-list { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 0; padding:0; list-style:none; }
+        .wp-watchdog-admin .wp-watchdog-inline-list li { margin:0; }
+        .wp-watchdog-admin .wp-watchdog-summary { display:flex; align-items:center; gap:10px; }
+        .wp-watchdog-admin .wp-watchdog-summary__count { font-size:32px; font-weight:700; }
+        .wp-watchdog-admin .wp-watchdog-summary__label { color:#4b5563; }
+        .wp-watchdog-admin .wp-watchdog-card-stack { display:flex; flex-direction:column; gap:12px; }
+        .wp-watchdog-admin .wp-watchdog-muted { color:#4b5563; margin:0; }
+        .wp-watchdog-admin .wp-watchdog-history-table { margin-top:12px; }
+        .wp-watchdog-admin .wp-watchdog-divider { border-top:1px solid #dcdcde; margin:16px 0; }
+    </style>
+
+    <div class="wp-watchdog-section-header">
+        <div>
+            <h1 style="display:flex; align-items:center; gap:10px; margin:0;">
+                <span class="dashicons dashicons-shield"></span>
+                <?php esc_html_e('WP Plugin Watchdog', 'wp-plugin-watchdog-main'); ?>
+            </h1>
+            <p class="wp-watchdog-muted"><?php esc_html_e('Monitor plugin health, history, and alerts from a single place.', 'wp-plugin-watchdog-main'); ?></p>
+        </div>
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <?php wp_nonce_field('wp_watchdog_scan'); ?>
+            <input type="hidden" name="action" value="wp_watchdog_scan">
+            <button class="button button-primary button-hero" type="submit">
+                <span class="dashicons dashicons-update" aria-hidden="true"></span>
+                <?php esc_html_e('Run manual scan', 'wp-plugin-watchdog-main'); ?>
+            </button>
+        </form>
+    </div>
 
     <?php $wp_watchdog_webhook_error = get_transient('wp_watchdog_webhook_error'); ?>
     <?php if (! empty($wp_watchdog_webhook_error)) : ?>
@@ -28,18 +64,61 @@
         <div class="notice notice-info is-dismissible"><p><?php esc_html_e('Manual scan completed.', 'wp-plugin-watchdog-main'); ?></p></div>
     <?php endif; ?>
 
-    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-        <?php wp_nonce_field('wp_watchdog_scan'); ?>
-        <input type="hidden" name="action" value="wp_watchdog_scan">
-        <p><button class="button button-primary" type="submit"><?php esc_html_e('Run manual scan', 'wp-plugin-watchdog-main'); ?></button></p>
-    </form>
+    <div class="wp-watchdog-grid">
+        <div class="wp-watchdog-surface">
+            <div class="wp-watchdog-section-title">
+                <span class="dashicons dashicons-list-view" aria-hidden="true"></span>
+                <?php esc_html_e('Scan History', 'wp-plugin-watchdog-main'); ?>
+            </div>
+            <?php require __DIR__ . '/history.php'; ?>
+        </div>
+        <div class="wp-watchdog-surface">
+            <div class="wp-watchdog-section-title">
+                <span class="dashicons dashicons-format-status" aria-hidden="true"></span>
+                <?php esc_html_e('Notification channels', 'wp-plugin-watchdog-main'); ?>
+            </div>
+            <?php
+            $channels = [
+                'email'   => __('Email', 'wp-plugin-watchdog-main'),
+                'slack'   => __('Slack', 'wp-plugin-watchdog-main'),
+                'teams'   => __('Microsoft Teams', 'wp-plugin-watchdog-main'),
+                'discord' => __('Discord', 'wp-plugin-watchdog-main'),
+                'webhook' => __('Custom Webhook', 'wp-plugin-watchdog-main'),
+            ];
+            ?>
+            <ul class="wp-watchdog-inline-list">
+                <?php foreach ($channels as $key => $label) : ?>
+                    <?php $enabled = ! empty($settings['notifications'][$key]['enabled']); ?>
+                    <?php $badgeClass = $enabled ? 'wp-watchdog-badge--success' : 'wp-watchdog-badge--muted'; ?>
+                    <li>
+                        <span class="wp-watchdog-badge <?php echo esc_attr($badgeClass); ?>">
+                            <span class="dashicons <?php echo $enabled ? 'dashicons-yes-alt' : 'dashicons-dismiss'; ?>" aria-hidden="true"></span>
+                            <?php echo esc_html($label); ?>
+                            <span aria-hidden="true">•</span>
+                            <?php echo $enabled ? esc_html__('On', 'wp-plugin-watchdog-main') : esc_html__('Off', 'wp-plugin-watchdog-main'); ?>
+                        </span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+            <p class="wp-watchdog-muted" style="margin-top:12px;">
+                <?php esc_html_e('Keep channels enabled to receive instant alerts and download-ready reports.', 'wp-plugin-watchdog-main'); ?>
+            </p>
+        </div>
+    </div>
 
-    <h2><?php esc_html_e('Scan History', 'wp-plugin-watchdog-main'); ?></h2>
-    <?php require __DIR__ . '/history.php'; ?>
-
-    <h2><?php esc_html_e('Potential Risks', 'wp-plugin-watchdog-main'); ?></h2>
+    <div class="wp-watchdog-surface">
+        <div class="wp-watchdog-section-header">
+            <div class="wp-watchdog-section-title">
+                <span class="dashicons dashicons-shield-alt" aria-hidden="true"></span>
+                <?php esc_html_e('Potential Risks', 'wp-plugin-watchdog-main'); ?>
+            </div>
+            <div class="wp-watchdog-summary">
+                <span class="wp-watchdog-summary__count"><?php echo esc_html(number_format_i18n(count($risks))); ?></span>
+                <span class="wp-watchdog-summary__label"><?php esc_html_e('items flagged', 'wp-plugin-watchdog-main'); ?></span>
+            </div>
+        </div>
     <?php if (empty($risks)) : ?>
-        <p><?php esc_html_e('No risks detected.', 'wp-plugin-watchdog-main'); ?></p>
+        <p class="wp-watchdog-muted"><?php esc_html_e('No risks detected.', 'wp-plugin-watchdog-main'); ?></p>
     <?php else : ?>
         <?php
         $columns = [
@@ -112,13 +191,6 @@
                                 if (! empty($vulnerability['cve'])) {
                                     $reasonParts[] = $vulnerability['cve'];
                                 }
-                                if (! empty($vulnerability['fixed_in'])) {
-                                    $reasonParts[] = sprintf(
-                                        /* translators: %s is a plugin version number */
-                                        __('Fixed in %s', 'wp-plugin-watchdog-main'),
-                                        $vulnerability['fixed_in']
-                                    );
-                                }
                             }
                         }
                         $reasonSort = $normalizeForSort(implode(' ', $reasonParts));
@@ -190,26 +262,39 @@
             </div>
         </div>
     <?php endif; ?>
+    </div>
 
-    <h2><?php esc_html_e('Ignored Plugins', 'wp-plugin-watchdog-main'); ?></h2>
-    <?php if (empty($ignored)) : ?>
-        <p><?php esc_html_e('No plugins are being ignored.', 'wp-plugin-watchdog-main'); ?></p>
-    <?php else : ?>
-        <ul>
-            <?php foreach ($ignored as $slug) : ?>
-                <li>
-                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
-                        <?php wp_nonce_field('wp_watchdog_unignore'); ?>
-                        <input type="hidden" name="action" value="wp_watchdog_unignore">
-                        <input type="hidden" name="plugin_slug" value="<?php echo esc_attr($slug); ?>">
-                        <button class="button-link" type="submit"><?php echo esc_html($slug); ?> &times;</button>
-                    </form>
-                </li>
-            <?php endforeach; ?>
-        </ul>
-    <?php endif; ?>
-
-    <h2><?php esc_html_e('Notifications', 'wp-plugin-watchdog-main'); ?></h2>
+    <div class="wp-watchdog-grid">
+        <div class="wp-watchdog-surface">
+            <div class="wp-watchdog-section-title">
+                <span class="dashicons dashicons-hidden" aria-hidden="true"></span>
+                <?php esc_html_e('Ignored Plugins', 'wp-plugin-watchdog-main'); ?>
+            </div>
+            <?php if (empty($ignored)) : ?>
+                <p class="wp-watchdog-muted"><?php esc_html_e('No plugins are being ignored.', 'wp-plugin-watchdog-main'); ?></p>
+            <?php else : ?>
+                <ul class="wp-watchdog-inline-list">
+                    <?php foreach ($ignored as $slug) : ?>
+                        <li>
+                            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
+                                <?php wp_nonce_field('wp_watchdog_unignore'); ?>
+                                <input type="hidden" name="action" value="wp_watchdog_unignore">
+                                <input type="hidden" name="plugin_slug" value="<?php echo esc_attr($slug); ?>">
+                                <button class="button" type="submit">
+                                    <span class="dashicons dashicons-no" aria-hidden="true"></span>
+                                    <?php echo esc_html($slug); ?>
+                                </button>
+                            </form>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </div>
+        <div class="wp-watchdog-surface">
+            <div class="wp-watchdog-section-title">
+                <span class="dashicons dashicons-email-alt" aria-hidden="true"></span>
+                <?php esc_html_e('Notifications', 'wp-plugin-watchdog-main'); ?>
+            </div>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
         <?php wp_nonce_field('wp_watchdog_settings'); ?>
         <input type="hidden" name="action" value="wp_watchdog_save_settings">
@@ -294,11 +379,12 @@
                             }
                         }
 
-                        if (! $timezone) {
+                        if (! $timezone && class_exists('DateTimeZone')) {
                             $timezone = new DateTimeZone('UTC');
                         }
+
                         $testingExpiryMessage = sprintf(
-                            /* translators: 1: formatted expiration date/time, 2: human-readable remaining duration */
+                            /* translators: 1: datetime, 2: relative time */
                             __('Testing mode will automatically switch back to daily scans on %1$s (%2$s remaining).', 'wp-plugin-watchdog-main'),
                             wp_date(
                                 get_option('date_format') . ' ' . get_option('time_format'),
@@ -406,4 +492,6 @@
         </table>
         <p><button class="button button-primary" type="submit"><?php esc_html_e('Save settings', 'wp-plugin-watchdog-main'); ?></button></p>
     </form>
+        </div>
+    </div>
 </div>
