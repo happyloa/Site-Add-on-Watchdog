@@ -126,7 +126,9 @@ class Notifier
 
     public function processQueue(): array
     {
-        return $this->notificationQueue->process([$this, 'sendQueuedJob']);
+        return $this->notificationQueue->process(function (array $job): true|string {
+            return $this->sendQueuedJob($job);
+        });
     }
 
     public function getLastFailedNotification(): ?array
@@ -683,34 +685,18 @@ class Notifier
         if (empty($risks)) {
             $pluginsUrl = esc_url(admin_url('plugins.php'));
             return sprintf(
-                '<table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="background:%1$s; padding:24px 0;">' .
-                '<tr><td align="center">
-                    <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="%2$s">
-                        <tr>
-                            <td style="background:%3$s; color:#ffffff; padding:22px 26px; border-radius:10px 10px 0 0;">
-                                <h1 style="margin:0; font-size:22px;">%4$s</h1>
-                                <p style="margin:6px 0 0; font-size:14px;">%5$s</p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="background:#ffffff; padding:24px 26px; border:1px solid #dcdcde; border-top:0;">
-                                <p style="font-size:14px; line-height:1.7; margin:0 0 12px 0;">%6$s</p>
-                                <p style="font-size:14px; line-height:1.7; margin:0 0 18px 0;">%7$s</p>
-                                <a href="%8$s" style="display:inline-block; padding:10px 16px; background:%9$s; color:#ffffff; text-decoration:none; border-radius:6px; font-weight:600;">%10$s</a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="text-align:center; font-size:12px; color:#4b5563; padding:14px 10px;">%11$s</td>
-                        </tr>
-                    </table>
-                </td></tr></table>',
+                '<div style="background:%1$s; padding:22px 24px; border-radius:10px; border:1px solid #dcdcde;">'
+                . '<h1 style="margin:0 0 10px 0; font-size:22px; color:%2$s;">%3$s</h1>'
+                . '<p style="font-size:14px; line-height:1.7; margin:0 0 10px 0;">%4$s</p>'
+                . '<p style="font-size:14px; line-height:1.7; margin:0 0 16px 0;">%5$s</p>'
+                . '<a href="%6$s" style="display:inline-block; padding:10px 16px; background:%7$s; color:#ffffff; text-decoration:none; border-radius:6px; font-weight:600;">%8$s</a>'
+                . '</div>'
+                . '<p style="font-size:12px; color:#4b5563; margin:12px 0 0 0;">%9$s</p>',
                 esc_attr($background),
-                esc_attr($containerCss),
                 esc_attr($brandColor),
                 esc_html__('WP Plugin Watchdog', 'wp-plugin-watchdog-main'),
                 esc_html__('Latest scan completed — no risks detected.', 'wp-plugin-watchdog-main'),
-                esc_html__('The latest scan did not find any plugins that require attention.', 'wp-plugin-watchdog-main'),
-                esc_html__('You can still review your plugins at any time from the admin area.', 'wp-plugin-watchdog-main'),
+                esc_html__('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog-main'),
                 $pluginsUrl,
                 esc_attr($accentColor),
                 esc_html__('Review plugins', 'wp-plugin-watchdog-main'),
@@ -759,9 +745,9 @@ class Notifier
                         <tr>
                             <td style="padding:14px 16px; background:#ffffff;">
                                 <p style="margin:0 0 6px 0; font-size:13px; color:#4b5563;">
-                                    %3$s <strong style="color:#1d2327;">%4$s</strong>
+                                    %3$s: <strong style="color:#1d2327;">%4$s</strong>
                                     <span style="color:#4b5563;"> | </span>
-                                    %5$s <strong style="color:#1d2327;">%6$s</strong>
+                                    %5$s: <strong style="color:#1d2327;">%6$s</strong>
                                 </p>
                                 <ul style="margin:10px 0 0 18px; padding:0; color:#1d2327;">%7$s</ul>
                             </td>
@@ -770,9 +756,9 @@ class Notifier
                 </td></tr>',
                 esc_attr($accentColor),
                 esc_html($risk->pluginName),
-                esc_html__('Current', 'wp-plugin-watchdog-main'),
+                esc_html__('Current Version', 'wp-plugin-watchdog-main'),
                 esc_html($risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog-main')),
-                esc_html__('Directory', 'wp-plugin-watchdog-main'),
+                esc_html__('Directory Version', 'wp-plugin-watchdog-main'),
                 esc_html($risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog-main')),
                 $reasons
             );
