@@ -4,11 +4,14 @@ namespace Watchdog;
 
 use Watchdog\Models\Risk;
 use Watchdog\Repository\SettingsRepository;
+use Watchdog\Services\NotificationQueue;
 
 class Notifier
 {
-    public function __construct(private readonly SettingsRepository $settingsRepository)
-    {
+    public function __construct(
+        private readonly SettingsRepository $settingsRepository,
+        private readonly NotificationQueue $notificationQueue
+    ) {
     }
 
     /**
@@ -26,6 +29,8 @@ class Notifier
         $plainTextReport = $this->formatPlainTextMessage($risks);
         $emailReport     = $this->formatEmailMessage($risks);
 
+        $jobs = [];
+
         if (! empty($emailSettings['enabled'])) {
             $configuredRecipients = [];
             if (! empty($emailSettings['recipients'])) {
@@ -38,61 +43,131 @@ class Notifier
             ));
 
             if (! empty($recipients)) {
-                wp_mail(
-                    $recipients,
-                    __('Plugin Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
-                    $emailReport,
-                    ['Content-Type: text/html; charset=UTF-8']
-                );
+                $jobs[] = [
+                    'channel'     => 'email',
+                    'description' => __('Email alert', 'wp-plugin-watchdog-main'),
+                    'payload'     => [
+                        'recipients' => $recipients,
+                        'subject'    => __('Plugin Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
+                        'body'       => $emailReport,
+                        'headers'    => ['Content-Type: text/html; charset=UTF-8'],
+                    ],
+                ];
             }
         }
 
         if (! empty($discordSettings['enabled']) && ! empty($discordSettings['webhook'])) {
-            $this->dispatchWebhook($discordSettings['webhook'], $this->formatDiscordMessage($risks, $plainTextReport));
+            $jobs[] = [
+                'channel'     => 'webhook',
+                'description' => __('Discord webhook', 'wp-plugin-watchdog-main'),
+                'payload'     => [
+                    'url'    => $discordSettings['webhook'],
+                    'body'   => $this->formatDiscordMessage($risks, $plainTextReport),
+                    'secret' => null,
+                ],
+            ];
         }
 
         if (! empty($slackSettings['enabled']) && ! empty($slackSettings['webhook'])) {
-            $this->dispatchWebhook($slackSettings['webhook'], $this->formatSlackMessage($risks, $plainTextReport));
+            $jobs[] = [
+                'channel'     => 'webhook',
+                'description' => __('Slack webhook', 'wp-plugin-watchdog-main'),
+                'payload'     => [
+                    'url'    => $slackSettings['webhook'],
+                    'body'   => $this->formatSlackMessage($risks, $plainTextReport),
+                    'secret' => null,
+                ],
+            ];
         }
 
         if (! empty($teamsSettings['enabled']) && ! empty($teamsSettings['webhook'])) {
-            $this->dispatchWebhook($teamsSettings['webhook'], $this->formatTeamsMessage($risks));
+            $jobs[] = [
+                'channel'     => 'webhook',
+                'description' => __('Microsoft Teams webhook', 'wp-plugin-watchdog-main'),
+                'payload'     => [
+                    'url'    => $teamsSettings['webhook'],
+                    'body'   => $this->formatTeamsMessage($risks),
+                    'secret' => null,
+                ],
+            ];
         }
 
         if (! empty($webhookSettings['enabled']) && ! empty($webhookSettings['url'])) {
-            $this->dispatchWebhook($webhookSettings['url'], [
-                'message' => $plainTextReport,
-                'risks'   => array_map(static fn (Risk $risk): array => $risk->toArray(), $risks),
-                'links'   => [
-                    'dashboard' => admin_url('admin.php?page=wp-plugin-watchdog'),
-                    'updates'   => admin_url('update-core.php'),
+            $jobs[] = [
+                'channel'     => 'webhook',
+                'description' => __('Custom webhook', 'wp-plugin-watchdog-main'),
+                'payload'     => [
+                    'url'    => $webhookSettings['url'],
+                    'body'   => [
+                        'message' => $plainTextReport,
+                        'risks'   => array_map(static fn (Risk $risk): array => $risk->toArray(), $risks),
+                        'links'   => [
+                            'dashboard' => admin_url('admin.php?page=wp-plugin-watchdog'),
+                            'updates'   => admin_url('update-core.php'),
+                        ],
+                        'meta'    => [
+                            'count'      => count($risks),
+                            'generated'  => time(),
+                            'source'     => 'WP Plugin Watchdog',
+                        ],
+                    ],
+                    'secret' => $webhookSettings['secret'] ?? null,
                 ],
-                'meta'    => [
-                    'count'      => count($risks),
-                    'generated'  => time(),
-                    'source'     => 'WP Plugin Watchdog',
-                ],
-            ], $webhookSettings['secret'] ?? null);
+            ];
         }
+
+        if ($jobs === []) {
+            return;
+        }
+
+        $this->notificationQueue->enqueue($jobs);
+        $this->processQueue();
     }
 
-    private function dispatchWebhook(string $url, array $body, ?string $secret = null): void
+    public function processQueue(): array
     {
-        $payload = wp_json_encode($body);
-        if (! is_string($payload)) {
-            $payload = '';
+        return $this->notificationQueue->process([$this, 'sendQueuedJob']);
+    }
+
+    public function getLastFailedNotification(): ?array
+    {
+        return $this->notificationQueue->getLastFailed();
+    }
+
+    public function requeueLastFailedNotification(): bool
+    {
+        return $this->notificationQueue->requeueLastFailed();
+    }
+
+    private function dispatchWebhookJob(array $payload): true|string
+    {
+        $url = isset($payload['url']) ? (string) $payload['url'] : '';
+        if ($url === '') {
+            return __('Webhook URL missing.', 'wp-plugin-watchdog-main');
         }
+
+        $body = $payload['body'] ?? [];
+        if (! is_array($body)) {
+            return __('Webhook payload invalid.', 'wp-plugin-watchdog-main');
+        }
+
+        $secret  = isset($payload['secret']) ? (string) $payload['secret'] : null;
+        $encoded = wp_json_encode($body);
+        if (! is_string($encoded)) {
+            $encoded = '';
+        }
+
         $headers = [
             'Content-Type' => 'application/json',
         ];
 
         if ($secret !== null && $secret !== '') {
-            $headers['X-Watchdog-Signature'] = 'sha256=' . hash_hmac('sha256', $payload, $secret);
+            $headers['X-Watchdog-Signature'] = 'sha256=' . hash_hmac('sha256', $encoded, $secret);
         }
 
         $response = wp_remote_post($url, [
             'headers' => $headers,
-            'body'    => $payload,
+            'body'    => $encoded,
             'timeout' => 10,
         ]);
 
@@ -108,7 +183,7 @@ class Notifier
             $this->logWebhookFailure($message);
             set_transient('wp_watchdog_webhook_error', $message, $expiration);
 
-            return;
+            return $message;
         }
 
         $statusCode = wp_remote_retrieve_response_code($response);
@@ -121,16 +196,58 @@ class Notifier
             );
 
             if ($bodyMessage !== '') {
-                $message .= ': ' . $bodyMessage;
+                $message .= sprintf(': %s', $bodyMessage);
             }
 
             $this->logWebhookFailure($message);
             set_transient('wp_watchdog_webhook_error', $message, $expiration);
 
-            return;
+            return $message;
         }
 
         delete_transient('wp_watchdog_webhook_error');
+
+        return true;
+    }
+
+    private function sendEmailJob(array $payload): true|string
+    {
+        $recipients = isset($payload['recipients']) && is_array($payload['recipients'])
+            ? array_values($payload['recipients'])
+            : [];
+
+        $recipients = array_values(array_filter(
+            array_map(static fn ($recipient): string => (string) $recipient, $recipients),
+            static fn ($recipient): bool => $recipient !== ''
+        ));
+
+        if ($recipients === []) {
+            return __('Email recipients missing.', 'wp-plugin-watchdog-main');
+        }
+
+        $subject = isset($payload['subject']) ? (string) $payload['subject'] : '';
+        $body    = isset($payload['body']) ? (string) $payload['body'] : '';
+        $headers = $payload['headers'] ?? ['Content-Type: text/html; charset=UTF-8'];
+
+        $sent = wp_mail($recipients, $subject, $body, $headers);
+
+        return $sent ? true : __('Email delivery failed.', 'wp-plugin-watchdog-main');
+    }
+
+    private function sendQueuedJob(array $job): true|string
+    {
+        $channel = $job['channel'] ?? '';
+        $payload = $job['payload'] ?? [];
+
+        if ($channel === 'email') {
+            return $this->sendEmailJob(is_array($payload) ? $payload : []);
+        }
+
+        if ($channel === 'webhook') {
+            return $this->dispatchWebhookJob(is_array($payload) ? $payload : []);
+        }
+
+        return __('Unknown notification channel.', 'wp-plugin-watchdog-main');
     }
 
     private function logWebhookFailure(string $message): void

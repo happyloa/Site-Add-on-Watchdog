@@ -54,12 +54,14 @@ if (is_readable($autoload)) {
 }
 
 use Watchdog\AdminPage;
+use Watchdog\Cli\NotificationQueueCommand;
 use Watchdog\Cli\ScanCommand;
 use Watchdog\Notifier;
 use Watchdog\Plugin;
 use Watchdog\Repository\RiskRepository;
 use Watchdog\Repository\SettingsRepository;
 use Watchdog\Scanner;
+use Watchdog\Services\NotificationQueue;
 use Watchdog\Services\VersionComparator;
 use Watchdog\Services\WPScanClient;
 
@@ -68,15 +70,17 @@ $riskRepository     = new RiskRepository();
 $currentSettings    = $settingsRepository->get();
 $wpscanClient       = new WPScanClient($currentSettings['notifications']['wpscan_api_key']);
 $scanner            = new Scanner($riskRepository, new VersionComparator(), $wpscanClient);
-$notifier           = new Notifier($settingsRepository);
+$notificationQueue  = new NotificationQueue();
+$notifier           = new Notifier($settingsRepository, $notificationQueue);
 $plugin             = new Plugin($scanner, $riskRepository, $settingsRepository, $notifier);
-$adminPage          = new AdminPage($riskRepository, $settingsRepository, $plugin);
+$adminPage          = new AdminPage($riskRepository, $settingsRepository, $plugin, $notifier);
 
 $plugin->register();
 $adminPage->register();
 
 if (defined('WP_CLI') && WP_CLI) {
     \WP_CLI::add_command('watchdog scan', new ScanCommand($plugin));
+    \WP_CLI::add_command('watchdog notifications flush', new NotificationQueueCommand($plugin));
 }
 
 register_activation_hook(__FILE__, static function () use ($plugin): void {

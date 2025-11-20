@@ -1,0 +1,235 @@
+<?php
+
+namespace Watchdog\Services;
+
+class NotificationQueue
+{
+    private const QUEUE_OPTION  = 'wp_watchdog_notification_queue';
+    private const FAILED_OPTION = 'wp_watchdog_failed_notification';
+
+    private const BASE_DELAY = 300;
+    private const MAX_DELAY  = 21600;
+    private const MAX_ATTEMPTS = 5;
+
+    /**
+     * @param array<int, array<string, mixed>> $jobs
+     */
+    public function enqueue(array $jobs): void
+    {
+        $queue = $this->loadQueue();
+        $now   = time();
+
+        foreach ($jobs as $job) {
+            $normalized = $this->normalizeJob($job, $now);
+            if ($normalized !== null) {
+                $queue[] = $normalized;
+            }
+        }
+
+        $this->persistQueue($queue);
+    }
+
+    /**
+     * @param callable(array): (true|string) $sender
+     *
+     * @return array{processed:int,succeeded:int}
+     */
+    public function process(callable $sender): array
+    {
+        $queue     = $this->loadQueue();
+        $now       = time();
+        $processed = 0;
+        $succeeded = 0;
+
+        foreach ($queue as $index => $job) {
+            if ($job['next_attempt_at'] > $now) {
+                continue;
+            }
+
+            $processed++;
+            $result = $sender($job);
+
+            if ($result === true) {
+                unset($queue[$index]);
+                $succeeded++;
+                continue;
+            }
+
+            $queue[$index]               = $this->markFailedJob($job, $result, $now);
+            $queue[$index]['last_error'] = $result;
+            $this->recordFailure($queue[$index]);
+        }
+
+        $this->persistQueue($queue);
+
+        return [
+            'processed' => $processed,
+            'succeeded' => $succeeded,
+        ];
+    }
+
+    public function getLastFailed(): ?array
+    {
+        $stored = get_option(self::FAILED_OPTION);
+        if (! is_array($stored)) {
+            return null;
+        }
+
+        $failed = [
+            'channel'      => isset($stored['channel']) ? (string) $stored['channel'] : '',
+            'description'  => isset($stored['description']) ? (string) $stored['description'] : '',
+            'payload'      => isset($stored['payload']) && is_array($stored['payload']) ? $stored['payload'] : [],
+            'last_error'   => isset($stored['last_error']) ? (string) $stored['last_error'] : '',
+            'failed_at'    => isset($stored['failed_at']) ? (int) $stored['failed_at'] : time(),
+            'attempts'     => isset($stored['attempts']) ? (int) $stored['attempts'] : 0,
+        ];
+
+        if ($failed['channel'] === '') {
+            return null;
+        }
+
+        return $failed;
+    }
+
+    public function requeueLastFailed(): bool
+    {
+        $failed = $this->getLastFailed();
+        if ($failed === null) {
+            return false;
+        }
+
+        $job = [
+            'channel'      => $failed['channel'],
+            'description'  => $failed['description'],
+            'payload'      => $failed['payload'],
+            'attempts'     => 0,
+            'next_attempt_at' => time(),
+        ];
+
+        $queue      = $this->loadQueue();
+        $normalized = $this->normalizeJob($job, time());
+        if ($normalized === null) {
+            return false;
+        }
+
+        $queue[] = $normalized;
+
+        $this->persistQueue($queue);
+        delete_option(self::FAILED_OPTION);
+
+        return true;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function loadQueue(): array
+    {
+        $stored = get_option(self::QUEUE_OPTION, []);
+        if (! is_array($stored)) {
+            return [];
+        }
+
+        $queue = [];
+
+        foreach ($stored as $job) {
+            if (! is_array($job)) {
+                continue;
+            }
+
+            $normalized = $this->normalizeJob($job, time(), true);
+            if ($normalized !== null) {
+                $queue[] = $normalized;
+            }
+        }
+
+        return array_values($queue);
+    }
+
+    /**
+     * @param array<string, mixed> $job
+     */
+    private function normalizeJob(array $job, int $now, bool $trusted = false): ?array
+    {
+        $channel = isset($job['channel']) ? (string) $job['channel'] : '';
+        $payload = isset($job['payload']) && is_array($job['payload']) ? $job['payload'] : [];
+        $description = isset($job['description']) ? (string) $job['description'] : '';
+
+        if ($channel === '' || $payload === []) {
+            return null;
+        }
+
+        $attempts = isset($job['attempts']) ? (int) $job['attempts'] : 0;
+        $attempts = max(0, $attempts);
+        if ($attempts > self::MAX_ATTEMPTS) {
+            $attempts = self::MAX_ATTEMPTS;
+        }
+
+        $nextAttempt = isset($job['next_attempt_at']) ? (int) $job['next_attempt_at'] : $now;
+        if ($nextAttempt <= 0) {
+            $nextAttempt = $now;
+        }
+
+        $id = isset($job['id']) && $trusted ? (string) $job['id'] : $this->generateId();
+
+        return [
+            'id'              => $id,
+            'channel'         => $channel,
+            'description'     => $description,
+            'payload'         => $payload,
+            'attempts'        => $attempts,
+            'next_attempt_at' => $nextAttempt,
+            'last_error'      => isset($job['last_error']) ? (string) $job['last_error'] : '',
+        ];
+    }
+
+    private function markFailedJob(array $job, string $reason, int $now): array
+    {
+        $job['attempts'] = min(self::MAX_ATTEMPTS, (int) ($job['attempts'] ?? 0) + 1);
+        $job['last_error'] = $reason;
+
+        $delay = $this->calculateDelay($job['attempts']);
+        $job['next_attempt_at'] = $now + $delay;
+
+        return $job;
+    }
+
+    private function recordFailure(array $job): void
+    {
+        $payload = [
+            'channel'     => (string) ($job['channel'] ?? ''),
+            'description' => (string) ($job['description'] ?? ''),
+            'payload'     => isset($job['payload']) && is_array($job['payload']) ? $job['payload'] : [],
+            'last_error'  => (string) ($job['last_error'] ?? ''),
+            'failed_at'   => time(),
+            'attempts'    => (int) ($job['attempts'] ?? 0),
+        ];
+
+        if ($payload['channel'] === '') {
+            return;
+        }
+
+        update_option(self::FAILED_OPTION, $payload, false);
+    }
+
+    private function persistQueue(array $queue): void
+    {
+        update_option(self::QUEUE_OPTION, array_values($queue), false);
+    }
+
+    private function calculateDelay(int $attempts): int
+    {
+        if ($attempts <= 0) {
+            return self::BASE_DELAY;
+        }
+
+        $delay = self::BASE_DELAY * (2 ** ($attempts - 1));
+
+        return (int) min(self::MAX_DELAY, $delay);
+    }
+
+    private function generateId(): string
+    {
+        return uniqid('wp-watchdog-', true);
+    }
+}
