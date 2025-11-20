@@ -35,6 +35,7 @@ class SettingsRepository
                 'testing_expires_at' => 0,
                 'wpscan_api_key' => '',
                 'last_manual_notification_at' => 0,
+                'cron_secret' => '',
             ],
             'last_notification' => '',
             'history'           => [
@@ -43,11 +44,11 @@ class SettingsRepository
         ];
 
         $stored = get_option(self::OPTION);
+        $shouldPersistDefaults = false;
         if (! is_array($stored)) {
             if ($stored === false) {
                 $defaults['notifications']['email']['recipients'] = $this->buildAdministratorEmailList();
-
-                return $defaults;
+                $shouldPersistDefaults = true;
             }
 
             $stored = [];
@@ -63,12 +64,24 @@ class SettingsRepository
         $settings['notifications']['last_manual_notification_at'] = $this->sanitizeTimestamp(
             $settings['notifications']['last_manual_notification_at'] ?? 0
         );
+        $settings['notifications']['cron_secret'] = $this->sanitizeSecret(
+            $settings['notifications']['cron_secret'] ?? ''
+        );
+
+        if ($settings['notifications']['cron_secret'] === '') {
+            $settings['notifications']['cron_secret'] = $this->generateSecret();
+            $shouldPersistDefaults = true;
+        }
 
         if ($settings['notifications']['email']['recipients'] === '') {
             $settings['notifications']['email']['recipients'] = $this->buildAdministratorEmailList();
         }
 
         $settings['history']['retention'] = $this->sanitizeRetention($settings['history']['retention'] ?? null);
+
+        if ($shouldPersistDefaults) {
+            update_option(self::OPTION, $settings, false);
+        }
 
         return $settings;
     }
@@ -143,6 +156,7 @@ class SettingsRepository
                     $notifications['last_manual_notification_at']
                         ?? ($current['notifications']['last_manual_notification_at'] ?? 0)
                 ),
+                'cron_secret' => $this->sanitizeSecret($notifications['cron_secret'] ?? ''),
             ],
             'last_notification' => $current['last_notification'] ?? '',
             'history'           => [
@@ -157,6 +171,11 @@ class SettingsRepository
             $filtered['notifications']['frequency'],
             $previousTestingExpiration
         );
+
+        if ($filtered['notifications']['cron_secret'] === '') {
+            $filtered['notifications']['cron_secret'] = $current['notifications']['cron_secret']
+                ?? $this->generateSecret();
+        }
 
         update_option(self::OPTION, $filtered, false);
     }
@@ -427,5 +446,19 @@ class SettingsRepository
         }
 
         return max(0, $value);
+    }
+
+    private function sanitizeSecret(string $secret): string
+    {
+        return sanitize_text_field($secret);
+    }
+
+    private function generateSecret(): string
+    {
+        if (function_exists('wp_generate_password')) {
+            return wp_generate_password(32, false, false);
+        }
+
+        return bin2hex(random_bytes(16));
     }
 }

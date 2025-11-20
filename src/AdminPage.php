@@ -33,6 +33,7 @@ class AdminPage
         add_action('admin_post_wp_watchdog_ignore', [$this, 'handleIgnore']);
         add_action('admin_post_wp_watchdog_unignore', [$this, 'handleUnignore']);
         add_action('admin_post_wp_watchdog_scan', [$this, 'handleManualScan']);
+        add_action('admin_post_wp_watchdog_send_notifications', [$this, 'handleSendNotifications']);
         add_action('admin_post_wp_watchdog_download_history', [$this, 'handleHistoryDownload']);
         add_action('admin_enqueue_scripts', [$this, 'enqueueAssets']);
     }
@@ -61,6 +62,8 @@ class AdminPage
         $ignored   = $this->riskRepository->ignored();
         $settings  = $this->settingsRepository->get();
         $scanNonce = wp_create_nonce('wp_watchdog_scan');
+        $cronStatus = $this->plugin->getCronStatus();
+        $cronEndpoint = $this->plugin->getCronEndpointUrl();
 
         $settingsError = get_transient('wp_watchdog_settings_error');
         if ($settingsError !== false) {
@@ -184,6 +187,25 @@ class AdminPage
             add_query_arg(
                 'scan',
                 'done',
+                wp_get_referer() ?: admin_url('admin.php?page=wp-plugin-watchdog')
+            )
+        );
+        exit;
+    }
+
+    public function handleSendNotifications(): void
+    {
+        $this->guardAccess();
+        check_admin_referer('wp_watchdog_send_notifications');
+
+        $force           = ! empty($_POST['force']);
+        $respectThrottle = empty($_POST['ignore_throttle']);
+        $result          = $this->plugin->sendNotifications($force, $respectThrottle);
+
+        wp_safe_redirect(
+            add_query_arg(
+                'notifications',
+                $result,
                 wp_get_referer() ?: admin_url('admin.php?page=wp-plugin-watchdog')
             )
         );

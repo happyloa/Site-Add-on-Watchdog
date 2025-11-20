@@ -5,6 +5,7 @@ namespace Watchdog;
 use Watchdog\Models\Risk;
 use Watchdog\Repository\RiskRepository;
 use Watchdog\Repository\SettingsRepository;
+use WP_REST_Request;
 
 class Plugin
 {
@@ -12,7 +13,13 @@ class Plugin
     private const LEGACY_CRON_HOOK = 'wp_watchdog_daily_scan';
     private const CRON_STATUS_OPTION = 'wp_watchdog_cron_status';
 
+    private const UPDATE_CHECK_SCAN_INTERVAL = 900;
+
     private const MANUAL_NOTIFICATION_INTERVAL = 60;
+
+    private const REST_NAMESPACE = 'wp-plugin-watchdog/v1';
+
+    private ?int $lastUpdateCheckScan = null;
 
     private bool $hooksRegistered = false;
 
@@ -34,6 +41,8 @@ class Plugin
         add_filter('cron_schedules', [$this, 'registerCronSchedules']);
         add_action('plugins_loaded', [$this, 'schedule']);
         add_action('admin_notices', [$this, 'renderCronDiagnostics']);
+        add_action('rest_api_init', [$this, 'registerRestRoutes']);
+        add_filter('pre_set_site_transient_update_plugins', [$this, 'handleUpdateCheck']);
 
         $this->hooksRegistered = true;
     }
@@ -112,7 +121,7 @@ class Plugin
         $runAt = time();
         $this->riskRepository->save($risks, $runAt, $retention);
 
-        $hash          = md5(wp_json_encode(array_map(static fn (Risk $risk): array => $risk->toArray(), $risks)));
+        $hash          = $this->hashRisks($risks);
         $lastHash      = $settings['last_notification'] ?? '';
         $isTestingMode = ($settings['notifications']['frequency'] ?? 'daily') === 'testing';
 
@@ -141,6 +150,33 @@ class Plugin
     }
 
     /**
+     * @return 'sent'|'unchanged'|'throttled'
+     */
+    public function sendNotifications(bool $force = false, bool $respectThrottle = true): string
+    {
+        $risks     = $this->riskRepository->all();
+        $settings  = $this->settingsRepository->get();
+        $now       = time();
+        $hash      = $this->hashRisks($risks);
+        $lastHash  = $settings['last_notification'] ?? '';
+        $frequency = $settings['notifications']['frequency'] ?? 'daily';
+
+        if ($respectThrottle && $this->isManualNotificationThrottled($settings, $now)) {
+            return 'throttled';
+        }
+
+        if (! $force && $frequency !== 'testing' && $hash === $lastHash) {
+            return 'unchanged';
+        }
+
+        $this->notifier->notify($risks);
+        $this->settingsRepository->saveManualNotificationTime($now);
+        $this->settingsRepository->saveNotificationHash($hash);
+
+        return 'sent';
+    }
+
+    /**
      * @param array<string, mixed> $schedules
      */
     public function registerCronSchedules(array $schedules): array
@@ -160,6 +196,23 @@ class Plugin
         }
 
         return $schedules;
+    }
+
+    public function registerRestRoutes(): void
+    {
+        register_rest_route(self::REST_NAMESPACE, '/cron', [
+            'methods'             => ['GET', 'POST'],
+            'callback'            => [$this, 'handleRestCronRequest'],
+            'permission_callback' => [$this, 'validateCronRequest'],
+            'args'                => [
+                'force' => [
+                    'type' => 'boolean',
+                ],
+                'notify_only' => [
+                    'type' => 'boolean',
+                ],
+            ],
+        ]);
     }
 
     private function clearScheduledHook(string $hook): void
@@ -212,6 +265,34 @@ class Plugin
                 )
                 . '</p></div>';
         }
+    }
+
+    public function getCronStatus(): array
+    {
+        $status = get_option(self::CRON_STATUS_OPTION);
+        if (! is_array($status)) {
+            $status = [];
+        }
+
+        return [
+            'cron_disabled'  => ! empty($status['cron_disabled']),
+            'overdue_streak' => (int) ($status['overdue_streak'] ?? 0),
+            'last_checked'   => (int) ($status['last_checked'] ?? 0),
+        ];
+    }
+
+    public function getCronSecret(): string
+    {
+        $settings = $this->settingsRepository->get();
+
+        return (string) ($settings['notifications']['cron_secret'] ?? '');
+    }
+
+    public function getCronEndpointUrl(): string
+    {
+        $base = rest_url(self::REST_NAMESPACE . '/cron');
+
+        return add_query_arg('key', rawurlencode($this->getCronSecret()), $base);
     }
 
     private function isEventOverdue(int $timestamp, int $interval): bool
@@ -284,6 +365,23 @@ class Plugin
         }
     }
 
+    public function handleUpdateCheck($value)
+    {
+        $now = time();
+        if ($this->lastUpdateCheckScan === null) {
+            $lastScan = (int) get_option('wp_watchdog_update_check_scan_at', 0);
+            $this->lastUpdateCheckScan = $lastScan;
+        }
+
+        if ($this->lastUpdateCheckScan === null || ($now - $this->lastUpdateCheckScan) >= self::UPDATE_CHECK_SCAN_INTERVAL) {
+            $this->runScan(true, 'update_check');
+            $this->lastUpdateCheckScan = $now;
+            update_option('wp_watchdog_update_check_scan_at', $now, false);
+        }
+
+        return $value;
+    }
+
     private function logCronWarning(string $message): void
     {
         if (function_exists('wp_debug_log')) {
@@ -353,5 +451,43 @@ class Plugin
         }
 
         return ($now - $lastManualNotification) < self::MANUAL_NOTIFICATION_INTERVAL;
+    }
+
+    public function handleRestCronRequest(WP_REST_Request $request)
+    {
+        $notifyOnly = (bool) $request->get_param('notify_only');
+        $force      = (bool) $request->get_param('force');
+
+        if ($notifyOnly) {
+            $result = $this->sendNotifications($force, false);
+
+            return [
+                'status'  => $result,
+                'message' => __('Notifications processed.', 'wp-plugin-watchdog-main'),
+            ];
+        }
+
+        $this->runScan(true, $force ? 'rest-force' : 'rest');
+
+        return [
+            'status'  => 'ok',
+            'message' => __('Scan triggered successfully.', 'wp-plugin-watchdog-main'),
+        ];
+    }
+
+    public function validateCronRequest(WP_REST_Request $request): bool
+    {
+        $provided = (string) ($request->get_param('key') ?? '');
+        $stored   = $this->getCronSecret();
+
+        return hash_equals($stored, $provided);
+    }
+
+    /**
+     * @param Risk[] $risks
+     */
+    private function hashRisks(array $risks): string
+    {
+        return md5(wp_json_encode(array_map(static fn (Risk $risk): array => $risk->toArray(), $risks)));
     }
 }
