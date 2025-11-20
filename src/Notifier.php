@@ -126,7 +126,7 @@ class Notifier
 
     public function processQueue(): array
     {
-        return $this->notificationQueue->process(function (array $job): true|string {
+        return $this->notificationQueue->process(function (array $job): bool|string {
             return $this->sendQueuedJob($job);
         });
     }
@@ -141,7 +141,7 @@ class Notifier
         return $this->notificationQueue->requeueLastFailed();
     }
 
-    private function dispatchWebhookJob(array $payload): true|string
+    private function dispatchWebhookJob(array $payload): bool|string
     {
         $url = isset($payload['url']) ? (string) $payload['url'] : '';
         if ($url === '') {
@@ -212,7 +212,7 @@ class Notifier
         return true;
     }
 
-    private function sendEmailJob(array $payload): true|string
+    private function sendEmailJob(array $payload): bool|string
     {
         $recipients = isset($payload['recipients']) && is_array($payload['recipients'])
             ? array_values($payload['recipients'])
@@ -236,7 +236,7 @@ class Notifier
         return $sent ? true : __('Email delivery failed.', 'wp-plugin-watchdog-main');
     }
 
-    private function sendQueuedJob(array $job): true|string
+    private function sendQueuedJob(array $job): bool|string
     {
         $channel = $job['channel'] ?? '';
         $payload = $job['payload'] ?? [];
