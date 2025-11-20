@@ -117,9 +117,13 @@ class AdminPage
         $rawRetention = $payload['history']['retention'] ?? null;
         if (is_numeric($rawRetention) && (int) $rawRetention > 15) {
             $payload['history']['retention'] = '15';
+            $message = __(
+                'History retention cannot exceed 15 scans. The value has been limited to 15.',
+                'wp-plugin-watchdog-main'
+            );
             set_transient(
                 'wp_watchdog_settings_error',
-                __('History retention cannot exceed 15 scans. The value has been limited to 15.', 'wp-plugin-watchdog-main'),
+                $message,
                 30
             );
         }
