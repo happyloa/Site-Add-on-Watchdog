@@ -18,6 +18,7 @@
         .wp-watchdog-admin .wp-watchdog-badge--warning { background:#fff4d6; color:#7a5a00; }
         .wp-watchdog-admin .wp-watchdog-badge--muted { background:#eef1f3; color:#1d2327; }
         .wp-watchdog-admin .wp-watchdog-section-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+        .wp-watchdog-admin .button-hero { display:flex; align-items:center; gap:8px; }
         .wp-watchdog-admin .wp-watchdog-inline-list { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 0; padding:0; list-style:none; }
         .wp-watchdog-admin .wp-watchdog-inline-list li { margin:0; }
         .wp-watchdog-admin .wp-watchdog-summary { display:flex; align-items:center; gap:10px; }
