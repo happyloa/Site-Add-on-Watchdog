@@ -49,9 +49,13 @@
                     <span class="wp-watchdog-history-badge <?php echo $hasRisks ? 'wp-watchdog-history-badge--risk' : 'wp-watchdog-history-badge--safe'; ?>">
                         <span class="dashicons <?php echo $hasRisks ? 'dashicons-warning' : 'dashicons-yes-alt'; ?>" aria-hidden="true"></span>
                         <?php
+                        $riskLabel = function_exists('_n')
+                            ? _n('%s risk', '%s risks', $record['risk_count'], 'wp-plugin-watchdog-main')
+                            : ($record['risk_count'] === 1 ? '%s risk' : '%s risks');
+
                         printf(
                             /* translators: %s is a risk count */
-                            esc_html(_n('%s risk', '%s risks', $record['risk_count'], 'wp-plugin-watchdog-main')),
+                            esc_html($riskLabel),
                             number_format_i18n($record['risk_count'])
                         );
                         ?>

@@ -30,7 +30,7 @@ class NotificationQueue
     }
 
     /**
-     * @param callable(array): (true|string) $sender
+     * @param callable(array): (bool|string) $sender
      *
      * @return array{processed:int,succeeded:int}
      */
