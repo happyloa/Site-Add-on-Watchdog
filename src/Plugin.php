@@ -201,8 +201,8 @@ class Plugin
 
         if (! isset($schedules['testing'])) {
             $schedules['testing'] = [
-                'interval' => 10 * MINUTE_IN_SECONDS,
-                'display'  => __('Every 10 Minutes (testing)', 'wp-plugin-watchdog-main'),
+                'interval' => 20 * MINUTE_IN_SECONDS,
+                'display'  => __('Every 20 Minutes (testing)', 'wp-plugin-watchdog-main'),
             ];
         }
 
@@ -240,7 +240,7 @@ class Plugin
         if ($frequency === 'testing') {
             $minute = defined('MINUTE_IN_SECONDS') ? MINUTE_IN_SECONDS : 60;
 
-            return 10 * $minute;
+            return 20 * $minute;
         }
 
         return defined('HOUR_IN_SECONDS') ? HOUR_IN_SECONDS : 3600;
@@ -442,7 +442,7 @@ class Plugin
         }
 
         if ($frequency === 'testing') {
-            return 10 * (defined('MINUTE_IN_SECONDS') ? MINUTE_IN_SECONDS : 60);
+            return 20 * (defined('MINUTE_IN_SECONDS') ? MINUTE_IN_SECONDS : 60);
         }
 
         if ($frequency === 'weekly') {

@@ -414,7 +414,7 @@ class SettingsRepository
 
     private function testingModeDuration(): int
     {
-        return 6 * $this->getHourInSeconds();
+        return 3 * $this->getHourInSeconds();
     }
 
     private function sanitizeTestingExpiration(mixed $value): int

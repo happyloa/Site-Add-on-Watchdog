@@ -30,7 +30,7 @@ class PluginTest extends TestCase
             ->andReturn(time() - 2_000);
         expect('wp_get_schedule')->once()->andReturn('testing');
         expect('wp_get_schedules')->once()->andReturn([
-            'testing' => ['interval' => 600],
+            'testing' => ['interval' => 1_200],
         ]);
         expect('wp_schedule_single_event')->once();
 
@@ -69,7 +69,7 @@ class PluginTest extends TestCase
             ->andReturn(time() - 3_000);
         expect('wp_get_schedule')->once()->andReturn('testing');
         expect('wp_get_schedules')->once()->andReturn([
-            'testing' => ['interval' => 600],
+            'testing' => ['interval' => 1_200],
         ]);
         expect('spawn_cron')->never();
         expect('wp_schedule_single_event')->once();
@@ -148,7 +148,7 @@ class PluginTest extends TestCase
             ->andReturn(time() - 2_500);
         expect('wp_get_schedule')->once()->andReturn('testing');
         expect('wp_get_schedules')->once()->andReturn([
-            'testing' => ['interval' => 600],
+            'testing' => ['interval' => 1_200],
         ]);
         expect('wp_schedule_single_event')->never();
 
