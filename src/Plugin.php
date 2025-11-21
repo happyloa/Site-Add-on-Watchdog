@@ -71,6 +71,7 @@ class Plugin
         $timestamp       = wp_next_scheduled(self::CRON_HOOK);
         $currentSchedule = $timestamp ? wp_get_schedule(self::CRON_HOOK) : false;
         $interval        = $this->cronIntervalForFrequency($frequency);
+        $nextRunAt       = $this->nextRunTimestamp($frequency, $settings);
         $isOverdue       = $timestamp !== false
             && $interval > 0
             && $this->isEventOverdue((int) $timestamp, $interval);
@@ -90,13 +91,17 @@ class Plugin
 
         $this->recordCronStatus($this->isCronDisabled(), false);
 
-        if ($timestamp && $currentSchedule === $frequency) {
+        if (
+            $timestamp
+            && $currentSchedule === $frequency
+            && ! $this->scheduleNeedsRealignment((int) $timestamp, $nextRunAt, $interval)
+        ) {
             return;
         }
 
         $this->clearScheduledHook(self::CRON_HOOK);
 
-        wp_schedule_event(time() + $this->scheduleDelayForFrequency($frequency), $frequency, self::CRON_HOOK);
+        wp_schedule_event($nextRunAt, $frequency, self::CRON_HOOK);
     }
 
     public function deactivate(): void
@@ -373,6 +378,25 @@ class Plugin
 
     public function handleUpdateCheck($value)
     {
+        $settings  = $this->settingsRepository->get();
+        $frequency = $settings['notifications']['frequency'] ?? 'daily';
+        if (
+            $frequency === 'testing'
+            && ($settings['notifications']['testing_expires_at'] ?? 0) > 0
+            && time() >= (int) $settings['notifications']['testing_expires_at']
+        ) {
+            $frequency = 'daily';
+            $this->settingsRepository->updateNotificationFrequency('daily');
+        }
+
+        if ($frequency === 'manual') {
+            return $value;
+        }
+
+        if (! $this->shouldUseUpdateCheckScan($frequency)) {
+            return $value;
+        }
+
         $now = time();
         if ($this->lastUpdateCheckScan === null) {
             $lastScan = (int) get_option('wp_watchdog_update_check_scan_at', 0);
@@ -429,6 +453,134 @@ class Plugin
         }
 
         return min(300, max(60, (int) floor($interval / 6)));
+    }
+
+    private function scheduleNeedsRealignment(int $scheduledAt, int $desiredAt, int $interval): bool
+    {
+        if ($interval <= 0) {
+            return false;
+        }
+
+        $tolerance = max(60, (int) floor($interval * 0.05));
+
+        return abs($scheduledAt - $desiredAt) > $tolerance;
+    }
+
+    private function nextRunTimestamp(string $frequency, array $settings): int
+    {
+        if ($frequency === 'weekly') {
+            $weekday = (int) ($settings['notifications']['weekly_day'] ?? 1);
+            $time    = (string) ($settings['notifications']['weekly_time'] ?? '08:00');
+
+            return $this->nextWeeklyRunTimestamp($weekday, $time);
+        }
+
+        if ($frequency === 'testing') {
+            return time() + $this->scheduleDelayForFrequency($frequency);
+        }
+
+        $time = (string) ($settings['notifications']['daily_time'] ?? '08:00');
+
+        return $this->nextDailyRunTimestamp($time);
+    }
+
+    private function nextDailyRunTimestamp(string $time): int
+    {
+        $timezone   = $this->getTimezone();
+        $now        = new \DateTime('now', $timezone);
+        $targetTime = $this->applyTimeToDate(new \DateTime('now', $timezone), $time);
+
+        if ($targetTime->getTimestamp() <= $now->getTimestamp()) {
+            $targetTime->modify('+1 day');
+            $targetTime = $this->applyTimeToDate($targetTime, $time);
+        }
+
+        return $targetTime->getTimestamp();
+    }
+
+    private function nextWeeklyRunTimestamp(int $weekday, string $time): int
+    {
+        $weekday    = max(1, min(7, $weekday));
+        $timezone   = $this->getTimezone();
+        $now        = new \DateTime('now', $timezone);
+        $targetTime = $this->applyTimeToDate(new \DateTime('now', $timezone), $time);
+        $currentDay = (int) $targetTime->format('N');
+
+        $daysUntilTarget = $weekday - $currentDay;
+        if ($daysUntilTarget < 0 || ($daysUntilTarget === 0 && $targetTime->getTimestamp() <= $now->getTimestamp())) {
+            $daysUntilTarget += 7;
+        }
+
+        if ($daysUntilTarget !== 0) {
+            $targetTime->modify('+' . $daysUntilTarget . ' days');
+            $targetTime = $this->applyTimeToDate($targetTime, $time);
+        }
+
+        return $targetTime->getTimestamp();
+    }
+
+    private function applyTimeToDate(\DateTime $dateTime, string $time): \DateTime
+    {
+        if (! preg_match('/^(\d{1,2}):(\d{2})$/', $time, $matches)) {
+            $matches = [null, '08', '00'];
+        }
+
+        $hour   = max(0, min(23, (int) $matches[1]));
+        $minute = max(0, min(59, (int) $matches[2]));
+
+        $dateTime->setTime($hour, $minute);
+
+        return $dateTime;
+    }
+
+    private function getTimezone(): \DateTimeZone
+    {
+        if (function_exists('wp_timezone')) {
+            return wp_timezone();
+        }
+
+        $timezoneString = (string) get_option('timezone_string');
+        if ($timezoneString !== '') {
+            try {
+                return new \DateTimeZone($timezoneString);
+            } catch (\Exception) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+            }
+        }
+
+        $gmtOffset = get_option('gmt_offset');
+        if (is_numeric($gmtOffset)) {
+            $secondsInHour = defined('HOUR_IN_SECONDS') ? HOUR_IN_SECONDS : 3600;
+            $secondsOffset = (int) round((float) $gmtOffset * $secondsInHour);
+            $timezoneName  = timezone_name_from_abbr('', $secondsOffset, 0);
+            if ($timezoneName !== false) {
+                try {
+                    return new \DateTimeZone($timezoneName);
+                } catch (\Exception) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+                }
+            }
+        }
+
+        return new \DateTimeZone('UTC');
+    }
+
+    private function shouldUseUpdateCheckScan(string $frequency): bool
+    {
+        $interval  = $this->cronIntervalForFrequency($frequency);
+        $timestamp = wp_next_scheduled(self::CRON_HOOK);
+
+        if ($this->isCronDisabled()) {
+            return true;
+        }
+
+        if ($timestamp === false) {
+            return true;
+        }
+
+        if ($interval <= 0) {
+            return false;
+        }
+
+        return $this->isEventOverdue((int) $timestamp, $interval);
     }
 
     private function hasFutureEventScheduled(int $now): bool

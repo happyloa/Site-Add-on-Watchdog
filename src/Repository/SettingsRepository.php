@@ -11,6 +11,9 @@ class SettingsRepository
         $defaults = [
             'notifications'     => [
                 'frequency' => 'daily',
+                'daily_time' => '08:00',
+                'weekly_day' => 1,
+                'weekly_time' => '08:00',
                 'email'     => [
                     'enabled'    => true,
                     'recipients' => '',
@@ -57,6 +60,9 @@ class SettingsRepository
         $settings   = array_replace_recursive($defaults, $normalized);
 
         $settings['notifications']['frequency'] = $this->sanitizeFrequency($settings['notifications']['frequency']);
+        $settings['notifications']['daily_time'] = $this->sanitizeTimeOfDay($settings['notifications']['daily_time']);
+        $settings['notifications']['weekly_day'] = $this->sanitizeWeekday($settings['notifications']['weekly_day']);
+        $settings['notifications']['weekly_time'] = $this->sanitizeTimeOfDay($settings['notifications']['weekly_time']);
         $settings['notifications']['testing_expires_at'] = $this->sanitizeTestingExpiration(
             $settings['notifications']['testing_expires_at'] ?? 0
         );
@@ -132,6 +138,15 @@ class SettingsRepository
         $filtered = [
             'notifications'     => [
                 'frequency' => $this->sanitizeFrequency($notifications['frequency'] ?? ''),
+                'daily_time' => $this->sanitizeTimeOfDay(
+                    $notifications['daily_time'] ?? ($current['notifications']['daily_time'] ?? '08:00')
+                ),
+                'weekly_day' => $this->sanitizeWeekday(
+                    $notifications['weekly_day'] ?? ($current['notifications']['weekly_day'] ?? 1)
+                ),
+                'weekly_time' => $this->sanitizeTimeOfDay(
+                    $notifications['weekly_time'] ?? ($current['notifications']['weekly_time'] ?? '08:00')
+                ),
                 'email'     => [
                     'enabled'    => ! empty($email['enabled']),
                     'recipients' => sanitize_text_field($email['recipients'] ?? ''),
@@ -285,6 +300,9 @@ class SettingsRepository
 
         $normalizedNotifications = [
             'frequency' => $notifications['frequency'] ?? $legacy['frequency'],
+            'daily_time' => $notifications['daily_time'] ?? $legacy['daily_time'] ?? null,
+            'weekly_day' => $notifications['weekly_day'] ?? $legacy['weekly_day'] ?? null,
+            'weekly_time' => $notifications['weekly_time'] ?? $legacy['weekly_time'] ?? null,
             'email'     => [
                 'enabled'    => $email['enabled'] ?? $legacy['email']['enabled'],
                 'recipients' => $email['recipients'] ?? $legacy['email']['recipients'],
@@ -340,6 +358,40 @@ class SettingsRepository
         }
 
         return $frequency;
+    }
+
+    private function sanitizeTimeOfDay(mixed $value): string
+    {
+        if (! is_string($value)) {
+            $value = '';
+        }
+
+        $normalized = trim($value);
+
+        if (! preg_match('/^(?:[01]?\d|2[0-3]):[0-5]\d$/', $normalized)) {
+            return '08:00';
+        }
+
+        [$hour, $minute] = array_map('intval', explode(':', $normalized));
+
+        return sprintf('%02d:%02d', $hour, $minute);
+    }
+
+    private function sanitizeWeekday(mixed $value): int
+    {
+        if (is_string($value) && $value !== '' && is_numeric($value)) {
+            $value = (int) $value;
+        }
+
+        if (! is_int($value)) {
+            $value = 1;
+        }
+
+        if ($value < 1 || $value > 7) {
+            return 1;
+        }
+
+        return $value;
     }
 
     private function determineTestingExpiration(
