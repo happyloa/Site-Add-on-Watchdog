@@ -1,4 +1,4 @@
-=== WP Plugin Watchdog ===
+=== Site Add-on Watchdog ===
 Contributors: pluginwatchdog
 Tags: security, plugins, monitoring, notifications
 Requires at least: 6.0
@@ -12,7 +12,7 @@ Monitor installed plugins for security notices, outdated releases, and WPScan di
 
 == Description ==
 
-WP Plugin Watchdog keeps an eye on your site's plugins and warns you when:
+Site Add-on Watchdog keeps an eye on your site's plugins and warns you when:
 
 * Your installed version is two or more minor releases behind the directory build.
 * The official changelog mentions security or vulnerability fixes.

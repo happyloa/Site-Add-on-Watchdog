@@ -48,7 +48,7 @@ class Notifier
                     'description' => __('Email alert', 'wp-plugin-watchdog-main'),
                     'payload'     => [
                         'recipients' => $recipients,
-                        'subject'    => __('Plugin Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
+                        'subject'    => __('Site Add-on Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
                         'body'       => $emailReport,
                         'headers'    => ['Content-Type: text/html; charset=UTF-8'],
                     ],
@@ -108,7 +108,7 @@ class Notifier
                         'meta'    => [
                             'count'      => count($risks),
                             'generated'  => time(),
-                            'source'     => 'WP Plugin Watchdog',
+                            'source'     => 'Site Add-on Watchdog',
                         ],
                     ],
                     'secret' => $webhookSettings['secret'] ?? null,
@@ -177,7 +177,7 @@ class Notifier
 
         if (is_wp_error($response)) {
             $message = sprintf(
-                'WP Plugin Watchdog webhook request to %s failed: %s',
+                'Site Add-on Watchdog webhook request to %s failed: %s',
                 $url,
                 $response->get_error_message()
             );
@@ -192,7 +192,7 @@ class Notifier
         if ($statusCode < 200 || $statusCode >= 300) {
             $bodyMessage = trim((string) wp_remote_retrieve_body($response));
             $message     = sprintf(
-                'WP Plugin Watchdog webhook request to %s failed with status %d',
+                'Site Add-on Watchdog webhook request to %s failed with status %d',
                 $url,
                 $statusCode
             );
@@ -330,7 +330,7 @@ class Notifier
                 'type' => 'header',
                 'text' => [
                     'type'  => 'plain_text',
-                    'text'  => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
+                    'text'  => __('Site Add-on Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
                     'emoji' => true,
                 ],
             ],
@@ -399,13 +399,13 @@ class Notifier
         ];
 
         return [
-            'username'    => 'WP Plugin Watchdog',
+            'username'    => 'Site Add-on Watchdog',
             'text'        => $plainTextReport,
             'blocks'      => $blocks,
             'attachments' => [
                 [
                     'color' => '#2271b1',
-                    'text'  => __('Stay ahead of plugin risks with WP Plugin Watchdog.', 'wp-plugin-watchdog-main'),
+                    'text'  => __('Stay ahead of plugin risks with Site Add-on Watchdog.', 'wp-plugin-watchdog-main'),
                 ],
             ],
         ];
@@ -478,7 +478,7 @@ class Notifier
     private function formatDiscordMessage(array $risks, string $plainTextReport): array
     {
         return [
-            'username' => 'WP Plugin Watchdog',
+            'username' => 'Site Add-on Watchdog',
             'content'  => $plainTextReport,
         ];
     }
@@ -523,9 +523,9 @@ class Notifier
         return [
             '@type'    => 'MessageCard',
             '@context' => 'https://schema.org/extensions',
-            'summary'  => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
+            'summary'  => __('Site Add-on Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
             'themeColor' => '2271B1',
-            'title'      => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
+            'title'      => __('Site Add-on Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
             'sections'   => $sections,
             'potentialAction' => [
                 [
@@ -640,13 +640,13 @@ class Notifier
                 . '<p style="font-size:12px; color:#4b5563; margin:12px 0 0 0;">%9$s</p>',
                 esc_attr($background),
                 esc_attr($brandColor),
-                esc_html__('WP Plugin Watchdog', 'wp-plugin-watchdog-main'),
+                esc_html__('Site Add-on Watchdog', 'wp-plugin-watchdog-main'),
                 esc_html__('Latest scan completed — no risks detected.', 'wp-plugin-watchdog-main'),
                 esc_html__('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog-main'),
                 $pluginsUrl,
                 esc_attr($accentColor),
                 esc_html__('Review plugins', 'wp-plugin-watchdog-main'),
-                esc_html__('You are receiving this update from WP Plugin Watchdog.', 'wp-plugin-watchdog-main')
+                esc_html__('You are receiving this update from Site Add-on Watchdog.', 'wp-plugin-watchdog-main')
             );
         }
         $cards = '';
@@ -748,7 +748,7 @@ class Notifier
             esc_attr($background),
             esc_attr($containerCss),
             esc_attr($brandColor),
-            esc_html__('WP Plugin Watchdog', 'wp-plugin-watchdog-main'),
+            esc_html__('Site Add-on Watchdog', 'wp-plugin-watchdog-main'),
             esc_html__('Potential plugin risks detected on your site', 'wp-plugin-watchdog-main'),
             $cards,
             esc_html__(
@@ -759,7 +759,7 @@ class Notifier
             $updateUrl,
             esc_attr($accentColor),
             esc_html__('Review updates', 'wp-plugin-watchdog-main'),
-            esc_html__('You are receiving this update from WP Plugin Watchdog.', 'wp-plugin-watchdog-main')
+            esc_html__('You are receiving this update from Site Add-on Watchdog.', 'wp-plugin-watchdog-main')
         );
     }
 

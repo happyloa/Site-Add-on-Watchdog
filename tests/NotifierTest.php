@@ -65,7 +65,7 @@ class NotifierTest extends TestCase
             ->once()
             ->withArgs(function ($recipients, $subject, $body, $headers) {
                 self::assertSame(['admin@example.com', 'second@example.com'], $recipients);
-                self::assertSame('Plugin Watchdog Risk Alert', $subject);
+                self::assertSame('Site Add-on Watchdog Risk Alert', $subject);
                 self::assertIsString($body);
                 self::assertStringContainsString('<table', $body);
                 self::assertStringContainsString('https://example.com/wp-admin/update-core.php', $body);
@@ -130,7 +130,7 @@ class NotifierTest extends TestCase
             ->once()
             ->withArgs(function ($recipients, $subject, $body, $headers) {
                 self::assertSame(['user@example.com'], $recipients);
-                self::assertSame('Plugin Watchdog Risk Alert', $subject);
+                self::assertSame('Site Add-on Watchdog Risk Alert', $subject);
                 self::assertStringContainsString('No plugin risks detected on your site', $body);
                 self::assertStringNotContainsString('<table', $body);
 
@@ -221,7 +221,7 @@ class NotifierTest extends TestCase
                     'custom@example.com',
                     'other@example.com',
                 ], $recipients);
-                self::assertSame('Plugin Watchdog Risk Alert', $subject);
+                self::assertSame('Site Add-on Watchdog Risk Alert', $subject);
                 self::assertIsString($body);
                 self::assertStringContainsString('Current Version', $body);
                 self::assertSame(['Content-Type: text/html; charset=UTF-8'], $headers);
@@ -370,7 +370,7 @@ class NotifierTest extends TestCase
 
         expect('set_transient')
             ->once()
-            ->with('wp_watchdog_webhook_error', 'WP Plugin Watchdog webhook request to https://example.com/hook failed: Something went wrong', 86400);
+            ->with('wp_watchdog_webhook_error', 'Site Add-on Watchdog webhook request to https://example.com/hook failed: Something went wrong', 86400);
 
         expect('delete_transient')->never();
 
@@ -431,7 +431,7 @@ class NotifierTest extends TestCase
                 'body'     => 'Server exploded',
             ]);
 
-        $message = 'WP Plugin Watchdog webhook request to https://example.com/hook failed with status 500: Server exploded';
+        $message = 'Site Add-on Watchdog webhook request to https://example.com/hook failed with status 500: Server exploded';
 
         expect('set_transient')
             ->once()
@@ -495,7 +495,7 @@ class NotifierTest extends TestCase
                 self::assertSame('application/json', $args['headers']['Content-Type']);
 
                 $payload = json_decode($args['body'], true, 512, JSON_THROW_ON_ERROR);
-                self::assertSame('WP Plugin Watchdog', $payload['username']);
+                self::assertSame('Site Add-on Watchdog', $payload['username']);
                 self::assertArrayHasKey('blocks', $payload);
                 self::assertGreaterThanOrEqual(2, count($payload['blocks']));
                 self::assertSame('Review updates', $payload['blocks'][count($payload['blocks']) - 1]['elements'][0]['text']['text']);
@@ -570,7 +570,7 @@ class NotifierTest extends TestCase
 
                 $payload = json_decode($args['body'], true, 512, JSON_THROW_ON_ERROR);
                 self::assertSame('MessageCard', $payload['@type']);
-                self::assertSame('WP Plugin Watchdog Risk Alert', $payload['title']);
+                self::assertSame('Site Add-on Watchdog Risk Alert', $payload['title']);
                 self::assertArrayHasKey('sections', $payload);
                 self::assertNotEmpty($payload['sections'][0]['text']);
 
