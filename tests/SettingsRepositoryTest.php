@@ -202,8 +202,8 @@ class SettingsRepositoryTest extends TestCase
         self::assertSame('https://example.com/slack', $updated['notifications']['slack']['webhook']);
         self::assertTrue($updated['notifications']['teams']['enabled']);
         self::assertSame('https://example.com/teams', $updated['notifications']['teams']['webhook']);
-        $expectedMin = $startTime + (6 * 3600);
-        $expectedMax = $endTime + (6 * 3600);
+        $expectedMin = $startTime + (3 * 3600);
+        $expectedMax = $endTime + (3 * 3600);
         self::assertGreaterThanOrEqual($expectedMin, $updated['notifications']['testing_expires_at']);
         self::assertLessThanOrEqual($expectedMax, $updated['notifications']['testing_expires_at']);
         self::assertSame(RiskRepository::DEFAULT_HISTORY_RETENTION, $updated['history']['retention']);

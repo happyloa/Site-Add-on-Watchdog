@@ -18,7 +18,7 @@ Site Add-on Watchdog keeps an eye on your site's plugins and warns you when:
 * The official changelog mentions security or vulnerability fixes.
 * (Optional) WPScan lists open CVEs for the plugin when you provide your own API key.
 
-The plugin runs on a schedule you control—choose daily, weekly, a ten-minute testing cadence, or rely on manual scans—and stores results locally. Nothing leaves your site unless you explicitly configure outgoing notifications.
+The plugin runs on a schedule you control—choose daily, weekly, a twenty-minute testing cadence, or rely on manual scans—and stores results locally. Nothing leaves your site unless you explicitly configure outgoing notifications.
 
 === Privacy first ===
 
@@ -110,7 +110,7 @@ Recommended workflow: on CI/CD platforms, add a job step that boots your WordPre
 * Allow administrators to configure how many historical scans are retained (defaults to 30).
 
 = 0.4.0 =
-* Add a ten-minute testing frequency to the scan scheduler for staging and QA environments.
+* Add a twenty-minute testing frequency to the scan scheduler for staging and QA environments.
 
 = 0.3.0 =
 * Add schedule frequency options for daily, weekly, or manual-only scans.
