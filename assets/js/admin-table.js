@@ -304,6 +304,7 @@
     function initFrequencyDescription() {
         const select = document.getElementById('wp-watchdog-notification-frequency');
         const description = document.querySelector('[data-watchdog-frequency-description]');
+        const optionContainer = document.querySelector('[data-watchdog-frequency-options]');
 
         if (!select || !description) {
             return;
@@ -322,8 +323,30 @@
             }
         };
 
-        select.addEventListener('change', updateMessage);
+        const updateOptionsVisibility = () => {
+            if (!optionContainer) {
+                return;
+            }
+
+            const active = select.value;
+            optionContainer.querySelectorAll('[data-watchdog-frequency-target]').forEach((section) => {
+                const target = section.getAttribute('data-watchdog-frequency-target');
+                const visible = target === active;
+                section.style.display = visible ? '' : 'none';
+
+                section.querySelectorAll('input, select').forEach((field) => {
+                    field.disabled = !visible;
+                });
+            });
+        };
+
+        select.addEventListener('change', () => {
+            updateMessage();
+            updateOptionsVisibility();
+        });
+
         updateMessage();
+        updateOptionsVisibility();
     }
 
     window.addEventListener('DOMContentLoaded', () => {

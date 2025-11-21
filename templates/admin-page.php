@@ -437,6 +437,15 @@
                     $testingExpiresAt        = (int) ($settings['notifications']['testing_expires_at'] ?? 0);
                     $now                     = time();
                     $showTestingExpiry       = $isTestingFrequency && $testingExpiresAt > $now;
+                    $dailyTime               = isset($settings['notifications']['daily_time'])
+                        ? (string) $settings['notifications']['daily_time']
+                        : '08:00';
+                    $weeklyDay = isset($settings['notifications']['weekly_day'])
+                        ? (int) $settings['notifications']['weekly_day']
+                        : 1;
+                    $weeklyTime = isset($settings['notifications']['weekly_time'])
+                        ? (string) $settings['notifications']['weekly_time']
+                        : '08:00';
                     ?>
                     <label for="wp-watchdog-notification-frequency" class="screen-reader-text"><?php esc_html_e('Scan frequency', 'wp-plugin-watchdog-main'); ?></label>
                     <select id="wp-watchdog-notification-frequency" name="settings[notifications][frequency]">
@@ -459,6 +468,54 @@
                     >
                         <?php echo esc_html($isTestingFrequency ? $testingFrequencyMessage : $defaultFrequencyMessage); ?>
                     </p>
+                    <div class="wp-watchdog-frequency-options" data-watchdog-frequency-options>
+                        <div class="wp-watchdog-frequency-options__row" data-watchdog-frequency-target="daily">
+                            <label for="wp-watchdog-daily-time" class="wp-watchdog-frequency-label">
+                                <?php esc_html_e('Daily send time', 'wp-plugin-watchdog-main'); ?>
+                            </label>
+                            <input
+                                id="wp-watchdog-daily-time"
+                                name="settings[notifications][daily_time]"
+                                type="time"
+                                value="<?php echo esc_attr($dailyTime); ?>"
+                                aria-describedby="wp-watchdog-daily-time-help"
+                            />
+                            <p class="description" id="wp-watchdog-daily-time-help">
+                                <?php esc_html_e('Time of day to start the daily scan (server timezone).', 'wp-plugin-watchdog-main'); ?>
+                            </p>
+                        </div>
+                        <div class="wp-watchdog-frequency-options__row" data-watchdog-frequency-target="weekly">
+                            <div class="wp-watchdog-frequency-weekly">
+                                <label for="wp-watchdog-weekly-day" class="wp-watchdog-frequency-label">
+                                    <?php esc_html_e('Weekly send day', 'wp-plugin-watchdog-main'); ?>
+                                </label>
+                                <select id="wp-watchdog-weekly-day" name="settings[notifications][weekly_day]">
+                                    <option value="1" <?php selected($weeklyDay, 1); ?>><?php esc_html_e('Monday', 'wp-plugin-watchdog-main'); ?></option>
+                                    <option value="2" <?php selected($weeklyDay, 2); ?>><?php esc_html_e('Tuesday', 'wp-plugin-watchdog-main'); ?></option>
+                                    <option value="3" <?php selected($weeklyDay, 3); ?>><?php esc_html_e('Wednesday', 'wp-plugin-watchdog-main'); ?></option>
+                                    <option value="4" <?php selected($weeklyDay, 4); ?>><?php esc_html_e('Thursday', 'wp-plugin-watchdog-main'); ?></option>
+                                    <option value="5" <?php selected($weeklyDay, 5); ?>><?php esc_html_e('Friday', 'wp-plugin-watchdog-main'); ?></option>
+                                    <option value="6" <?php selected($weeklyDay, 6); ?>><?php esc_html_e('Saturday', 'wp-plugin-watchdog-main'); ?></option>
+                                    <option value="7" <?php selected($weeklyDay, 7); ?>><?php esc_html_e('Sunday', 'wp-plugin-watchdog-main'); ?></option>
+                                </select>
+                            </div>
+                            <div class="wp-watchdog-frequency-weekly">
+                                <label for="wp-watchdog-weekly-time" class="wp-watchdog-frequency-label">
+                                    <?php esc_html_e('Weekly send time', 'wp-plugin-watchdog-main'); ?>
+                                </label>
+                                <input
+                                    id="wp-watchdog-weekly-time"
+                                    name="settings[notifications][weekly_time]"
+                                    type="time"
+                                    value="<?php echo esc_attr($weeklyTime); ?>"
+                                    aria-describedby="wp-watchdog-weekly-time-help"
+                                />
+                            </div>
+                            <p class="description" id="wp-watchdog-weekly-time-help">
+                                <?php esc_html_e('Day and time to start the weekly scan (server timezone).', 'wp-plugin-watchdog-main'); ?>
+                            </p>
+                        </div>
+                    </div>
                     <?php if ($showTestingExpiry) : ?>
                         <?php
                         $timezone = null;
