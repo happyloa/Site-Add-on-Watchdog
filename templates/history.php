@@ -9,10 +9,10 @@
 <style>
     .wp-watchdog-history-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; }
     .wp-watchdog-history-card { background:#f6f7f7; border:1px solid #dcdcde; border-radius:8px; padding:12px 14px; box-shadow:0 1px 1px rgba(0,0,0,0.02); }
-    .wp-watchdog-history-card__header { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
-    .wp-watchdog-history-card__title { margin:0; font-weight:600; font-size:14px; display:flex; align-items:center; gap:6px; }
+    .wp-watchdog-history-card__header { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+    .wp-watchdog-history-card__title { margin:0; font-weight:600; font-size:14px; display:flex; align-items:center; gap:6px; flex:1 1 auto; min-width:0; }
     .wp-watchdog-history-card__meta { color:#4b5563; font-size:12px; margin:0; }
-    .wp-watchdog-history-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; font-weight:600; font-size:12px; text-transform:uppercase; }
+    .wp-watchdog-history-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; font-weight:600; font-size:12px; text-transform:uppercase; align-self:flex-start; }
     .wp-watchdog-history-badge--safe { background:#e7f7ed; color:#1c5f3a; }
     .wp-watchdog-history-badge--risk { background:#fff4d6; color:#7a5a00; }
     .wp-watchdog-history-card__downloads { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }

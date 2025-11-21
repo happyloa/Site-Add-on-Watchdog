@@ -477,75 +477,9 @@ class Notifier
 
     private function formatDiscordMessage(array $risks, string $plainTextReport): array
     {
-        $hasRisks = ! empty($risks);
-        $adminUrl = admin_url('admin.php?page=wp-plugin-watchdog');
-        $updateUrl = admin_url('update-core.php');
-        $color    = hexdec('2271b1');
-
-        $fields = [];
-        foreach ($risks as $risk) {
-            $reasons = $risk->reasons;
-            if (! empty($risk->details['vulnerabilities'])) {
-                foreach ($risk->details['vulnerabilities'] as $vulnerability) {
-                    $label = [];
-                    if (! empty($vulnerability['severity_label'])) {
-                        $label[] = '[' . $vulnerability['severity_label'] . ']';
-                    }
-                    if (! empty($vulnerability['title'])) {
-                        $label[] = (string) $vulnerability['title'];
-                    }
-                    if (! empty($vulnerability['cve'])) {
-                        $label[] = (string) $vulnerability['cve'];
-                    }
-                    if (! empty($vulnerability['fixed_in'])) {
-                        $label[] = sprintf(
-                            /* translators: %s is a plugin version number */
-                            __('Fixed in %s', 'wp-plugin-watchdog-main'),
-                            $vulnerability['fixed_in']
-                        );
-                    }
-
-                    if (! empty($label)) {
-                        $reasons[] = implode(' - ', $label);
-                    }
-                }
-            }
-
-            $fields[] = [
-                'name'   => $risk->pluginName,
-                'value'  => sprintf(
-                    "*%s:* %s\n*%s:* %s\n%s",
-                    __('Current', 'wp-plugin-watchdog-main'),
-                    $risk->localVersion ?? __('Unknown', 'wp-plugin-watchdog-main'),
-                    __('Directory', 'wp-plugin-watchdog-main'),
-                    $risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog-main'),
-                    implode("\n", array_map(static fn ($reason) => '• ' . $reason, $reasons))
-                ),
-                'inline' => false,
-            ];
-        }
-
         return [
             'username' => 'WP Plugin Watchdog',
             'content'  => $plainTextReport,
-            'embeds'   => [
-                [
-                    'title'       => __('WP Plugin Watchdog Risk Alert', 'wp-plugin-watchdog-main'),
-                    'description' => $hasRisks
-                        ? __('Potential plugin risks detected on your site.', 'wp-plugin-watchdog-main')
-                        : __('No plugin risks detected on your site at this time.', 'wp-plugin-watchdog-main'),
-                    'color'       => $color,
-                    'url'         => $adminUrl,
-                    'fields'      => $fields,
-                    'footer'      => [
-                        'text' => sprintf(
-                            '%s • %s',
-                            __('Review updates', 'wp-plugin-watchdog-main'),
-                            $updateUrl
-                        ),
-                    ],
-                ],
-            ],
         ];
     }
 
