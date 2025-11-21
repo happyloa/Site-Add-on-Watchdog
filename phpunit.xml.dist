@@ -6,7 +6,7 @@
          beStrictAboutChangesToGlobalState="false"
          beStrictAboutTestsThatDoNotTestAnything="false">
     <testsuites>
-        <testsuite name="Plugin Watchdog Tests">
+        <testsuite name="Site Add-on Watchdog Tests">
             <directory suffix="Test.php">tests</directory>
         </testsuite>
     </testsuites>

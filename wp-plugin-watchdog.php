@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Plugin Name: WP Plugin Watchdog
+ * Plugin Name: Site Add-on Watchdog
  * Description: Monitors installed plugins for potential security risks and outdated versions.
  * Version:     1.4.0
  * Author:      Aaron
@@ -18,7 +18,7 @@ if (version_compare(PHP_VERSION, '8.1', '<')) {
     add_action('admin_notices', static function () {
         echo '<div class="notice notice-error"><p>'
             . esc_html__(
-                'WP Plugin Watchdog requires PHP 8.1 or higher. The plugin has been disabled.',
+                'Site Add-on Watchdog requires PHP 8.1 or higher. The plugin has been disabled.',
                 'wp-plugin-watchdog-main'
             )
             . '</p></div>';

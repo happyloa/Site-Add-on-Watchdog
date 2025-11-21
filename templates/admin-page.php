@@ -34,7 +34,7 @@
         <div>
             <h1 style="display:flex; align-items:center; gap:10px; margin:0;">
                 <span class="dashicons dashicons-shield"></span>
-                <?php esc_html_e('WP Plugin Watchdog', 'wp-plugin-watchdog-main'); ?>
+                <?php esc_html_e('Site Add-on Watchdog', 'wp-plugin-watchdog-main'); ?>
             </h1>
             <p class="wp-watchdog-muted"><?php esc_html_e('Monitor plugin health, history, and alerts from a single place.', 'wp-plugin-watchdog-main'); ?></p>
         </div>

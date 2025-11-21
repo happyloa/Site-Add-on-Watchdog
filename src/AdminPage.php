@@ -45,7 +45,7 @@ class AdminPage
     public function addMenu(): void
     {
         $this->menuHook = add_menu_page(
-            __('Plugin Watchdog', 'wp-plugin-watchdog-main'),
+            __('Site Add-on Watchdog', 'wp-plugin-watchdog-main'),
             __('Watchdog', 'wp-plugin-watchdog-main'),
             'manage_options',
             'wp-plugin-watchdog',

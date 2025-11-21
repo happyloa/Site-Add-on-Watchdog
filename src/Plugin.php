@@ -260,7 +260,8 @@ class Plugin
         if (! empty($status['cron_disabled'])) {
             echo '<div class="notice notice-error"><p>'
                 . esc_html__(
-                    'WP-Cron appears disabled. Configure a system cron job to trigger wp-cron.php for Plugin Watchdog.',
+                    'WP-Cron appears disabled. Configure a system cron job to trigger '
+                    . 'wp-cron.php for Site Add-on Watchdog.',
                     'wp-plugin-watchdog-main'
                 )
                 . '</p></div>';
@@ -271,7 +272,7 @@ class Plugin
         if (($status['overdue_streak'] ?? 0) >= 2) {
             echo '<div class="notice notice-warning"><p>'
                 . esc_html__(
-                    'Plugin Watchdog scans are overdue. Ensure system cron calls wp-cron.php regularly.',
+                    'Site Add-on Watchdog scans are overdue. Ensure system cron calls wp-cron.php regularly.',
                     'wp-plugin-watchdog-main'
                 )
                 . '</p></div>';
@@ -373,10 +374,10 @@ class Plugin
         update_option(self::CRON_STATUS_OPTION, $status, false);
 
         if ($cronDisabled) {
-            $this->logCronWarning('[Plugin Watchdog] WP-Cron appears disabled. '
+            $this->logCronWarning('[Site Add-on Watchdog] WP-Cron appears disabled. '
                 . 'Configure system cron to trigger wp-cron.php.');
         } elseif ($status['overdue_streak'] >= 2) {
-            $this->logCronWarning('[Plugin Watchdog] Scheduled scans are overdue. '
+            $this->logCronWarning('[Site Add-on Watchdog] Scheduled scans are overdue. '
                 . 'Ensure cron can reach wp-cron.php.');
         }
     }
