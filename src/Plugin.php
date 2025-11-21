@@ -72,6 +72,11 @@ class Plugin
         $currentSchedule = $timestamp ? wp_get_schedule(self::CRON_HOOK) : false;
         $interval        = $this->cronIntervalForFrequency($frequency);
         $nextRunAt       = $this->nextRunTimestamp($frequency, $settings);
+
+        if ($frequency === 'testing' && $timestamp) {
+            $nextRunAt = (int) $timestamp;
+        }
+
         $isOverdue       = $timestamp !== false
             && $interval > 0
             && $this->isEventOverdue((int) $timestamp, $interval);
