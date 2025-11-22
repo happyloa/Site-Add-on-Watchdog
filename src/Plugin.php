@@ -11,6 +11,8 @@ use WP_REST_Request;
 class Plugin
 {
     private const CRON_HOOK = 'wp_watchdog_scheduled_scan';
+    private const QUEUE_CRON_HOOK = 'wp_watchdog_notification_queue';
+    private const QUEUE_CRON_SCHEDULE = 'watchdog_notification_queue';
     private const LEGACY_CRON_HOOK = 'wp_watchdog_daily_scan';
     private const CRON_STATUS_OPTION = 'wp_watchdog_cron_status';
 
@@ -38,6 +40,7 @@ class Plugin
         add_action(self::CRON_HOOK, [$this, 'flushNotificationQueue'], 11);
         add_filter('cron_schedules', [$this, 'registerCronSchedules']);
         add_action('plugins_loaded', [$this, 'schedule']);
+        add_action(self::QUEUE_CRON_HOOK, [$this, 'flushNotificationQueue']);
         add_action('admin_notices', [$this, 'renderCronDiagnostics']);
         add_action('rest_api_init', [$this, 'registerRestRoutes']);
 
@@ -65,6 +68,8 @@ class Plugin
         }
 
         $this->clearScheduledHook(self::LEGACY_CRON_HOOK);
+
+        $this->scheduleNotificationQueueProcessor();
 
         $timestamp       = wp_next_scheduled(self::CRON_HOOK);
         $currentSchedule = $timestamp ? wp_get_schedule(self::CRON_HOOK) : false;
@@ -110,6 +115,7 @@ class Plugin
     public function deactivate(): void
     {
         $this->clearScheduledHook(self::CRON_HOOK);
+        $this->clearScheduledHook(self::QUEUE_CRON_HOOK);
         $this->clearScheduledHook(self::LEGACY_CRON_HOOK);
         delete_option('wp_watchdog_update_check_scan_at');
     }
@@ -198,6 +204,13 @@ class Plugin
             ];
         }
 
+        if (! isset($schedules[self::QUEUE_CRON_SCHEDULE])) {
+            $schedules[self::QUEUE_CRON_SCHEDULE] = [
+                'interval' => $this->queueProcessorInterval(),
+                'display'  => __('Every 5 Minutes (Watchdog queue)', 'site-add-on-watchdog'),
+            ];
+        }
+
         if (! isset($schedules['testing'])) {
             $schedules['testing'] = [
                 'interval' => TestingMode::intervalInSeconds(),
@@ -243,6 +256,23 @@ class Plugin
         delete_option('wp_watchdog_update_check_scan_at');
     }
 
+    private function scheduleNotificationQueueProcessor(): void
+    {
+        $timestamp = wp_next_scheduled(self::QUEUE_CRON_HOOK);
+        $currentSchedule = $timestamp ? wp_get_schedule(self::QUEUE_CRON_HOOK) : false;
+
+        if ($timestamp && $currentSchedule === self::QUEUE_CRON_SCHEDULE) {
+            return;
+        }
+
+        $this->clearScheduledHook(self::QUEUE_CRON_HOOK);
+
+        $delay = $this->queueProcessorInterval();
+        $nextRunAt = time() + $delay;
+
+        wp_schedule_event($nextRunAt, self::QUEUE_CRON_SCHEDULE, self::QUEUE_CRON_HOOK);
+    }
+
     private function scheduleDelayForFrequency(string $frequency): int
     {
         if ($frequency === 'testing') {
@@ -250,6 +280,13 @@ class Plugin
         }
 
         return defined('HOUR_IN_SECONDS') ? HOUR_IN_SECONDS : 3600;
+    }
+
+    private function queueProcessorInterval(): int
+    {
+        $minute = defined('MINUTE_IN_SECONDS') ? MINUTE_IN_SECONDS : 60;
+
+        return 5 * $minute;
     }
 
     public function renderCronDiagnostics(): void
