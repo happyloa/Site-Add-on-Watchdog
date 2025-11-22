@@ -19,14 +19,14 @@
 </style>
 
 <?php if (empty($historyRecords)) : ?>
-    <p><?php echo esc_html__('No scans have been recorded yet. Run a scan to populate your history.', 'wp-plugin-watchdog-main'); ?></p>
+    <p><?php echo esc_html__('No scans have been recorded yet. Run a scan to populate your history.', 'site-add-on-watchdog'); ?></p>
 <?php else : ?>
     <p class="description">
         <?php
         echo esc_html(
             sprintf(
                 /* translators: 1: number of scans shown, 2: total scans retained */
-                esc_html__('Showing the last %1$s scans (retaining %2$s in total).', 'wp-plugin-watchdog-main'),
+                esc_html__('Showing the last %1$s scans (retaining %2$s in total).', 'site-add-on-watchdog'),
                 number_format_i18n($historyDisplay),
                 number_format_i18n($historyRetention)
             )
@@ -50,7 +50,7 @@
                         <span class="dashicons <?php echo $hasRisks ? 'dashicons-warning' : 'dashicons-yes-alt'; ?>" aria-hidden="true"></span>
                         <?php
                         $riskLabel = function_exists('_n')
-                            ? _n('%s risk', '%s risks', $record['risk_count'], 'wp-plugin-watchdog-main')
+                            ? _n('%s risk', '%s risks', $record['risk_count'], 'site-add-on-watchdog')
                             : ($record['risk_count'] === 1 ? '%s risk' : '%s risks');
 
                         printf(
@@ -62,14 +62,14 @@
                     </span>
                 </div>
                 <p class="wp-watchdog-history-card__meta">
-                    <?php echo esc_html__('Download the report for this run:', 'wp-plugin-watchdog-main'); ?>
+                    <?php echo esc_html__('Download the report for this run:', 'site-add-on-watchdog'); ?>
                 </p>
                 <div class="wp-watchdog-history-card__downloads">
                     <?php if (! empty($downloads['json'])) : ?>
-                        <a class="button button-small" href="<?php echo esc_url($downloads['json']); ?>"><?php esc_html_e('Download JSON', 'wp-plugin-watchdog-main'); ?></a>
+                        <a class="button button-small" href="<?php echo esc_url($downloads['json']); ?>"><?php esc_html_e('Download JSON', 'site-add-on-watchdog'); ?></a>
                     <?php endif; ?>
                     <?php if (! empty($downloads['csv'])) : ?>
-                        <a class="button button-small" href="<?php echo esc_url($downloads['csv']); ?>"><?php esc_html_e('Download CSV', 'wp-plugin-watchdog-main'); ?></a>
+                        <a class="button button-small" href="<?php echo esc_url($downloads['csv']); ?>"><?php esc_html_e('Download CSV', 'site-add-on-watchdog'); ?></a>
                     <?php endif; ?>
                 </div>
             </div>

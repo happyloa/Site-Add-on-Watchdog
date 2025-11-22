@@ -37,9 +37,9 @@ use Watchdog\TestingMode;
         <div>
             <h1 style="display:flex; align-items:center; gap:10px; margin:0;">
                 <span class="dashicons dashicons-shield"></span>
-                <?php esc_html_e('Site Add-on Watchdog', 'wp-plugin-watchdog-main'); ?>
+                <?php esc_html_e('Site Add-on Watchdog', 'site-add-on-watchdog'); ?>
             </h1>
-            <p class="wp-watchdog-muted"><?php esc_html_e('Monitor plugin health, history, and alerts from a single place.', 'wp-plugin-watchdog-main'); ?></p>
+            <p class="wp-watchdog-muted"><?php esc_html_e('Monitor plugin health, history, and alerts from a single place.', 'site-add-on-watchdog'); ?></p>
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
@@ -47,7 +47,7 @@ use Watchdog\TestingMode;
                 <input type="hidden" name="action" value="wp_watchdog_scan">
                 <button class="button button-primary button-hero" type="submit">
                     <span class="dashicons dashicons-update" aria-hidden="true"></span>
-                    <?php esc_html_e('Run manual scan', 'wp-plugin-watchdog-main'); ?>
+                    <?php esc_html_e('Run manual scan', 'site-add-on-watchdog'); ?>
                 </button>
             </form>
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
@@ -56,7 +56,7 @@ use Watchdog\TestingMode;
                 <input type="hidden" name="force" value="1" />
                 <button class="button button-secondary button-hero" type="submit">
                     <span class="dashicons dashicons-megaphone" aria-hidden="true"></span>
-                    <?php esc_html_e('Send notifications now', 'wp-plugin-watchdog-main'); ?>
+                    <?php esc_html_e('Send notifications now', 'site-add-on-watchdog'); ?>
                 </button>
             </form>
         </div>
@@ -72,30 +72,30 @@ use Watchdog\TestingMode;
     <?php endif; ?>
 
     <?php if (isset($_GET['updated'])) : ?>
-        <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Settings saved.', 'wp-plugin-watchdog-main'); ?></p></div>
+        <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Settings saved.', 'site-add-on-watchdog'); ?></p></div>
     <?php endif; ?>
 
     <?php if (isset($_GET['scan'])) : ?>
-        <div class="notice notice-info is-dismissible"><p><?php esc_html_e('Manual scan completed.', 'wp-plugin-watchdog-main'); ?></p></div>
+        <div class="notice notice-info is-dismissible"><p><?php esc_html_e('Manual scan completed.', 'site-add-on-watchdog'); ?></p></div>
     <?php endif; ?>
 
     <?php if (isset($_GET['notifications'])) : ?>
         <?php $notificationResult = sanitize_key((string) $_GET['notifications']); ?>
         <?php if ($notificationResult === 'sent') : ?>
-            <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Notifications were dispatched.', 'wp-plugin-watchdog-main'); ?></p></div>
+            <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Notifications were dispatched.', 'site-add-on-watchdog'); ?></p></div>
         <?php elseif ($notificationResult === 'throttled') : ?>
-            <div class="notice notice-warning is-dismissible"><p><?php esc_html_e('Notifications skipped to avoid rapid re-sends. Please wait a moment and try again.', 'wp-plugin-watchdog-main'); ?></p></div>
+            <div class="notice notice-warning is-dismissible"><p><?php esc_html_e('Notifications skipped to avoid rapid re-sends. Please wait a moment and try again.', 'site-add-on-watchdog'); ?></p></div>
         <?php elseif ($notificationResult === 'unchanged') : ?>
-            <div class="notice notice-info is-dismissible"><p><?php esc_html_e('No notification changes detected since the last send.', 'wp-plugin-watchdog-main'); ?></p></div>
+            <div class="notice notice-info is-dismissible"><p><?php esc_html_e('No notification changes detected since the last send.', 'site-add-on-watchdog'); ?></p></div>
         <?php endif; ?>
     <?php endif; ?>
 
     <?php if (isset($_GET['failed_notification'])) : ?>
         <?php $failedStatus = sanitize_key((string) $_GET['failed_notification']); ?>
         <?php if ($failedStatus === 'resent') : ?>
-            <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Queued the captured notification payload for resend.', 'wp-plugin-watchdog-main'); ?></p></div>
+            <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Queued the captured notification payload for resend.', 'site-add-on-watchdog'); ?></p></div>
         <?php elseif ($failedStatus === 'missing') : ?>
-            <div class="notice notice-error is-dismissible"><p><?php esc_html_e('No failed notification payload was available to resend.', 'wp-plugin-watchdog-main'); ?></p></div>
+            <div class="notice notice-error is-dismissible"><p><?php esc_html_e('No failed notification payload was available to resend.', 'site-add-on-watchdog'); ?></p></div>
         <?php endif; ?>
     <?php endif; ?>
 
@@ -103,11 +103,11 @@ use Watchdog\TestingMode;
         <div class="wp-watchdog-surface">
             <div class="wp-watchdog-section-title">
                 <span class="dashicons dashicons-heart" aria-hidden="true"></span>
-                <?php esc_html_e('Delivery health', 'wp-plugin-watchdog-main'); ?>
+                <?php esc_html_e('Delivery health', 'site-add-on-watchdog'); ?>
             </div>
             <?php $isCronDisabled = ! empty($cronStatus['cron_disabled']); ?>
             <?php if ($isCronDisabled) : ?>
-                <p class="wp-watchdog-muted"><?php esc_html_e('WP-Cron appears disabled. Use a real cron job or the server endpoint below to keep scans running.', 'wp-plugin-watchdog-main'); ?></p>
+                <p class="wp-watchdog-muted"><?php esc_html_e('WP-Cron appears disabled. Use a real cron job or the server endpoint below to keep scans running.', 'site-add-on-watchdog'); ?></p>
                 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin:12px 0;">
                     <?php wp_nonce_field('wp_watchdog_send_notifications'); ?>
                     <input type="hidden" name="action" value="wp_watchdog_send_notifications">
@@ -115,35 +115,35 @@ use Watchdog\TestingMode;
                     <input type="hidden" name="ignore_throttle" value="1" />
                     <button class="button button-primary" type="submit">
                         <span class="dashicons dashicons-controls-repeat" aria-hidden="true"></span>
-                        <?php esc_html_e('Retry notifications', 'wp-plugin-watchdog-main'); ?>
+                        <?php esc_html_e('Retry notifications', 'site-add-on-watchdog'); ?>
                     </button>
                 </form>
             <?php else : ?>
-                <p class="wp-watchdog-muted"><?php esc_html_e('WP-Cron is running. Watchdog will use scheduled scans and backup triggers to deliver alerts.', 'wp-plugin-watchdog-main'); ?></p>
+                <p class="wp-watchdog-muted"><?php esc_html_e('WP-Cron is running. Watchdog will use scheduled scans and backup triggers to deliver alerts.', 'site-add-on-watchdog'); ?></p>
             <?php endif; ?>
             <div class="wp-watchdog-divider"></div>
             <p class="wp-watchdog-muted" style="word-break:break-word;">
-                <strong><?php esc_html_e('Server cron endpoint:', 'wp-plugin-watchdog-main'); ?></strong><br />
+                <strong><?php esc_html_e('Server cron endpoint:', 'site-add-on-watchdog'); ?></strong><br />
                 <code><?php echo esc_html($cronEndpoint); ?></code>
             </p>
-            <p class="wp-watchdog-muted"><?php esc_html_e('Call this URL from a system cron or monitoring service to trigger scans or notification retries even when wp-cron is disabled.', 'wp-plugin-watchdog-main'); ?></p>
+            <p class="wp-watchdog-muted"><?php esc_html_e('Call this URL from a system cron or monitoring service to trigger scans or notification retries even when wp-cron is disabled.', 'site-add-on-watchdog'); ?></p>
             <div class="wp-watchdog-divider"></div>
             <div>
-                <p class="wp-watchdog-muted" style="margin-bottom:8px;"><strong><?php esc_html_e('Captured notification payloads', 'wp-plugin-watchdog-main'); ?></strong></p>
+                <p class="wp-watchdog-muted" style="margin-bottom:8px;"><strong><?php esc_html_e('Captured notification payloads', 'site-add-on-watchdog'); ?></strong></p>
                 <?php if (! empty($lastFailedNotification)) : ?>
                     <?php
                     $failedTime = isset($lastFailedNotification['failed_at'])
                         ? (int) $lastFailedNotification['failed_at']
                         : time();
                     $failedChannel = $lastFailedNotification['description']
-                        ?: ($lastFailedNotification['channel'] ?? __('Unknown channel', 'wp-plugin-watchdog-main'));
+                        ?: ($lastFailedNotification['channel'] ?? __('Unknown channel', 'site-add-on-watchdog'));
                     $failedError = $lastFailedNotification['last_error'] ?? '';
                     ?>
                     <p class="wp-watchdog-muted">
                         <?php
                         printf(
                             /* translators: 1: human readable time, 2: channel name */
-                            esc_html__('Last failure recorded %1$s via %2$s.', 'wp-plugin-watchdog-main'),
+                            esc_html__('Last failure recorded %1$s via %2$s.', 'site-add-on-watchdog'),
                             esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), $failedTime)),
                             esc_html($failedChannel)
                         );
@@ -158,7 +158,7 @@ use Watchdog\TestingMode;
                             <input type="hidden" name="action" value="wp_watchdog_resend_failed_notification" />
                             <button class="button button-primary" type="submit">
                                 <span class="dashicons dashicons-controls-repeat" aria-hidden="true"></span>
-                                <?php esc_html_e('Re-queue payload', 'wp-plugin-watchdog-main'); ?>
+                                <?php esc_html_e('Re-queue payload', 'site-add-on-watchdog'); ?>
                             </button>
                         </form>
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
@@ -166,12 +166,12 @@ use Watchdog\TestingMode;
                             <input type="hidden" name="action" value="wp_watchdog_download_failed_notification" />
                             <button class="button" type="submit">
                                 <span class="dashicons dashicons-download" aria-hidden="true"></span>
-                                <?php esc_html_e('Download payload', 'wp-plugin-watchdog-main'); ?>
+                                <?php esc_html_e('Download payload', 'site-add-on-watchdog'); ?>
                             </button>
                         </form>
                     </div>
                 <?php else : ?>
-                    <p class="wp-watchdog-muted"><?php esc_html_e('No failed notification payload has been captured yet.', 'wp-plugin-watchdog-main'); ?></p>
+                    <p class="wp-watchdog-muted"><?php esc_html_e('No failed notification payload has been captured yet.', 'site-add-on-watchdog'); ?></p>
                 <?php endif; ?>
             </div>
         </div>
@@ -181,22 +181,22 @@ use Watchdog\TestingMode;
         <div class="wp-watchdog-surface">
             <div class="wp-watchdog-section-title">
                 <span class="dashicons dashicons-list-view" aria-hidden="true"></span>
-                <?php esc_html_e('Scan History', 'wp-plugin-watchdog-main'); ?>
+                <?php esc_html_e('Scan History', 'site-add-on-watchdog'); ?>
             </div>
             <?php require __DIR__ . '/history.php'; ?>
         </div>
         <div class="wp-watchdog-surface">
             <div class="wp-watchdog-section-title">
                 <span class="dashicons dashicons-format-status" aria-hidden="true"></span>
-                <?php esc_html_e('Notification channels', 'wp-plugin-watchdog-main'); ?>
+                <?php esc_html_e('Notification channels', 'site-add-on-watchdog'); ?>
             </div>
             <?php
             $channels = [
-                'email'   => __('Email', 'wp-plugin-watchdog-main'),
-                'slack'   => __('Slack', 'wp-plugin-watchdog-main'),
-                'teams'   => __('Microsoft Teams', 'wp-plugin-watchdog-main'),
-                'discord' => __('Discord', 'wp-plugin-watchdog-main'),
-                'webhook' => __('Custom Webhook', 'wp-plugin-watchdog-main'),
+                'email'   => __('Email', 'site-add-on-watchdog'),
+                'slack'   => __('Slack', 'site-add-on-watchdog'),
+                'teams'   => __('Microsoft Teams', 'site-add-on-watchdog'),
+                'discord' => __('Discord', 'site-add-on-watchdog'),
+                'webhook' => __('Custom Webhook', 'site-add-on-watchdog'),
             ];
             ?>
             <ul class="wp-watchdog-inline-list">
@@ -208,13 +208,13 @@ use Watchdog\TestingMode;
                             <span class="dashicons <?php echo $enabled ? 'dashicons-yes-alt' : 'dashicons-dismiss'; ?>" aria-hidden="true"></span>
                             <?php echo esc_html($label); ?>
                             <span aria-hidden="true">•</span>
-                            <?php echo $enabled ? esc_html__('On', 'wp-plugin-watchdog-main') : esc_html__('Off', 'wp-plugin-watchdog-main'); ?>
+                            <?php echo $enabled ? esc_html__('On', 'site-add-on-watchdog') : esc_html__('Off', 'site-add-on-watchdog'); ?>
                         </span>
                     </li>
                 <?php endforeach; ?>
             </ul>
             <p class="wp-watchdog-muted" style="margin-top:12px;">
-                <?php esc_html_e('Keep channels enabled to receive instant alerts and download-ready reports.', 'wp-plugin-watchdog-main'); ?>
+                <?php esc_html_e('Keep channels enabled to receive instant alerts and download-ready reports.', 'site-add-on-watchdog'); ?>
             </p>
         </div>
     </div>
@@ -223,23 +223,23 @@ use Watchdog\TestingMode;
         <div class="wp-watchdog-section-header">
             <div class="wp-watchdog-section-title">
                 <span class="dashicons dashicons-shield-alt" aria-hidden="true"></span>
-                <?php esc_html_e('Potential Risks', 'wp-plugin-watchdog-main'); ?>
+                <?php esc_html_e('Potential Risks', 'site-add-on-watchdog'); ?>
             </div>
             <div class="wp-watchdog-summary">
                 <span class="wp-watchdog-summary__count"><?php echo esc_html(number_format_i18n(count($risks))); ?></span>
-                <span class="wp-watchdog-summary__label"><?php esc_html_e('items flagged', 'wp-plugin-watchdog-main'); ?></span>
+                <span class="wp-watchdog-summary__label"><?php esc_html_e('items flagged', 'site-add-on-watchdog'); ?></span>
             </div>
         </div>
     <?php if (empty($risks)) : ?>
-        <p class="wp-watchdog-muted"><?php esc_html_e('No risks detected.', 'wp-plugin-watchdog-main'); ?></p>
+        <p class="wp-watchdog-muted"><?php esc_html_e('No risks detected.', 'site-add-on-watchdog'); ?></p>
     <?php else : ?>
         <?php
         $columns = [
-            'plugin'   => __('Plugin', 'wp-plugin-watchdog-main'),
-            'local'    => __('Local Version', 'wp-plugin-watchdog-main'),
-            'remote'   => __('Directory Version', 'wp-plugin-watchdog-main'),
-            'reasons'  => __('Reasons', 'wp-plugin-watchdog-main'),
-            'actions'  => __('Actions', 'wp-plugin-watchdog-main'),
+            'plugin'   => __('Plugin', 'site-add-on-watchdog'),
+            'local'    => __('Local Version', 'site-add-on-watchdog'),
+            'remote'   => __('Directory Version', 'site-add-on-watchdog'),
+            'reasons'  => __('Reasons', 'site-add-on-watchdog'),
+            'actions'  => __('Actions', 'site-add-on-watchdog'),
         ];
         $perPage = (int) apply_filters('wp_watchdog_main_admin_risks_per_page', 10);
         $normalizeForSort = static function (string $value): string {
@@ -251,9 +251,9 @@ use Watchdog\TestingMode;
         <div class="wp-watchdog-risk-table" data-wp-watchdog-table data-per-page="<?php echo esc_attr(max($perPage, 1)); ?>">
             <div class="wp-watchdog-risk-table__controls">
                 <div class="wp-watchdog-risk-table__pagination" data-pagination>
-                    <button type="button" class="button" data-action="prev" aria-label="<?php esc_attr_e('Previous page', 'wp-plugin-watchdog-main'); ?>" disabled>&lsaquo;</button>
+                    <button type="button" class="button" data-action="prev" aria-label="<?php esc_attr_e('Previous page', 'site-add-on-watchdog'); ?>" disabled>&lsaquo;</button>
                     <span class="wp-watchdog-risk-table__page-status" data-page-status></span>
-                    <button type="button" class="button" data-action="next" aria-label="<?php esc_attr_e('Next page', 'wp-plugin-watchdog-main'); ?>" disabled>&rsaquo;</button>
+                    <button type="button" class="button" data-action="next" aria-label="<?php esc_attr_e('Next page', 'site-add-on-watchdog'); ?>" disabled>&rsaquo;</button>
                 </div>
             </div>
             <div class="wp-watchdog-risk-table__scroll">
@@ -290,7 +290,7 @@ use Watchdog\TestingMode;
                     <tbody>
                     <?php foreach ($risks as $risk) : ?>
                         <?php
-                        $remoteVersion = $risk->remoteVersion ?? __('N/A', 'wp-plugin-watchdog-main');
+                        $remoteVersion = $risk->remoteVersion ?? __('N/A', 'site-add-on-watchdog');
                         $remoteSort    = is_string($risk->remoteVersion) ? $normalizeForSort($risk->remoteVersion) : '';
                         $reasonParts   = $risk->reasons;
                         if (! empty($risk->details['vulnerabilities'])) {
@@ -330,7 +330,7 @@ use Watchdog\TestingMode;
                                     <?php endforeach; ?>
                                     <?php if (! empty($risk->details['vulnerabilities'])) : ?>
                                         <li>
-                                            <?php esc_html_e('WPScan vulnerabilities:', 'wp-plugin-watchdog-main'); ?>
+                                            <?php esc_html_e('WPScan vulnerabilities:', 'site-add-on-watchdog'); ?>
                                             <ul>
                                                 <?php foreach ($risk->details['vulnerabilities'] as $vuln) : ?>
                                                     <li>
@@ -348,7 +348,7 @@ use Watchdog\TestingMode;
                                                             <span class="wp-watchdog-vulnerability__fixed">(<?php
                                                             printf(
                                                                 /* translators: %s is a plugin version number */
-                                                                esc_html__('Fixed in %s', 'wp-plugin-watchdog-main'),
+                                                                esc_html__('Fixed in %s', 'site-add-on-watchdog'),
                                                                 esc_html($vuln['fixed_in'])
                                                             );
                                                             ?>)</span>
@@ -365,7 +365,7 @@ use Watchdog\TestingMode;
                                     <?php wp_nonce_field('wp_watchdog_ignore'); ?>
                                     <input type="hidden" name="action" value="wp_watchdog_ignore">
                                     <input type="hidden" name="plugin_slug" value="<?php echo esc_attr($risk->pluginSlug); ?>">
-                                    <button class="button" type="submit"><?php esc_html_e('Ignore', 'wp-plugin-watchdog-main'); ?></button>
+                                    <button class="button" type="submit"><?php esc_html_e('Ignore', 'site-add-on-watchdog'); ?></button>
                                 </form>
                             </td>
                         </tr>
@@ -381,10 +381,10 @@ use Watchdog\TestingMode;
         <div class="wp-watchdog-surface">
             <div class="wp-watchdog-section-title">
                 <span class="dashicons dashicons-hidden" aria-hidden="true"></span>
-                <?php esc_html_e('Ignored Plugins', 'wp-plugin-watchdog-main'); ?>
+                <?php esc_html_e('Ignored Plugins', 'site-add-on-watchdog'); ?>
             </div>
             <?php if (empty($ignored)) : ?>
-                <p class="wp-watchdog-muted"><?php esc_html_e('No plugins are being ignored.', 'wp-plugin-watchdog-main'); ?></p>
+                <p class="wp-watchdog-muted"><?php esc_html_e('No plugins are being ignored.', 'site-add-on-watchdog'); ?></p>
             <?php else : ?>
                 <ul class="wp-watchdog-inline-list">
                     <?php foreach ($ignored as $slug) : ?>
@@ -406,16 +406,16 @@ use Watchdog\TestingMode;
         <div class="wp-watchdog-surface">
             <div class="wp-watchdog-section-title">
                 <span class="dashicons dashicons-email-alt" aria-hidden="true"></span>
-                <?php esc_html_e('Notifications', 'wp-plugin-watchdog-main'); ?>
+                <?php esc_html_e('Notifications', 'site-add-on-watchdog'); ?>
             </div>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
         <?php wp_nonce_field('wp_watchdog_settings'); ?>
         <input type="hidden" name="action" value="wp_watchdog_save_settings">
         <table class="form-table" role="presentation">
             <tr>
-                <th scope="row"><?php esc_html_e('History retention', 'wp-plugin-watchdog-main'); ?></th>
+                <th scope="row"><?php esc_html_e('History retention', 'site-add-on-watchdog'); ?></th>
                 <td>
-                    <label for="wp-watchdog-history-retention" class="screen-reader-text"><?php esc_html_e('History retention', 'wp-plugin-watchdog-main'); ?></label>
+                    <label for="wp-watchdog-history-retention" class="screen-reader-text"><?php esc_html_e('History retention', 'site-add-on-watchdog'); ?></label>
                     <input
                         type="number"
                         id="wp-watchdog-history-retention"
@@ -426,18 +426,18 @@ use Watchdog\TestingMode;
                         step="1"
                     />
                     <p class="description">
-                        <?php esc_html_e('Number of recent scans to keep available for review and download (maximum 15).', 'wp-plugin-watchdog-main'); ?>
+                        <?php esc_html_e('Number of recent scans to keep available for review and download (maximum 15).', 'site-add-on-watchdog'); ?>
                     </p>
                 </td>
             </tr>
             <tr>
-                <th scope="row"><?php esc_html_e('Scan frequency', 'wp-plugin-watchdog-main'); ?></th>
+                <th scope="row"><?php esc_html_e('Scan frequency', 'site-add-on-watchdog'); ?></th>
                 <td>
                     <?php
-                    $defaultFrequencyMessage = __('Choose how often the automatic scan should run.', 'wp-plugin-watchdog-main');
+                    $defaultFrequencyMessage = __('Choose how often the automatic scan should run.', 'site-add-on-watchdog');
                     $testingFrequencyMessage = sprintf(
                         /* translators: 1: interval minutes, 2: duration hours */
-                        __('Testing mode sends notifications every %1$d minutes to all configured channels and automatically switches back to daily scans after %2$d hours.', 'wp-plugin-watchdog-main'),
+                        __('Testing mode sends notifications every %1$d minutes to all configured channels and automatically switches back to daily scans after %2$d hours.', 'site-add-on-watchdog'),
                         TestingMode::INTERVAL_MINUTES,
                         TestingMode::DURATION_HOURS
                     );
@@ -455,18 +455,18 @@ use Watchdog\TestingMode;
                         ? (string) $settings['notifications']['weekly_time']
                         : '08:00';
                     ?>
-                    <label for="wp-watchdog-notification-frequency" class="screen-reader-text"><?php esc_html_e('Scan frequency', 'wp-plugin-watchdog-main'); ?></label>
+                    <label for="wp-watchdog-notification-frequency" class="screen-reader-text"><?php esc_html_e('Scan frequency', 'site-add-on-watchdog'); ?></label>
                     <select id="wp-watchdog-notification-frequency" name="settings[notifications][frequency]">
-                        <option value="daily" <?php selected($settings['notifications']['frequency'], 'daily'); ?>><?php esc_html_e('Daily', 'wp-plugin-watchdog-main'); ?></option>
-                        <option value="weekly" <?php selected($settings['notifications']['frequency'], 'weekly'); ?>><?php esc_html_e('Weekly', 'wp-plugin-watchdog-main'); ?></option>
+                        <option value="daily" <?php selected($settings['notifications']['frequency'], 'daily'); ?>><?php esc_html_e('Daily', 'site-add-on-watchdog'); ?></option>
+                        <option value="weekly" <?php selected($settings['notifications']['frequency'], 'weekly'); ?>><?php esc_html_e('Weekly', 'site-add-on-watchdog'); ?></option>
                         <option value="testing" <?php selected($settings['notifications']['frequency'], 'testing'); ?>><?php echo esc_html(
                             sprintf(
                                 /* translators: %d: interval minutes */
-                                __('Testing (every %d minutes)', 'wp-plugin-watchdog-main'),
+                                __('Testing (every %d minutes)', 'site-add-on-watchdog'),
                                 TestingMode::INTERVAL_MINUTES
                             )
                         ); ?></option>
-                        <option value="manual" <?php selected($settings['notifications']['frequency'], 'manual'); ?>><?php esc_html_e('Manual (no automatic scans)', 'wp-plugin-watchdog-main'); ?></option>
+                        <option value="manual" <?php selected($settings['notifications']['frequency'], 'manual'); ?>><?php esc_html_e('Manual (no automatic scans)', 'site-add-on-watchdog'); ?></option>
                     </select>
                     <?php
                     $frequencyDescriptionClass = 'description wp-watchdog-frequency-description';
@@ -485,7 +485,7 @@ use Watchdog\TestingMode;
                     <div class="wp-watchdog-frequency-options" data-watchdog-frequency-options>
                         <div class="wp-watchdog-frequency-options__row" data-watchdog-frequency-target="daily">
                             <label for="wp-watchdog-daily-time" class="wp-watchdog-frequency-label">
-                                <?php esc_html_e('Daily send time', 'wp-plugin-watchdog-main'); ?>
+                                <?php esc_html_e('Daily send time', 'site-add-on-watchdog'); ?>
                             </label>
                             <input
                                 id="wp-watchdog-daily-time"
@@ -495,27 +495,27 @@ use Watchdog\TestingMode;
                                 aria-describedby="wp-watchdog-daily-time-help"
                             />
                             <p class="description" id="wp-watchdog-daily-time-help">
-                                <?php esc_html_e('Time of day to start the daily scan (server timezone).', 'wp-plugin-watchdog-main'); ?>
+                                <?php esc_html_e('Time of day to start the daily scan (server timezone).', 'site-add-on-watchdog'); ?>
                             </p>
                         </div>
                         <div class="wp-watchdog-frequency-options__row" data-watchdog-frequency-target="weekly">
                             <div class="wp-watchdog-frequency-weekly">
                                 <label for="wp-watchdog-weekly-day" class="wp-watchdog-frequency-label">
-                                    <?php esc_html_e('Weekly send day', 'wp-plugin-watchdog-main'); ?>
+                                    <?php esc_html_e('Weekly send day', 'site-add-on-watchdog'); ?>
                                 </label>
                                 <select id="wp-watchdog-weekly-day" name="settings[notifications][weekly_day]">
-                                    <option value="1" <?php selected($weeklyDay, 1); ?>><?php esc_html_e('Monday', 'wp-plugin-watchdog-main'); ?></option>
-                                    <option value="2" <?php selected($weeklyDay, 2); ?>><?php esc_html_e('Tuesday', 'wp-plugin-watchdog-main'); ?></option>
-                                    <option value="3" <?php selected($weeklyDay, 3); ?>><?php esc_html_e('Wednesday', 'wp-plugin-watchdog-main'); ?></option>
-                                    <option value="4" <?php selected($weeklyDay, 4); ?>><?php esc_html_e('Thursday', 'wp-plugin-watchdog-main'); ?></option>
-                                    <option value="5" <?php selected($weeklyDay, 5); ?>><?php esc_html_e('Friday', 'wp-plugin-watchdog-main'); ?></option>
-                                    <option value="6" <?php selected($weeklyDay, 6); ?>><?php esc_html_e('Saturday', 'wp-plugin-watchdog-main'); ?></option>
-                                    <option value="7" <?php selected($weeklyDay, 7); ?>><?php esc_html_e('Sunday', 'wp-plugin-watchdog-main'); ?></option>
+                                    <option value="1" <?php selected($weeklyDay, 1); ?>><?php esc_html_e('Monday', 'site-add-on-watchdog'); ?></option>
+                                    <option value="2" <?php selected($weeklyDay, 2); ?>><?php esc_html_e('Tuesday', 'site-add-on-watchdog'); ?></option>
+                                    <option value="3" <?php selected($weeklyDay, 3); ?>><?php esc_html_e('Wednesday', 'site-add-on-watchdog'); ?></option>
+                                    <option value="4" <?php selected($weeklyDay, 4); ?>><?php esc_html_e('Thursday', 'site-add-on-watchdog'); ?></option>
+                                    <option value="5" <?php selected($weeklyDay, 5); ?>><?php esc_html_e('Friday', 'site-add-on-watchdog'); ?></option>
+                                    <option value="6" <?php selected($weeklyDay, 6); ?>><?php esc_html_e('Saturday', 'site-add-on-watchdog'); ?></option>
+                                    <option value="7" <?php selected($weeklyDay, 7); ?>><?php esc_html_e('Sunday', 'site-add-on-watchdog'); ?></option>
                                 </select>
                             </div>
                             <div class="wp-watchdog-frequency-weekly">
                                 <label for="wp-watchdog-weekly-time" class="wp-watchdog-frequency-label">
-                                    <?php esc_html_e('Weekly send time', 'wp-plugin-watchdog-main'); ?>
+                                    <?php esc_html_e('Weekly send time', 'site-add-on-watchdog'); ?>
                                 </label>
                                 <input
                                     id="wp-watchdog-weekly-time"
@@ -526,7 +526,7 @@ use Watchdog\TestingMode;
                                 />
                             </div>
                             <p class="description" id="wp-watchdog-weekly-time-help">
-                                <?php esc_html_e('Day and time to start the weekly scan (server timezone).', 'wp-plugin-watchdog-main'); ?>
+                                <?php esc_html_e('Day and time to start the weekly scan (server timezone).', 'site-add-on-watchdog'); ?>
                             </p>
                         </div>
                     </div>
@@ -566,7 +566,7 @@ use Watchdog\TestingMode;
 
                         $testingExpiryMessage = sprintf(
                             /* translators: 1: datetime, 2: relative time */
-                            __('Testing mode will automatically switch back to daily scans on %1$s (%2$s remaining).', 'wp-plugin-watchdog-main'),
+                            __('Testing mode will automatically switch back to daily scans on %1$s (%2$s remaining).', 'site-add-on-watchdog'),
                             wp_date(
                                 get_option('date_format') . ' ' . get_option('time_format'),
                                 $testingExpiresAt,
@@ -582,96 +582,96 @@ use Watchdog\TestingMode;
                 </td>
             </tr>
             <tr>
-                <th scope="row"><?php esc_html_e('Email notifications', 'wp-plugin-watchdog-main'); ?></th>
+                <th scope="row"><?php esc_html_e('Email notifications', 'site-add-on-watchdog'); ?></th>
                 <td data-watchdog-notification>
                     <label class="wp-watchdog-notification-toggle">
                         <input type="checkbox" name="settings[notifications][email][enabled]" <?php checked($settings['notifications']['email']['enabled']); ?> data-watchdog-toggle />
-                        <?php esc_html_e('Enabled', 'wp-plugin-watchdog-main'); ?>
+                        <?php esc_html_e('Enabled', 'site-add-on-watchdog'); ?>
                     </label>
                     <div class="wp-watchdog-notification-fields" data-watchdog-fields>
                         <label>
-                            <?php esc_html_e('Recipients (comma separated)', 'wp-plugin-watchdog-main'); ?><br />
+                            <?php esc_html_e('Recipients (comma separated)', 'site-add-on-watchdog'); ?><br />
                             <input type="text" name="settings[notifications][email][recipients]" value="<?php echo esc_attr($settings['notifications']['email']['recipients']); ?>" class="regular-text" />
                         </label>
                     </div>
                 </td>
             </tr>
             <tr>
-                <th scope="row"><?php esc_html_e('Discord notifications', 'wp-plugin-watchdog-main'); ?></th>
+                <th scope="row"><?php esc_html_e('Discord notifications', 'site-add-on-watchdog'); ?></th>
                 <td data-watchdog-notification>
                     <label class="wp-watchdog-notification-toggle">
                         <input type="checkbox" name="settings[notifications][discord][enabled]" <?php checked($settings['notifications']['discord']['enabled']); ?> data-watchdog-toggle />
-                        <?php esc_html_e('Enabled', 'wp-plugin-watchdog-main'); ?>
+                        <?php esc_html_e('Enabled', 'site-add-on-watchdog'); ?>
                     </label>
                     <div class="wp-watchdog-notification-fields" data-watchdog-fields>
                         <label>
-                            <?php esc_html_e('Discord webhook URL', 'wp-plugin-watchdog-main'); ?><br />
+                            <?php esc_html_e('Discord webhook URL', 'site-add-on-watchdog'); ?><br />
                             <input type="url" name="settings[notifications][discord][webhook]" value="<?php echo esc_attr($settings['notifications']['discord']['webhook']); ?>" class="regular-text" />
                         </label>
                     </div>
                 </td>
             </tr>
             <tr>
-                <th scope="row"><?php esc_html_e('Slack notifications', 'wp-plugin-watchdog-main'); ?></th>
+                <th scope="row"><?php esc_html_e('Slack notifications', 'site-add-on-watchdog'); ?></th>
                 <td data-watchdog-notification>
                     <label class="wp-watchdog-notification-toggle">
                         <input type="checkbox" name="settings[notifications][slack][enabled]" <?php checked($settings['notifications']['slack']['enabled']); ?> data-watchdog-toggle />
-                        <?php esc_html_e('Enabled', 'wp-plugin-watchdog-main'); ?>
+                        <?php esc_html_e('Enabled', 'site-add-on-watchdog'); ?>
                     </label>
                     <div class="wp-watchdog-notification-fields" data-watchdog-fields>
                         <label>
-                            <?php esc_html_e('Slack webhook URL', 'wp-plugin-watchdog-main'); ?><br />
+                            <?php esc_html_e('Slack webhook URL', 'site-add-on-watchdog'); ?><br />
                             <input type="url" name="settings[notifications][slack][webhook]" value="<?php echo esc_attr($settings['notifications']['slack']['webhook']); ?>" class="regular-text" />
                         </label>
                     </div>
                 </td>
             </tr>
             <tr>
-                <th scope="row"><?php esc_html_e('Microsoft Teams notifications', 'wp-plugin-watchdog-main'); ?></th>
+                <th scope="row"><?php esc_html_e('Microsoft Teams notifications', 'site-add-on-watchdog'); ?></th>
                 <td data-watchdog-notification>
                     <label class="wp-watchdog-notification-toggle">
                         <input type="checkbox" name="settings[notifications][teams][enabled]" <?php checked($settings['notifications']['teams']['enabled']); ?> data-watchdog-toggle />
-                        <?php esc_html_e('Enabled', 'wp-plugin-watchdog-main'); ?>
+                        <?php esc_html_e('Enabled', 'site-add-on-watchdog'); ?>
                     </label>
                     <div class="wp-watchdog-notification-fields" data-watchdog-fields>
                         <label>
-                            <?php esc_html_e('Teams webhook URL', 'wp-plugin-watchdog-main'); ?><br />
+                            <?php esc_html_e('Teams webhook URL', 'site-add-on-watchdog'); ?><br />
                             <input type="url" name="settings[notifications][teams][webhook]" value="<?php echo esc_attr($settings['notifications']['teams']['webhook']); ?>" class="regular-text" />
                         </label>
                     </div>
                 </td>
             </tr>
             <tr>
-                <th scope="row"><?php esc_html_e('Generic webhook', 'wp-plugin-watchdog-main'); ?></th>
+                <th scope="row"><?php esc_html_e('Generic webhook', 'site-add-on-watchdog'); ?></th>
                 <td data-watchdog-notification>
                     <label class="wp-watchdog-notification-toggle">
                         <input type="checkbox" name="settings[notifications][webhook][enabled]" <?php checked($settings['notifications']['webhook']['enabled']); ?> data-watchdog-toggle />
-                        <?php esc_html_e('Enabled', 'wp-plugin-watchdog-main'); ?>
+                        <?php esc_html_e('Enabled', 'site-add-on-watchdog'); ?>
                     </label>
                     <div class="wp-watchdog-notification-fields" data-watchdog-fields>
                         <label>
-                            <?php esc_html_e('Webhook URL', 'wp-plugin-watchdog-main'); ?><br />
+                            <?php esc_html_e('Webhook URL', 'site-add-on-watchdog'); ?><br />
                             <input type="url" name="settings[notifications][webhook][url]" value="<?php echo esc_attr($settings['notifications']['webhook']['url']); ?>" class="regular-text" />
                         </label>
                         <p>
                             <label>
-                                <?php esc_html_e('Webhook secret (optional)', 'wp-plugin-watchdog-main'); ?><br />
+                                <?php esc_html_e('Webhook secret (optional)', 'site-add-on-watchdog'); ?><br />
                                 <input type="text" name="settings[notifications][webhook][secret]" value="<?php echo esc_attr($settings['notifications']['webhook']['secret'] ?? ''); ?>" class="regular-text" autocomplete="off" />
                             </label>
-                            <span class="description"><?php esc_html_e('Used to sign webhook payloads with an HMAC signature.', 'wp-plugin-watchdog-main'); ?></span>
+                            <span class="description"><?php esc_html_e('Used to sign webhook payloads with an HMAC signature.', 'site-add-on-watchdog'); ?></span>
                         </p>
                     </div>
                 </td>
             </tr>
             <tr>
-                <th scope="row"><?php esc_html_e('WPScan API key', 'wp-plugin-watchdog-main'); ?></th>
+                <th scope="row"><?php esc_html_e('WPScan API key', 'site-add-on-watchdog'); ?></th>
                 <td>
                     <input type="text" name="settings[notifications][wpscan_api_key]" value="<?php echo esc_attr($settings['notifications']['wpscan_api_key']); ?>" class="regular-text" />
-                    <p class="description"><?php esc_html_e('Optional. Provide your own WPScan API key to enrich vulnerability reports.', 'wp-plugin-watchdog-main'); ?></p>
+                    <p class="description"><?php esc_html_e('Optional. Provide your own WPScan API key to enrich vulnerability reports.', 'site-add-on-watchdog'); ?></p>
                 </td>
             </tr>
         </table>
-        <p><button class="button button-primary" type="submit"><?php esc_html_e('Save settings', 'wp-plugin-watchdog-main'); ?></button></p>
+        <p><button class="button button-primary" type="submit"><?php esc_html_e('Save settings', 'site-add-on-watchdog'); ?></button></p>
     </form>
         </div>
     </div>

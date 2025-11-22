@@ -194,7 +194,7 @@ class Plugin
         if (! isset($schedules['weekly'])) {
             $schedules['weekly'] = [
                 'interval' => WEEK_IN_SECONDS,
-                'display'  => __('Once Weekly', 'wp-plugin-watchdog-main'),
+                'display'  => __('Once Weekly', 'site-add-on-watchdog'),
             ];
         }
 
@@ -203,7 +203,7 @@ class Plugin
                 'interval' => TestingMode::intervalInSeconds(),
                 'display'  => sprintf(
                     /* translators: %d: interval minutes */
-                    __('Every %d Minutes (testing)', 'wp-plugin-watchdog-main'),
+                    __('Every %d Minutes (testing)', 'site-add-on-watchdog'),
                     TestingMode::INTERVAL_MINUTES
                 ),
             ];
@@ -267,7 +267,7 @@ class Plugin
             echo '<div class="notice notice-error"><p>'
                 . esc_html__(
                     'WP-Cron appears disabled. Set a system cron job to trigger wp-cron.php for Site Add-on Watchdog.',
-                    'wp-plugin-watchdog-main'
+                    'site-add-on-watchdog'
                 )
                 . '</p></div>';
 
@@ -278,7 +278,7 @@ class Plugin
             echo '<div class="notice notice-warning"><p>'
                 . esc_html__(
                     'Site Add-on Watchdog scans are overdue. Ensure system cron calls wp-cron.php regularly.',
-                    'wp-plugin-watchdog-main'
+                    'site-add-on-watchdog'
                 )
                 . '</p></div>';
         }
@@ -578,7 +578,7 @@ class Plugin
 
             return [
                 'status'  => $result,
-                'message' => __('Notifications processed.', 'wp-plugin-watchdog-main'),
+                'message' => __('Notifications processed.', 'site-add-on-watchdog'),
                 'queue'   => $queueResult,
             ];
         }
@@ -589,7 +589,7 @@ class Plugin
 
         return [
             'status'  => 'ok',
-            'message' => __('Scan triggered successfully.', 'wp-plugin-watchdog-main'),
+            'message' => __('Scan triggered successfully.', 'site-add-on-watchdog'),
             'queue'   => $queueResult,
         ];
     }

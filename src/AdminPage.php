@@ -45,8 +45,8 @@ class AdminPage
     public function addMenu(): void
     {
         $this->menuHook = add_menu_page(
-            __('Site Add-on Watchdog', 'wp-plugin-watchdog-main'),
-            __('Watchdog', 'wp-plugin-watchdog-main'),
+            __('Site Add-on Watchdog', 'site-add-on-watchdog'),
+            __('Watchdog', 'site-add-on-watchdog'),
             'manage_options',
             'wp-plugin-watchdog',
             [$this, 'render'],
@@ -57,7 +57,7 @@ class AdminPage
     public function render(): void
     {
         if (! current_user_can('manage_options')) {
-            wp_die(__('You do not have permission to access this page.', 'wp-plugin-watchdog-main'));
+            wp_die(__('You do not have permission to access this page.', 'site-add-on-watchdog'));
         }
 
         $this->enqueuePageAssets();
@@ -128,7 +128,7 @@ class AdminPage
             $payload['history']['retention'] = '15';
             $message = __(
                 'History retention cannot exceed 15 scans. The value has been limited to 15.',
-                'wp-plugin-watchdog-main'
+                'site-add-on-watchdog'
             );
             set_transient(
                 'wp_watchdog_settings_error',
@@ -244,7 +244,7 @@ class AdminPage
 
         $failed = $this->notifier->getLastFailedNotification();
         if ($failed === null) {
-            wp_die(__('No failed notification payload is available.', 'wp-plugin-watchdog-main'));
+            wp_die(__('No failed notification payload is available.', 'site-add-on-watchdog'));
         }
 
         nocache_headers();
@@ -262,7 +262,7 @@ class AdminPage
 
         $runAt = isset($_GET['run_at']) ? (int) $_GET['run_at'] : 0;
         if ($runAt <= 0) {
-            wp_die(__('Invalid history request.', 'wp-plugin-watchdog-main'));
+            wp_die(__('Invalid history request.', 'site-add-on-watchdog'));
         }
 
         $formatParam = $_GET['format'] ?? 'json';
@@ -278,7 +278,7 @@ class AdminPage
 
         $entry = $this->riskRepository->historyEntry($runAt);
         if ($entry === null) {
-            wp_die(__('History entry not found.', 'wp-plugin-watchdog-main'));
+            wp_die(__('History entry not found.', 'site-add-on-watchdog'));
         }
 
         if ($format === 'csv') {
@@ -293,7 +293,7 @@ class AdminPage
     private function guardAccess(): void
     {
         if (! current_user_can('manage_options')) {
-            wp_die(__('You do not have permission to perform this action.', 'wp-plugin-watchdog-main'));
+            wp_die(__('You do not have permission to perform this action.', 'site-add-on-watchdog'));
         }
     }
 
@@ -333,7 +333,7 @@ class AdminPage
         wp_enqueue_script('wp-plugin-watchdog-admin-table', $scriptUrl, [], $assetVersion, true);
         wp_localize_script('wp-plugin-watchdog-admin-table', 'wpWatchdogTable', [
             /* translators: 1: current page number, 2: total number of pages. */
-            'pageStatus' => __('Page %1$d of %2$d', 'wp-plugin-watchdog-main'),
+            'pageStatus' => __('Page %1$d of %2$d', 'site-add-on-watchdog'),
         ]);
 
         $this->assetsEnqueued = true;
@@ -415,7 +415,7 @@ class AdminPage
             $handle = fopen($target, 'wb');
 
             if ($handle === false) {
-                wp_die(__('Unable to generate history export.', 'wp-plugin-watchdog-main'));
+                wp_die(__('Unable to generate history export.', 'site-add-on-watchdog'));
             }
 
             foreach ($rows as $row) {
@@ -423,7 +423,7 @@ class AdminPage
 
                 if (fputcsv($handle, $row, $delimiter, $enclosure, $escape) === false) {
                     fclose($handle);
-                    wp_die(__('Unable to generate history export.', 'wp-plugin-watchdog-main'));
+                    wp_die(__('Unable to generate history export.', 'site-add-on-watchdog'));
                 }
             }
 
@@ -433,7 +433,7 @@ class AdminPage
             $csvContent  = $this->buildCsvContent($rows);
 
             if (! $filesystem->put_contents($target, $csvContent)) {
-                wp_die(__('Unable to generate history export.', 'wp-plugin-watchdog-main'));
+                wp_die(__('Unable to generate history export.', 'site-add-on-watchdog'));
             }
         }
         exit;
