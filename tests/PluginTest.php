@@ -15,23 +15,40 @@ class PluginTest extends TestCase
     {
         when('site_url')->justReturn('https://example.test');
         when('wp_remote_post')->justReturn(null);
-        when('get_option')->justReturn([
-            'overdue_streak' => 0,
-            'cron_disabled'  => false,
-        ]);
+        when('get_option')->alias(static function (string $name) {
+            return match ($name) {
+                'wp_watchdog_cron_status' => [
+                    'overdue_streak' => 0,
+                    'cron_disabled'  => false,
+                ],
+                'timezone_string' => '',
+                'gmt_offset'      => 0,
+                default           => null,
+            };
+        });
         when('is_admin')->justReturn(false);
         when('current_user_can')->justReturn(false);
         when('update_option')->justReturn(true);
         when('_get_cron_array')->justReturn([]);
 
-        expect('wp_next_scheduled')
-            ->once()
-            ->with('wp_watchdog_scheduled_scan')
-            ->andReturn(time() - 2_000);
+        when('wp_next_scheduled')->alias(static function (string $hook) {
+            return match ($hook) {
+                'wp_watchdog_scheduled_scan'   => time() - 2_000,
+                'wp_watchdog_notification_queue' => false,
+                default => false,
+            };
+        });
         expect('wp_get_schedule')->once()->andReturn('testing');
         expect('wp_get_schedules')->once()->andReturn([
             'testing' => ['interval' => 1_200],
         ]);
+        expect('wp_schedule_event')
+            ->once()
+            ->withArgs(static function (int $timestamp, string $schedule, string $hook): bool {
+                return $schedule === 'watchdog_notification_queue'
+                    && $hook === 'wp_watchdog_notification_queue'
+                    && $timestamp >= time();
+            });
         expect('wp_schedule_single_event')->once();
 
         $scanner = $this->createMock(Scanner::class);
@@ -54,24 +71,41 @@ class PluginTest extends TestCase
 
         when('site_url')->justReturn('https://example.test');
         when('wp_remote_post')->justReturn(null);
-        when('get_option')->justReturn([
-            'overdue_streak' => 1,
-            'cron_disabled'  => true,
-        ]);
+        when('get_option')->alias(static function (string $name) {
+            return match ($name) {
+                'wp_watchdog_cron_status' => [
+                    'overdue_streak' => 1,
+                    'cron_disabled'  => true,
+                ],
+                'timezone_string' => '',
+                'gmt_offset'      => 0,
+                default           => null,
+            };
+        });
         when('is_admin')->justReturn(false);
         when('current_user_can')->justReturn(false);
         when('update_option')->justReturn(true);
         when('_get_cron_array')->justReturn([]);
 
-        expect('wp_next_scheduled')
-            ->once()
-            ->with('wp_watchdog_scheduled_scan')
-            ->andReturn(time() - 3_000);
+        when('wp_next_scheduled')->alias(static function (string $hook) {
+            return match ($hook) {
+                'wp_watchdog_scheduled_scan'   => time() - 3_000,
+                'wp_watchdog_notification_queue' => false,
+                default => false,
+            };
+        });
         expect('wp_get_schedule')->once()->andReturn('testing');
         expect('wp_get_schedules')->once()->andReturn([
             'testing' => ['interval' => 1_200],
         ]);
         expect('spawn_cron')->never();
+        expect('wp_schedule_event')
+            ->once()
+            ->withArgs(static function (int $timestamp, string $schedule, string $hook): bool {
+                return $schedule === 'watchdog_notification_queue'
+                    && $hook === 'wp_watchdog_notification_queue'
+                    && $timestamp >= time();
+            });
         expect('wp_schedule_single_event')->once();
 
         $scanner = $this->createMock(Scanner::class);
@@ -123,10 +157,17 @@ class PluginTest extends TestCase
     {
         when('site_url')->justReturn('https://example.test');
         when('wp_remote_post')->justReturn(null);
-        when('get_option')->justReturn([
-            'overdue_streak' => 0,
-            'cron_disabled'  => false,
-        ]);
+        when('get_option')->alias(static function (string $name) {
+            return match ($name) {
+                'wp_watchdog_cron_status' => [
+                    'overdue_streak' => 0,
+                    'cron_disabled'  => false,
+                ],
+                'timezone_string' => '',
+                'gmt_offset'      => 0,
+                default           => null,
+            };
+        });
         when('is_admin')->justReturn(false);
         when('current_user_can')->justReturn(false);
         when('update_option')->justReturn(true);
@@ -142,14 +183,24 @@ class PluginTest extends TestCase
             ],
         ]);
 
-        expect('wp_next_scheduled')
-            ->once()
-            ->with('wp_watchdog_scheduled_scan')
-            ->andReturn(time() - 2_500);
+        when('wp_next_scheduled')->alias(static function (string $hook) {
+            return match ($hook) {
+                'wp_watchdog_scheduled_scan'   => time() - 2_500,
+                'wp_watchdog_notification_queue' => false,
+                default => false,
+            };
+        });
         expect('wp_get_schedule')->once()->andReturn('testing');
         expect('wp_get_schedules')->once()->andReturn([
             'testing' => ['interval' => 1_200],
         ]);
+        expect('wp_schedule_event')
+            ->once()
+            ->withArgs(static function (int $timestamp, string $schedule, string $hook): bool {
+                return $schedule === 'watchdog_notification_queue'
+                    && $hook === 'wp_watchdog_notification_queue'
+                    && $timestamp >= time();
+            });
         expect('wp_schedule_single_event')->never();
 
         $scanner = $this->createMock(Scanner::class);
@@ -220,5 +271,69 @@ class PluginTest extends TestCase
 
         $plugin->runScan(true, 'manual');
         $plugin->runScan(true, 'manual');
+    }
+
+    public function testQueueProcessorScheduledWhenFrequencyIsManual(): void
+    {
+        when('get_option')->alias(static function (string $name) {
+            return match ($name) {
+                'wp_watchdog_cron_status' => [
+                    'overdue_streak' => 0,
+                    'cron_disabled'  => false,
+                ],
+                'timezone_string' => '',
+                'gmt_offset'      => 0,
+                default           => null,
+            };
+        });
+        when('update_option')->justReturn(true);
+        when('is_admin')->justReturn(false);
+        when('current_user_can')->justReturn(false);
+        when('wp_get_schedule')->justReturn('daily');
+        when('wp_get_schedules')->justReturn([
+            'daily' => ['interval' => 86_400],
+        ]);
+
+        when('wp_next_scheduled')->alias(static function (string $hook) {
+            static $scanCalls = 0;
+
+            if ($hook === 'wp_watchdog_scheduled_scan') {
+                $scanCalls++;
+
+                if ($scanCalls <= 2) {
+                    return time() + 600;
+                }
+
+                return false;
+            }
+
+            return false;
+        });
+
+        expect('wp_schedule_event')
+            ->once()
+            ->withArgs(static function (int $timestamp, string $schedule, string $hook): bool {
+                return $schedule === 'watchdog_notification_queue'
+                    && $hook === 'wp_watchdog_notification_queue';
+            });
+
+        expect('wp_unschedule_event')
+            ->once()
+            ->withArgs(static function (int $timestamp, string $hook): bool {
+                return $hook === 'wp_watchdog_scheduled_scan' && $timestamp > time();
+            });
+
+        expect('wp_schedule_single_event')->never();
+
+        $scanner = $this->createMock(Scanner::class);
+        $riskRepository = $this->createMock(RiskRepository::class);
+        $settingsRepository = $this->createMock(SettingsRepository::class);
+        $settingsRepository->method('get')->willReturn([
+            'notifications' => ['frequency' => 'manual'],
+        ]);
+        $notifier = $this->createMock(Notifier::class);
+
+        $plugin = new Plugin($scanner, $riskRepository, $settingsRepository, $notifier);
+        $plugin->schedule();
     }
 }
