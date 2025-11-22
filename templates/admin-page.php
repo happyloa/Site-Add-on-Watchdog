@@ -7,6 +7,9 @@
 /** @var int $historyDisplay */
 /** @var array<int, array{run_at:int, risks:array<int, array<string, mixed>>, risk_count:int}> $historyRecords */
 /** @var array<int, array<string, string>> $historyDownloads */
+/** @var array $cronStatus */
+
+use Watchdog\TestingMode;
 ?>
 <div class="wrap wp-watchdog-admin">
     <style>
@@ -432,7 +435,12 @@
                 <td>
                     <?php
                     $defaultFrequencyMessage = __('Choose how often the automatic scan should run.', 'wp-plugin-watchdog-main');
-                    $testingFrequencyMessage = __('Twenty-minute testing mode sends notifications every 20 minutes to all configured channels and automatically switches back to daily scans after three hours.', 'wp-plugin-watchdog-main');
+                    $testingFrequencyMessage = sprintf(
+                        /* translators: 1: interval minutes, 2: duration hours */
+                        __('Testing mode sends notifications every %1$d minutes to all configured channels and automatically switches back to daily scans after %2$d hours.', 'wp-plugin-watchdog-main'),
+                        TestingMode::INTERVAL_MINUTES,
+                        TestingMode::DURATION_HOURS
+                    );
                     $isTestingFrequency      = ($settings['notifications']['frequency'] ?? '') === 'testing';
                     $testingExpiresAt        = (int) ($settings['notifications']['testing_expires_at'] ?? 0);
                     $now                     = time();
@@ -451,7 +459,13 @@
                     <select id="wp-watchdog-notification-frequency" name="settings[notifications][frequency]">
                         <option value="daily" <?php selected($settings['notifications']['frequency'], 'daily'); ?>><?php esc_html_e('Daily', 'wp-plugin-watchdog-main'); ?></option>
                         <option value="weekly" <?php selected($settings['notifications']['frequency'], 'weekly'); ?>><?php esc_html_e('Weekly', 'wp-plugin-watchdog-main'); ?></option>
-                        <option value="testing" <?php selected($settings['notifications']['frequency'], 'testing'); ?>><?php esc_html_e('Testing (every 20 minutes)', 'wp-plugin-watchdog-main'); ?></option>
+                        <option value="testing" <?php selected($settings['notifications']['frequency'], 'testing'); ?>><?php echo esc_html(
+                            sprintf(
+                                /* translators: %d: interval minutes */
+                                __('Testing (every %d minutes)', 'wp-plugin-watchdog-main'),
+                                TestingMode::INTERVAL_MINUTES
+                            )
+                        ); ?></option>
                         <option value="manual" <?php selected($settings['notifications']['frequency'], 'manual'); ?>><?php esc_html_e('Manual (no automatic scans)', 'wp-plugin-watchdog-main'); ?></option>
                     </select>
                     <?php

@@ -2,6 +2,8 @@
 
 namespace Watchdog\Repository;
 
+use Watchdog\TestingMode;
+
 class SettingsRepository
 {
     private const OPTION = 'wp_watchdog_settings';
@@ -414,7 +416,7 @@ class SettingsRepository
 
     private function testingModeDuration(): int
     {
-        return 3 * $this->getHourInSeconds();
+        return TestingMode::durationInSeconds();
     }
 
     private function sanitizeTestingExpiration(mixed $value): int
@@ -432,11 +434,6 @@ class SettingsRepository
         }
 
         return max(0, $value);
-    }
-
-    private function getHourInSeconds(): int
-    {
-        return defined('HOUR_IN_SECONDS') ? HOUR_IN_SECONDS : 3600;
     }
 
     private function buildAdministratorEmailList(): string

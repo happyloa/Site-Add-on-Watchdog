@@ -5,6 +5,7 @@ namespace Watchdog;
 use Watchdog\Models\Risk;
 use Watchdog\Repository\RiskRepository;
 use Watchdog\Repository\SettingsRepository;
+use Watchdog\TestingMode;
 use WP_REST_Request;
 
 class Plugin
@@ -201,8 +202,12 @@ class Plugin
 
         if (! isset($schedules['testing'])) {
             $schedules['testing'] = [
-                'interval' => 20 * MINUTE_IN_SECONDS,
-                'display'  => __('Every 20 Minutes (testing)', 'wp-plugin-watchdog-main'),
+                'interval' => TestingMode::intervalInSeconds(),
+                'display'  => sprintf(
+                    /* translators: %d: interval minutes */
+                    __('Every %d Minutes (testing)', 'wp-plugin-watchdog-main'),
+                    TestingMode::INTERVAL_MINUTES
+                ),
             ];
         }
 
@@ -238,9 +243,7 @@ class Plugin
     private function scheduleDelayForFrequency(string $frequency): int
     {
         if ($frequency === 'testing') {
-            $minute = defined('MINUTE_IN_SECONDS') ? MINUTE_IN_SECONDS : 60;
-
-            return 20 * $minute;
+            return TestingMode::intervalInSeconds();
         }
 
         return defined('HOUR_IN_SECONDS') ? HOUR_IN_SECONDS : 3600;
@@ -442,7 +445,7 @@ class Plugin
         }
 
         if ($frequency === 'testing') {
-            return 20 * (defined('MINUTE_IN_SECONDS') ? MINUTE_IN_SECONDS : 60);
+            return TestingMode::intervalInSeconds();
         }
 
         if ($frequency === 'weekly') {
