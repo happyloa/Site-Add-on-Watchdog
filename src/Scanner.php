@@ -49,7 +49,7 @@ class Scanner
             ) {
                 $reasons[] = __(
                     'An update is available in the plugin directory.',
-                    'wp-plugin-watchdog-main'
+                    'site-add-on-watchdog'
                 );
             }
 
@@ -60,7 +60,7 @@ class Scanner
             ) {
                 $reasons[] = __(
                     'Local version is more than two minor releases behind the directory version.',
-                    'wp-plugin-watchdog-main'
+                    'site-add-on-watchdog'
                 );
             }
 
@@ -75,7 +75,7 @@ class Scanner
             ) {
                 $reasons[] = __(
                     'Changelog mentions security-related updates.',
-                    'wp-plugin-watchdog-main'
+                    'site-add-on-watchdog'
                 );
             }
 
@@ -88,7 +88,7 @@ class Scanner
 
                 $reasons[] = __(
                     'Active vulnerabilities reported by WPScan.',
-                    'wp-plugin-watchdog-main'
+                    'site-add-on-watchdog'
                 );
                 $details['vulnerabilities'] = $vulnerabilities;
             }
@@ -146,27 +146,27 @@ class Scanner
         if ($score >= 9.0) {
             return [
                 'key'   => 'severe',
-                'label' => __('Severe', 'wp-plugin-watchdog-main'),
+                'label' => __('Severe', 'site-add-on-watchdog'),
             ];
         }
 
         if ($score >= 7.0) {
             return [
                 'key'   => 'high',
-                'label' => __('High', 'wp-plugin-watchdog-main'),
+                'label' => __('High', 'site-add-on-watchdog'),
             ];
         }
 
         if ($score >= 4.0) {
             return [
                 'key'   => 'medium',
-                'label' => __('Medium', 'wp-plugin-watchdog-main'),
+                'label' => __('Medium', 'site-add-on-watchdog'),
             ];
         }
 
         return [
             'key'   => 'low',
-            'label' => __('Low', 'wp-plugin-watchdog-main'),
+            'label' => __('Low', 'site-add-on-watchdog'),
         ];
     }
 
