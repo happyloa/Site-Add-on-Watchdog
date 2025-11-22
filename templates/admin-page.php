@@ -432,7 +432,7 @@
                 <td>
                     <?php
                     $defaultFrequencyMessage = __('Choose how often the automatic scan should run.', 'wp-plugin-watchdog-main');
-                    $testingFrequencyMessage = __('Ten-minute testing mode sends notifications every ten minutes to all configured channels and automatically switches back to daily scans after six hours.', 'wp-plugin-watchdog-main');
+                    $testingFrequencyMessage = __('Twenty-minute testing mode sends notifications every 20 minutes to all configured channels and automatically switches back to daily scans after three hours.', 'wp-plugin-watchdog-main');
                     $isTestingFrequency      = ($settings['notifications']['frequency'] ?? '') === 'testing';
                     $testingExpiresAt        = (int) ($settings['notifications']['testing_expires_at'] ?? 0);
                     $now                     = time();
@@ -451,7 +451,7 @@
                     <select id="wp-watchdog-notification-frequency" name="settings[notifications][frequency]">
                         <option value="daily" <?php selected($settings['notifications']['frequency'], 'daily'); ?>><?php esc_html_e('Daily', 'wp-plugin-watchdog-main'); ?></option>
                         <option value="weekly" <?php selected($settings['notifications']['frequency'], 'weekly'); ?>><?php esc_html_e('Weekly', 'wp-plugin-watchdog-main'); ?></option>
-                        <option value="testing" <?php selected($settings['notifications']['frequency'], 'testing'); ?>><?php esc_html_e('Testing (every 10 minutes)', 'wp-plugin-watchdog-main'); ?></option>
+                        <option value="testing" <?php selected($settings['notifications']['frequency'], 'testing'); ?>><?php esc_html_e('Testing (every 20 minutes)', 'wp-plugin-watchdog-main'); ?></option>
                         <option value="manual" <?php selected($settings['notifications']['frequency'], 'manual'); ?>><?php esc_html_e('Manual (no automatic scans)', 'wp-plugin-watchdog-main'); ?></option>
                     </select>
                     <?php
