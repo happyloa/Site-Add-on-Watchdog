@@ -14,13 +14,9 @@ class Plugin
     private const LEGACY_CRON_HOOK = 'wp_watchdog_daily_scan';
     private const CRON_STATUS_OPTION = 'wp_watchdog_cron_status';
 
-    private const UPDATE_CHECK_SCAN_INTERVAL = 900;
-
     private const MANUAL_NOTIFICATION_INTERVAL = 60;
 
     private const REST_NAMESPACE = 'wp-plugin-watchdog/v1';
-
-    private ?int $lastUpdateCheckScan = null;
 
     private bool $hooksRegistered = false;
 
@@ -44,7 +40,8 @@ class Plugin
         add_action('plugins_loaded', [$this, 'schedule']);
         add_action('admin_notices', [$this, 'renderCronDiagnostics']);
         add_action('rest_api_init', [$this, 'registerRestRoutes']);
-        add_filter('pre_set_site_transient_update_plugins', [$this, 'handleUpdateCheck']);
+
+        $this->cleanupUpdateCheckState();
 
         $this->hooksRegistered = true;
     }
@@ -114,6 +111,7 @@ class Plugin
     {
         $this->clearScheduledHook(self::CRON_HOOK);
         $this->clearScheduledHook(self::LEGACY_CRON_HOOK);
+        delete_option('wp_watchdog_update_check_scan_at');
     }
 
     /**
@@ -238,6 +236,11 @@ class Plugin
             wp_unschedule_event($timestamp, $hook);
             $timestamp = wp_next_scheduled($hook);
         }
+    }
+
+    private function cleanupUpdateCheckState(): void
+    {
+        delete_option('wp_watchdog_update_check_scan_at');
     }
 
     private function scheduleDelayForFrequency(string $frequency): int
@@ -383,45 +386,6 @@ class Plugin
             $this->logCronWarning('[Site Add-on Watchdog] Scheduled scans are overdue. '
                 . 'Ensure cron can reach wp-cron.php.');
         }
-    }
-
-    public function handleUpdateCheck($value)
-    {
-        $settings  = $this->settingsRepository->get();
-        $frequency = $settings['notifications']['frequency'] ?? 'daily';
-        if (
-            $frequency === 'testing'
-            && ($settings['notifications']['testing_expires_at'] ?? 0) > 0
-            && time() >= (int) $settings['notifications']['testing_expires_at']
-        ) {
-            $frequency = 'daily';
-            $this->settingsRepository->updateNotificationFrequency('daily');
-        }
-
-        if ($frequency === 'manual') {
-            return $value;
-        }
-
-        if (! $this->shouldUseUpdateCheckScan($frequency)) {
-            return $value;
-        }
-
-        $now = time();
-        if ($this->lastUpdateCheckScan === null) {
-            $lastScan = (int) get_option('wp_watchdog_update_check_scan_at', 0);
-            $this->lastUpdateCheckScan = $lastScan;
-        }
-
-        if (
-            $this->lastUpdateCheckScan === null
-            || ($now - $this->lastUpdateCheckScan) >= self::UPDATE_CHECK_SCAN_INTERVAL
-        ) {
-            $this->runScan(true, 'update_check');
-            $this->lastUpdateCheckScan = $now;
-            update_option('wp_watchdog_update_check_scan_at', $now, false);
-        }
-
-        return $value;
     }
 
     private function logCronWarning(string $message): void
@@ -570,26 +534,6 @@ class Plugin
         }
 
         return new \DateTimeZone('UTC');
-    }
-
-    private function shouldUseUpdateCheckScan(string $frequency): bool
-    {
-        $interval  = $this->cronIntervalForFrequency($frequency);
-        $timestamp = wp_next_scheduled(self::CRON_HOOK);
-
-        if ($this->isCronDisabled()) {
-            return true;
-        }
-
-        if ($timestamp === false) {
-            return true;
-        }
-
-        if ($interval <= 0) {
-            return false;
-        }
-
-        return $this->isEventOverdue((int) $timestamp, $interval);
     }
 
     private function hasFutureEventScheduled(int $now): bool
