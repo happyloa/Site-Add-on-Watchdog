@@ -12,6 +12,12 @@ cd "${ROOT_DIR}"
 # Exclude all hidden files and directories from the archive.
 zip -rq "${ARTIFACT}" . \
     -x "*/.*" \
-    -x "${ARTIFACT}"
+    -x "${ARTIFACT}" \
+    -x "*/tests/*" \
+    -x "*/phpunit.xml.dist" \
+    -x "*/composer.json" \
+    -x "*/composer.lock" \
+    -x "*/phpcs.xml" \
+    -x "*/build/*"
 
 echo "Created ${ARTIFACT} without hidden files."
