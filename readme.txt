@@ -67,6 +67,10 @@ Slack requires an Incoming Webhook URL that you can generate from your workspace
 
 Yes. Use the "Run manual scan" button on the Watchdog admin page.
 
+= Where can I find the test suite? =
+
+Tests and the `phpunit.xml.dist` configuration are available in the public repository but are excluded from the published plugin package. Clone the repo from GitHub to run the test suite locally with PHPUnit.
+
 == CLI Usage ==
 
 Watchdog bundles a WP-CLI command so you can run scans outside of the WordPress admin. All examples below assume the command is executed from a shell where `wp` (WP-CLI) is available.
