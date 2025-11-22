@@ -752,8 +752,7 @@ class Notifier
             esc_html__('Potential plugin risks detected on your site', 'wp-plugin-watchdog-main'),
             $cards,
             esc_html__(
-                'These plugins are flagged for security or maintenance updates. '
-                . 'Review the details below and update as soon as possible.',
+                'These plugins need security or maintenance updates. Update them as soon as possible.',
                 'wp-plugin-watchdog-main'
             ),
             $updateUrl,

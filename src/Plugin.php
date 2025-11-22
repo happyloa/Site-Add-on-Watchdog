@@ -266,8 +266,7 @@ class Plugin
         if (! empty($status['cron_disabled'])) {
             echo '<div class="notice notice-error"><p>'
                 . esc_html__(
-                    'WP-Cron appears disabled. Configure a system cron job to trigger '
-                    . 'wp-cron.php for Site Add-on Watchdog.',
+                    'WP-Cron appears disabled. Set a system cron job to trigger wp-cron.php for Site Add-on Watchdog.',
                     'wp-plugin-watchdog-main'
                 )
                 . '</p></div>';
