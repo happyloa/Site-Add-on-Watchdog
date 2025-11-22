@@ -18,6 +18,6 @@ zip -rq "${ARTIFACT}" . \
     -x "composer.json" -x "*/composer.json" \
     -x "composer.lock" -x "*/composer.lock" \
     -x "phpcs.xml" -x "*/phpcs.xml" \
-    -x "build/*" -x "*/build/*"
+    -x "build" -x "build/**" -x "*/build/**"
 
 echo "Created ${ARTIFACT} without hidden files."
