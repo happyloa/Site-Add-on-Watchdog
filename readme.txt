@@ -71,6 +71,18 @@ Yes. Use the "Run manual scan" button on the Watchdog admin page.
 
 Tests and the `phpunit.xml.dist` configuration are available in the public repository but are excluded from the published plugin package. Clone the repo from GitHub to run the test suite locally with PHPUnit.
 
+== Troubleshooting ==
+
+=== Scheduled scans are not running ===
+
+Watchdog relies on WP-Cron to trigger scheduled scans and notifications. If you have set `DISABLE_WP_CRON` to `true` or your site receives very little traffic (so WP-Cron rarely runs), configure a system cron job to call either `wp-cron.php` or the plugin's REST endpoint. The admin **Delivery health** panel lists the REST URL you can target; a typical example looks like this:
+
+```
+curl -X POST https://example.com/wp-json/wp-watchdog/v1/cron
+```
+
+Testing-mode notifications also rely on this trigger, so be sure your cron job is running when validating delivery.
+
 == CLI Usage ==
 
 Watchdog bundles a WP-CLI command so you can run scans outside of the WordPress admin. All examples below assume the command is executed from a shell where `wp` (WP-CLI) is available.
