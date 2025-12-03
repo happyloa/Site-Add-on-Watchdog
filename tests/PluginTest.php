@@ -17,7 +17,7 @@ class PluginTest extends TestCase
         when('wp_remote_post')->justReturn(null);
         when('get_option')->alias(static function (string $name) {
             return match ($name) {
-                'wp_watchdog_cron_status' => [
+                'siteadwa_cron_status' => [
                     'overdue_streak' => 0,
                     'cron_disabled'  => false,
                 ],
@@ -33,8 +33,8 @@ class PluginTest extends TestCase
 
         when('wp_next_scheduled')->alias(static function (string $hook) {
             return match ($hook) {
-                'wp_watchdog_scheduled_scan'   => time() - 2_000,
-                'wp_watchdog_notification_queue' => false,
+                'siteadwa_scheduled_scan'   => time() - 2_000,
+                'siteadwa_notification_queue' => false,
                 default => false,
             };
         });
@@ -46,7 +46,7 @@ class PluginTest extends TestCase
             ->once()
             ->withArgs(static function (int $timestamp, string $schedule, string $hook): bool {
                 return $schedule === 'watchdog_notification_queue'
-                    && $hook === 'wp_watchdog_notification_queue'
+                    && $hook === 'siteadwa_notification_queue'
                     && $timestamp >= time();
             });
         expect('wp_schedule_single_event')->once();
@@ -73,7 +73,7 @@ class PluginTest extends TestCase
         when('wp_remote_post')->justReturn(null);
         when('get_option')->alias(static function (string $name) {
             return match ($name) {
-                'wp_watchdog_cron_status' => [
+                'siteadwa_cron_status' => [
                     'overdue_streak' => 1,
                     'cron_disabled'  => true,
                 ],
@@ -89,8 +89,8 @@ class PluginTest extends TestCase
 
         when('wp_next_scheduled')->alias(static function (string $hook) {
             return match ($hook) {
-                'wp_watchdog_scheduled_scan'   => time() - 3_000,
-                'wp_watchdog_notification_queue' => false,
+                'siteadwa_scheduled_scan'   => time() - 3_000,
+                'siteadwa_notification_queue' => false,
                 default => false,
             };
         });
@@ -103,7 +103,7 @@ class PluginTest extends TestCase
             ->once()
             ->withArgs(static function (int $timestamp, string $schedule, string $hook): bool {
                 return $schedule === 'watchdog_notification_queue'
-                    && $hook === 'wp_watchdog_notification_queue'
+                    && $hook === 'siteadwa_notification_queue'
                     && $timestamp >= time();
             });
         expect('wp_schedule_single_event')->once();
@@ -159,7 +159,7 @@ class PluginTest extends TestCase
         when('wp_remote_post')->justReturn(null);
         when('get_option')->alias(static function (string $name) {
             return match ($name) {
-                'wp_watchdog_cron_status' => [
+                'siteadwa_cron_status' => [
                     'overdue_streak' => 0,
                     'cron_disabled'  => false,
                 ],
@@ -173,7 +173,7 @@ class PluginTest extends TestCase
         when('update_option')->justReturn(true);
         when('_get_cron_array')->justReturn([
             time() + 90 => [
-                'wp_watchdog_scheduled_scan' => [
+                'siteadwa_scheduled_scan' => [
                     [
                         'schedule' => false,
                         'args'     => [],
@@ -185,8 +185,8 @@ class PluginTest extends TestCase
 
         when('wp_next_scheduled')->alias(static function (string $hook) {
             return match ($hook) {
-                'wp_watchdog_scheduled_scan'   => time() - 2_500,
-                'wp_watchdog_notification_queue' => false,
+                'siteadwa_scheduled_scan'   => time() - 2_500,
+                'siteadwa_notification_queue' => false,
                 default => false,
             };
         });
@@ -198,7 +198,7 @@ class PluginTest extends TestCase
             ->once()
             ->withArgs(static function (int $timestamp, string $schedule, string $hook): bool {
                 return $schedule === 'watchdog_notification_queue'
-                    && $hook === 'wp_watchdog_notification_queue'
+                    && $hook === 'siteadwa_notification_queue'
                     && $timestamp >= time();
             });
         expect('wp_schedule_single_event')->never();
@@ -277,7 +277,7 @@ class PluginTest extends TestCase
     {
         when('get_option')->alias(static function (string $name) {
             return match ($name) {
-                'wp_watchdog_cron_status' => [
+                'siteadwa_cron_status' => [
                     'overdue_streak' => 0,
                     'cron_disabled'  => false,
                 ],
@@ -297,7 +297,7 @@ class PluginTest extends TestCase
         when('wp_next_scheduled')->alias(static function (string $hook) {
             static $scanCalls = 0;
 
-            if ($hook === 'wp_watchdog_scheduled_scan') {
+            if ($hook === 'siteadwa_scheduled_scan') {
                 $scanCalls++;
 
                 if ($scanCalls <= 2) {
@@ -314,13 +314,13 @@ class PluginTest extends TestCase
             ->once()
             ->withArgs(static function (int $timestamp, string $schedule, string $hook): bool {
                 return $schedule === 'watchdog_notification_queue'
-                    && $hook === 'wp_watchdog_notification_queue';
+                    && $hook === 'siteadwa_notification_queue';
             });
 
         expect('wp_unschedule_event')
             ->once()
             ->withArgs(static function (int $timestamp, string $hook): bool {
-                return $hook === 'wp_watchdog_scheduled_scan' && $timestamp > time();
+                return $hook === 'siteadwa_scheduled_scan' && $timestamp > time();
             });
 
         expect('wp_schedule_single_event')->never();

@@ -5,30 +5,22 @@
  * @var array $historyRecords
  * @var array $historyDownloads
  */
+defined('ABSPATH') || exit;
 ?>
-<style>
-    .wp-watchdog-history-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; }
-    .wp-watchdog-history-card { background:#f6f7f7; border:1px solid #dcdcde; border-radius:8px; padding:12px 14px; box-shadow:0 1px 1px rgba(0,0,0,0.02); }
-    .wp-watchdog-history-card__header { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
-    .wp-watchdog-history-card__title { margin:0; font-weight:600; font-size:14px; display:flex; align-items:center; gap:6px; flex:1 1 auto; min-width:0; }
-    .wp-watchdog-history-card__meta { color:#4b5563; font-size:12px; margin:0; }
-    .wp-watchdog-history-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; font-weight:600; font-size:12px; text-transform:uppercase; align-self:flex-start; }
-    .wp-watchdog-history-badge--safe { background:#e7f7ed; color:#1c5f3a; }
-    .wp-watchdog-history-badge--risk { background:#fff4d6; color:#7a5a00; }
-    .wp-watchdog-history-card__downloads { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-</style>
 
 <?php if (empty($historyRecords)) : ?>
     <p><?php echo esc_html__('No scans have been recorded yet. Run a scan to populate your history.', 'site-add-on-watchdog'); ?></p>
 <?php else : ?>
     <p class="description">
         <?php
+        $displayCount = esc_html(number_format_i18n($historyDisplay));
+        $retentionCount = esc_html(number_format_i18n($historyRetention));
         echo esc_html(
             sprintf(
                 /* translators: 1: number of scans shown, 2: total scans retained */
                 esc_html__('Showing the last %1$s scans (retaining %2$s in total).', 'site-add-on-watchdog'),
-                number_format_i18n($historyDisplay),
-                number_format_i18n($historyRetention)
+                $displayCount,
+                $retentionCount
             )
         );
         ?>
@@ -53,11 +45,8 @@
                             ? _n('%s risk', '%s risks', $record['risk_count'], 'site-add-on-watchdog')
                             : ($record['risk_count'] === 1 ? '%s risk' : '%s risks');
 
-                        printf(
-                            /* translators: %s is a risk count */
-                            esc_html($riskLabel),
-                            number_format_i18n($record['risk_count'])
-                        );
+                        $riskCount = esc_html(number_format_i18n($record['risk_count']));
+                        printf(esc_html($riskLabel), $riskCount);
                         ?>
                     </span>
                 </div>

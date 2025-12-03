@@ -4,7 +4,7 @@ Tags: security, plugins, monitoring, notifications
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 8.1
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,7 +78,7 @@ Tests and the `phpunit.xml.dist` configuration are available in the public repos
 Watchdog relies on WP-Cron to trigger scheduled scans and notifications. If you have set `DISABLE_WP_CRON` to `true` or your site receives very little traffic (so WP-Cron rarely runs), configure a system cron job to call either `wp-cron.php` or the plugin's REST endpoint. The admin **Delivery health** panel lists the REST URL you can target; a typical example looks like this:
 
 ```
-curl -X POST https://example.com/wp-json/wp-watchdog/v1/cron
+curl -X POST https://example.com/wp-json/site-add-on-watchdog/v1/cron
 ```
 
 Testing-mode notifications also rely on this trigger, so be sure your cron job is running when validating delivery.
@@ -99,6 +99,11 @@ Examples:
 Recommended workflow: on CI/CD platforms, add a job step that boots your WordPress/WP-CLI container, runs pending database migrations if needed, and then calls `wp watchdog scan --notify=false` to verify the plugin state without spamming production channels. Promote to production by rerunning the same command with notifications enabled when you are ready to alert your team.
 
 == Changelog ==
+
+= 1.5.0 =
+* Rename the main plugin file and asset handles to match the plugin slug and unique prefix.
+* Prefix options, transients, hooks, and cron events with `siteadwa_` while migrating existing saved data.
+* Move admin inline styles into the enqueued stylesheet and prevent direct template access.
 
 = 1.4.0 =
 * Improve the scan history card layout so risk pills stay aligned with their titles.

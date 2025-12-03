@@ -11,7 +11,9 @@ use WP_Filesystem_Direct;
 
 class AdminPage
 {
-    private const HISTORY_DOWNLOAD_ACTION = 'wp_watchdog_history_download';
+    private const PREFIX = Version::PREFIX;
+    private const MENU_SLUG = 'site-add-on-watchdog';
+    private const HISTORY_DOWNLOAD_ACTION = self::PREFIX . '_history_download';
 
     private ?string $menuHook = null;
     private bool $assetsEnqueued = false;
@@ -31,14 +33,14 @@ class AdminPage
     public function register(): void
     {
         add_action('admin_menu', [$this, 'addMenu']);
-        add_action('admin_post_wp_watchdog_save_settings', [$this, 'handleSettings']);
-        add_action('admin_post_wp_watchdog_ignore', [$this, 'handleIgnore']);
-        add_action('admin_post_wp_watchdog_unignore', [$this, 'handleUnignore']);
-        add_action('admin_post_wp_watchdog_scan', [$this, 'handleManualScan']);
-        add_action('admin_post_wp_watchdog_send_notifications', [$this, 'handleSendNotifications']);
-        add_action('admin_post_wp_watchdog_download_history', [$this, 'handleHistoryDownload']);
-        add_action('admin_post_wp_watchdog_resend_failed_notification', [$this, 'handleResendFailedNotification']);
-        add_action('admin_post_wp_watchdog_download_failed_notification', [$this, 'handleFailedNotificationDownload']);
+        add_action('admin_post_' . self::PREFIX . '_save_settings', [$this, 'handleSettings']);
+        add_action('admin_post_' . self::PREFIX . '_ignore', [$this, 'handleIgnore']);
+        add_action('admin_post_' . self::PREFIX . '_unignore', [$this, 'handleUnignore']);
+        add_action('admin_post_' . self::PREFIX . '_scan', [$this, 'handleManualScan']);
+        add_action('admin_post_' . self::PREFIX . '_send_notifications', [$this, 'handleSendNotifications']);
+        add_action('admin_post_' . self::PREFIX . '_download_history', [$this, 'handleHistoryDownload']);
+        add_action('admin_post_' . self::PREFIX . '_resend_failed_notification', [$this, 'handleResendFailedNotification']);
+        add_action('admin_post_' . self::PREFIX . '_download_failed_notification', [$this, 'handleFailedNotificationDownload']);
         add_action('admin_enqueue_scripts', [$this, 'enqueueAssets']);
     }
 
@@ -48,7 +50,7 @@ class AdminPage
             __('Site Add-on Watchdog', 'site-add-on-watchdog'),
             __('Watchdog', 'site-add-on-watchdog'),
             'manage_options',
-            'wp-plugin-watchdog',
+            self::MENU_SLUG,
             [$this, 'render'],
             'dashicons-shield'
         );
@@ -65,13 +67,13 @@ class AdminPage
         $risks     = $this->riskRepository->all();
         $ignored   = $this->riskRepository->ignored();
         $settings  = $this->settingsRepository->get();
-        $scanNonce = wp_create_nonce('wp_watchdog_scan');
+        $scanNonce = wp_create_nonce(self::PREFIX . '_scan');
         $cronStatus = $this->plugin->getCronStatus();
         $cronEndpoint = $this->plugin->getCronEndpointUrl();
 
-        $settingsError = get_transient('wp_watchdog_settings_error');
+        $settingsError = get_transient(self::PREFIX . '_settings_error');
         if ($settingsError !== false) {
-            delete_transient('wp_watchdog_settings_error');
+            delete_transient(self::PREFIX . '_settings_error');
         }
 
         $historyRetention = (int) ($settings['history']['retention'] ?? RiskRepository::DEFAULT_HISTORY_RETENTION);
@@ -79,7 +81,10 @@ class AdminPage
             $historyRetention = RiskRepository::DEFAULT_HISTORY_RETENTION;
         }
 
-        $historyDisplay = (int) apply_filters('wp_watchdog_main_admin_history_display', min($historyRetention, 10));
+        $historyDisplay = (int) apply_filters(
+            self::PREFIX . '_main_admin_history_display',
+            min($historyRetention, 10)
+        );
         if ($historyDisplay < 1) {
             $historyDisplay = min($historyRetention, RiskRepository::DEFAULT_HISTORY_RETENTION);
         }
@@ -95,6 +100,8 @@ class AdminPage
 
         $lastFailedNotification = $this->notifier->getLastFailedNotification();
 
+        $actionPrefix = self::PREFIX;
+
         require __DIR__ . '/../templates/admin-page.php';
     }
 
@@ -102,7 +109,7 @@ class AdminPage
     {
         $matchesHook = $this->menuHook !== null
             ? ($hook === $this->menuHook)
-            : ($hook === 'toplevel_page_wp-plugin-watchdog');
+            : ($hook === 'toplevel_page_' . self::MENU_SLUG);
 
         if (! $matchesHook) {
             return;
@@ -114,7 +121,7 @@ class AdminPage
     public function handleSettings(): void
     {
         $this->guardAccess();
-        check_admin_referer('wp_watchdog_settings');
+        check_admin_referer(self::PREFIX . '_settings');
 
         $payload = wp_unslash($_POST['settings'] ?? []);
         if (! is_array($payload)) {
@@ -131,7 +138,7 @@ class AdminPage
                 'site-add-on-watchdog'
             );
             set_transient(
-                'wp_watchdog_settings_error',
+                self::PREFIX . '_settings_error',
                 $message,
                 30
             );
@@ -144,103 +151,103 @@ class AdminPage
         $this->settingsRepository->save($payload);
         $this->plugin->schedule();
 
-        wp_safe_redirect(
-            add_query_arg(
-                'updated',
-                'true',
-                wp_get_referer() ?: admin_url('admin.php?page=wp-plugin-watchdog')
-            )
-        );
+                wp_safe_redirect(
+                    add_query_arg(
+                        'updated',
+                        'true',
+                        wp_get_referer() ?: admin_url('admin.php?page=' . self::MENU_SLUG)
+                    )
+                );
         exit;
     }
 
     public function handleIgnore(): void
     {
         $this->guardAccess();
-        check_admin_referer('wp_watchdog_ignore');
+        check_admin_referer(self::PREFIX . '_ignore');
 
         $slug = sanitize_text_field(wp_unslash($_POST['plugin_slug'] ?? ''));
         if ($slug !== '') {
             $this->riskRepository->addIgnore($slug);
         }
 
-        wp_safe_redirect(wp_get_referer() ?: admin_url('admin.php?page=wp-plugin-watchdog'));
+        wp_safe_redirect(wp_get_referer() ?: admin_url('admin.php?page=' . self::MENU_SLUG));
         exit;
     }
 
     public function handleUnignore(): void
     {
         $this->guardAccess();
-        check_admin_referer('wp_watchdog_unignore');
+        check_admin_referer(self::PREFIX . '_unignore');
 
         $slug = sanitize_text_field(wp_unslash($_POST['plugin_slug'] ?? ''));
         if ($slug !== '') {
             $this->riskRepository->removeIgnore($slug);
         }
 
-        wp_safe_redirect(wp_get_referer() ?: admin_url('admin.php?page=wp-plugin-watchdog'));
+        wp_safe_redirect(wp_get_referer() ?: admin_url('admin.php?page=' . self::MENU_SLUG));
         exit;
     }
 
     public function handleManualScan(): void
     {
         $this->guardAccess();
-        check_admin_referer('wp_watchdog_scan');
+        check_admin_referer(self::PREFIX . '_scan');
 
         $this->plugin->runScan(true, 'manual');
 
-        wp_safe_redirect(
-            add_query_arg(
-                'scan',
-                'done',
-                wp_get_referer() ?: admin_url('admin.php?page=wp-plugin-watchdog')
-            )
-        );
+                wp_safe_redirect(
+                    add_query_arg(
+                        'scan',
+                        'done',
+                        wp_get_referer() ?: admin_url('admin.php?page=' . self::MENU_SLUG)
+                    )
+                );
         exit;
     }
 
     public function handleSendNotifications(): void
     {
         $this->guardAccess();
-        check_admin_referer('wp_watchdog_send_notifications');
+        check_admin_referer(self::PREFIX . '_send_notifications');
 
         $force           = ! empty($_POST['force']);
         $respectThrottle = empty($_POST['ignore_throttle']);
         $result          = $this->plugin->sendNotifications($force, $respectThrottle);
 
-        wp_safe_redirect(
-            add_query_arg(
-                'notifications',
-                $result,
-                wp_get_referer() ?: admin_url('admin.php?page=wp-plugin-watchdog')
-            )
-        );
+                wp_safe_redirect(
+                    add_query_arg(
+                        'notifications',
+                        $result,
+                        wp_get_referer() ?: admin_url('admin.php?page=' . self::MENU_SLUG)
+                    )
+                );
         exit;
     }
 
     public function handleResendFailedNotification(): void
     {
         $this->guardAccess();
-        check_admin_referer('wp_watchdog_resend_failed_notification');
+        check_admin_referer(self::PREFIX . '_resend_failed_notification');
 
         $resent = $this->notifier->requeueLastFailedNotification();
 
         $status = $resent ? 'resent' : 'missing';
 
-        wp_safe_redirect(
-            add_query_arg(
-                'failed_notification',
-                $status,
-                wp_get_referer() ?: admin_url('admin.php?page=wp-plugin-watchdog')
-            )
-        );
+                wp_safe_redirect(
+                    add_query_arg(
+                        'failed_notification',
+                        $status,
+                        wp_get_referer() ?: admin_url('admin.php?page=' . self::MENU_SLUG)
+                    )
+                );
         exit;
     }
 
     public function handleFailedNotificationDownload(): void
     {
         $this->guardAccess();
-        check_admin_referer('wp_watchdog_download_failed_notification');
+        check_admin_referer(self::PREFIX . '_download_failed_notification');
 
         $failed = $this->notifier->getLastFailedNotification();
         if ($failed === null) {
@@ -322,16 +329,16 @@ class AdminPage
             return;
         }
 
-        $pluginFile    = dirname(__DIR__) . '/wp-plugin-watchdog.php';
+        $pluginFile    = dirname(__DIR__) . '/site-add-on-watchdog.php';
         $stylePath     = dirname(__DIR__) . '/assets/css/admin.css';
         $scriptPath    = dirname(__DIR__) . '/assets/js/admin-table.js';
         $styleUrl      = plugins_url('assets/css/admin.css', $pluginFile);
         $scriptUrl     = plugins_url('assets/js/admin-table.js', $pluginFile);
         $assetVersion  = Version::NUMBER;
 
-        wp_enqueue_style('wp-plugin-watchdog-admin', $styleUrl, [], $assetVersion);
-        wp_enqueue_script('wp-plugin-watchdog-admin-table', $scriptUrl, [], $assetVersion, true);
-        wp_localize_script('wp-plugin-watchdog-admin-table', 'wpWatchdogTable', [
+        wp_enqueue_style(self::PREFIX . '-admin', $styleUrl, [], $assetVersion);
+        wp_enqueue_script(self::PREFIX . '-admin-table', $scriptUrl, [], $assetVersion, true);
+        wp_localize_script(self::PREFIX . '-admin-table', 'siteAddOnWatchdogTable', [
             /* translators: 1: current page number, 2: total number of pages. */
             'pageStatus' => __('Page %1$d of %2$d', 'site-add-on-watchdog'),
         ]);
@@ -343,7 +350,7 @@ class AdminPage
     {
         $url = add_query_arg(
             [
-                'action' => 'wp_watchdog_download_history',
+                'action' => self::PREFIX . '_download_history',
                 'run_at' => $runAt,
                 'format' => $format,
             ],
@@ -358,7 +365,7 @@ class AdminPage
      */
     private function streamHistoryJson(array $entry): void
     {
-        $filename = sprintf('wp-watchdog-history-%s.json', gmdate('Ymd-His', $entry['run_at']));
+        $filename = sprintf('%s-history-%s.json', self::PREFIX, gmdate('Ymd-His', $entry['run_at']));
 
         header('Content-Type: application/json; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -376,7 +383,7 @@ class AdminPage
      */
     private function streamHistoryCsv(array $entry): void
     {
-        $filename = sprintf('wp-watchdog-history-%s.csv', gmdate('Ymd-His', $entry['run_at']));
+        $filename = sprintf('%s-history-%s.csv', self::PREFIX, gmdate('Ymd-His', $entry['run_at']));
 
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
