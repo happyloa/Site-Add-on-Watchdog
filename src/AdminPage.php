@@ -39,8 +39,14 @@ class AdminPage
         add_action('admin_post_' . self::PREFIX . '_scan', [$this, 'handleManualScan']);
         add_action('admin_post_' . self::PREFIX . '_send_notifications', [$this, 'handleSendNotifications']);
         add_action('admin_post_' . self::PREFIX . '_download_history', [$this, 'handleHistoryDownload']);
-        add_action('admin_post_' . self::PREFIX . '_resend_failed_notification', [$this, 'handleResendFailedNotification']);
-        add_action('admin_post_' . self::PREFIX . '_download_failed_notification', [$this, 'handleFailedNotificationDownload']);
+        add_action(
+            'admin_post_' . self::PREFIX . '_resend_failed_notification',
+            [$this, 'handleResendFailedNotification']
+        );
+        add_action(
+            'admin_post_' . self::PREFIX . '_download_failed_notification',
+            [$this, 'handleFailedNotificationDownload']
+        );
         add_action('admin_enqueue_scripts', [$this, 'enqueueAssets']);
     }
 
