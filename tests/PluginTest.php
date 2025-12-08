@@ -45,7 +45,7 @@ class PluginTest extends TestCase
         expect('wp_schedule_event')
             ->once()
             ->withArgs(static function (int $timestamp, string $schedule, string $hook): bool {
-                return $schedule === 'watchdog_notification_queue'
+                return $schedule === 'siteadwa_notification_queue'
                     && $hook === 'siteadwa_notification_queue'
                     && $timestamp >= time();
             });
@@ -102,7 +102,7 @@ class PluginTest extends TestCase
         expect('wp_schedule_event')
             ->once()
             ->withArgs(static function (int $timestamp, string $schedule, string $hook): bool {
-                return $schedule === 'watchdog_notification_queue'
+                return $schedule === 'siteadwa_notification_queue'
                     && $hook === 'siteadwa_notification_queue'
                     && $timestamp >= time();
             });
@@ -197,7 +197,7 @@ class PluginTest extends TestCase
         expect('wp_schedule_event')
             ->once()
             ->withArgs(static function (int $timestamp, string $schedule, string $hook): bool {
-                return $schedule === 'watchdog_notification_queue'
+                return $schedule === 'siteadwa_notification_queue'
                     && $hook === 'siteadwa_notification_queue'
                     && $timestamp >= time();
             });
@@ -313,7 +313,7 @@ class PluginTest extends TestCase
         expect('wp_schedule_event')
             ->once()
             ->withArgs(static function (int $timestamp, string $schedule, string $hook): bool {
-                return $schedule === 'watchdog_notification_queue'
+                return $schedule === 'siteadwa_notification_queue'
                     && $hook === 'siteadwa_notification_queue';
             });
 
