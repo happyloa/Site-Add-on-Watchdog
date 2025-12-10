@@ -10,29 +10,11 @@
 /** @var array $cronStatus */
 
 use Watchdog\TestingMode;
+defined('ABSPATH') || exit;
+
+$actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
 ?>
 <div class="wrap wp-watchdog-admin">
-    <style>
-        .wp-watchdog-admin .wp-watchdog-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin:16px 0; }
-        .wp-watchdog-admin .wp-watchdog-surface { background:#fff; border:1px solid #dcdcde; border-radius:10px; padding:16px; box-shadow:0 1px 1px rgba(0,0,0,0.04); }
-        .wp-watchdog-admin .wp-watchdog-section-title { display:flex; align-items:center; gap:8px; margin-bottom:12px; font-size:16px; font-weight:600; }
-        .wp-watchdog-admin .wp-watchdog-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.02em; }
-        .wp-watchdog-admin .wp-watchdog-badge--success { background:#e7f7ed; color:#1c5f3a; }
-        .wp-watchdog-admin .wp-watchdog-badge--warning { background:#fff4d6; color:#7a5a00; }
-        .wp-watchdog-admin .wp-watchdog-badge--muted { background:#eef1f3; color:#1d2327; }
-        .wp-watchdog-admin .wp-watchdog-section-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
-        .wp-watchdog-admin .button-hero { display:flex; align-items:center; gap:8px; }
-        .wp-watchdog-admin .wp-watchdog-inline-list { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 0; padding:0; list-style:none; }
-        .wp-watchdog-admin .wp-watchdog-inline-list li { margin:0; }
-        .wp-watchdog-admin .wp-watchdog-summary { display:flex; align-items:center; gap:10px; }
-        .wp-watchdog-admin .wp-watchdog-summary__count { font-size:32px; font-weight:700; }
-        .wp-watchdog-admin .wp-watchdog-summary__label { color:#4b5563; }
-        .wp-watchdog-admin .wp-watchdog-card-stack { display:flex; flex-direction:column; gap:12px; }
-        .wp-watchdog-admin .wp-watchdog-muted { color:#4b5563; margin:0; }
-        .wp-watchdog-admin .wp-watchdog-history-table { margin-top:12px; }
-        .wp-watchdog-admin .wp-watchdog-divider { border-top:1px solid #dcdcde; margin:16px 0; }
-    </style>
-
     <div class="wp-watchdog-section-header">
         <div>
             <h1 style="display:flex; align-items:center; gap:10px; margin:0;">
@@ -43,16 +25,16 @@ use Watchdog\TestingMode;
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <?php wp_nonce_field('wp_watchdog_scan'); ?>
-                <input type="hidden" name="action" value="wp_watchdog_scan">
+                <?php wp_nonce_field($actionPrefix . '_scan'); ?>
+                <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_scan'); ?>">
                 <button class="button button-primary button-hero" type="submit">
                     <span class="dashicons dashicons-update" aria-hidden="true"></span>
                     <?php esc_html_e('Run manual scan', 'site-add-on-watchdog'); ?>
                 </button>
             </form>
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <?php wp_nonce_field('wp_watchdog_send_notifications'); ?>
-                <input type="hidden" name="action" value="wp_watchdog_send_notifications">
+                <?php wp_nonce_field($actionPrefix . '_send_notifications'); ?>
+                <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_send_notifications'); ?>">
                 <input type="hidden" name="force" value="1" />
                 <button class="button button-secondary button-hero" type="submit">
                     <span class="dashicons dashicons-megaphone" aria-hidden="true"></span>
@@ -62,9 +44,9 @@ use Watchdog\TestingMode;
         </div>
     </div>
 
-    <?php $wp_watchdog_webhook_error = get_transient('wp_watchdog_webhook_error'); ?>
-    <?php if (! empty($wp_watchdog_webhook_error)) : ?>
-        <div class="notice notice-error is-dismissible"><p><?php echo esc_html($wp_watchdog_webhook_error); ?></p></div>
+    <?php $webhookError = get_transient($actionPrefix . '_webhook_error'); ?>
+    <?php if (! empty($webhookError)) : ?>
+        <div class="notice notice-error is-dismissible"><p><?php echo esc_html($webhookError); ?></p></div>
     <?php endif; ?>
 
     <?php if (! empty($settingsError)) : ?>
@@ -105,12 +87,12 @@ use Watchdog\TestingMode;
                 <span class="dashicons dashicons-heart" aria-hidden="true"></span>
                 <?php esc_html_e('Delivery health', 'site-add-on-watchdog'); ?>
             </div>
-            <?php $isCronDisabled = ! empty($cronStatus['cron_disabled']); ?>
+                <?php $isCronDisabled = ! empty($cronStatus['cron_disabled']); ?>
             <?php if ($isCronDisabled) : ?>
                 <p class="wp-watchdog-muted"><?php esc_html_e('WP-Cron appears disabled. Use a real cron job or the server endpoint below to keep scans running.', 'site-add-on-watchdog'); ?></p>
                 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin:12px 0;">
-                    <?php wp_nonce_field('wp_watchdog_send_notifications'); ?>
-                    <input type="hidden" name="action" value="wp_watchdog_send_notifications">
+                    <?php wp_nonce_field($actionPrefix . '_send_notifications'); ?>
+                    <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_send_notifications'); ?>">
                     <input type="hidden" name="force" value="1" />
                     <input type="hidden" name="ignore_throttle" value="1" />
                     <button class="button button-primary" type="submit">
@@ -154,16 +136,16 @@ use Watchdog\TestingMode;
                     </p>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                            <?php wp_nonce_field('wp_watchdog_resend_failed_notification'); ?>
-                            <input type="hidden" name="action" value="wp_watchdog_resend_failed_notification" />
+                            <?php wp_nonce_field($actionPrefix . '_resend_failed_notification'); ?>
+                            <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_resend_failed_notification'); ?>" />
                             <button class="button button-primary" type="submit">
                                 <span class="dashicons dashicons-controls-repeat" aria-hidden="true"></span>
                                 <?php esc_html_e('Re-queue payload', 'site-add-on-watchdog'); ?>
                             </button>
                         </form>
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                            <?php wp_nonce_field('wp_watchdog_download_failed_notification'); ?>
-                            <input type="hidden" name="action" value="wp_watchdog_download_failed_notification" />
+                            <?php wp_nonce_field($actionPrefix . '_download_failed_notification'); ?>
+                            <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_download_failed_notification'); ?>" />
                             <button class="button" type="submit">
                                 <span class="dashicons dashicons-download" aria-hidden="true"></span>
                                 <?php esc_html_e('Download payload', 'site-add-on-watchdog'); ?>
@@ -241,7 +223,7 @@ use Watchdog\TestingMode;
             'reasons'  => __('Reasons', 'site-add-on-watchdog'),
             'actions'  => __('Actions', 'site-add-on-watchdog'),
         ];
-        $perPage = (int) apply_filters('wp_watchdog_main_admin_risks_per_page', 10);
+        $perPage = (int) apply_filters($actionPrefix . '_main_admin_risks_per_page', 10);
         $normalizeForSort = static function (string $value): string {
             $normalized = function_exists('remove_accents') ? remove_accents($value) : $value;
 
@@ -362,8 +344,8 @@ use Watchdog\TestingMode;
                             </td>
                             <td data-column="actions" data-column-label="<?php echo esc_attr($columns['actions']); ?>">
                                 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                                    <?php wp_nonce_field('wp_watchdog_ignore'); ?>
-                                    <input type="hidden" name="action" value="wp_watchdog_ignore">
+                                    <?php wp_nonce_field($actionPrefix . '_ignore'); ?>
+                                    <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_ignore'); ?>">
                                     <input type="hidden" name="plugin_slug" value="<?php echo esc_attr($risk->pluginSlug); ?>">
                                     <button class="button" type="submit"><?php esc_html_e('Ignore', 'site-add-on-watchdog'); ?></button>
                                 </form>
@@ -390,8 +372,8 @@ use Watchdog\TestingMode;
                     <?php foreach ($ignored as $slug) : ?>
                         <li>
                             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
-                                <?php wp_nonce_field('wp_watchdog_unignore'); ?>
-                                <input type="hidden" name="action" value="wp_watchdog_unignore">
+                                <?php wp_nonce_field($actionPrefix . '_unignore'); ?>
+                                <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_unignore'); ?>">
                                 <input type="hidden" name="plugin_slug" value="<?php echo esc_attr($slug); ?>">
                                 <button class="button" type="submit">
                                     <span class="dashicons dashicons-no" aria-hidden="true"></span>
@@ -409,8 +391,8 @@ use Watchdog\TestingMode;
                 <?php esc_html_e('Notifications', 'site-add-on-watchdog'); ?>
             </div>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-        <?php wp_nonce_field('wp_watchdog_settings'); ?>
-        <input type="hidden" name="action" value="wp_watchdog_save_settings">
+        <?php wp_nonce_field($actionPrefix . '_settings'); ?>
+        <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_save_settings'); ?>">
         <table class="form-table" role="presentation">
             <tr>
                 <th scope="row"><?php esc_html_e('History retention', 'site-add-on-watchdog'); ?></th>

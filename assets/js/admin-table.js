@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    const i18n = window.wpWatchdogTable || {};
+    const i18n = window.siteAddOnWatchdogTable || {};
 
     /**
      * @param {HTMLElement} tableWrapper

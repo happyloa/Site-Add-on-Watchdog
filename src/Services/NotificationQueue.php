@@ -2,10 +2,16 @@
 
 namespace Watchdog\Services;
 
+use Watchdog\Version;
+
 class NotificationQueue
 {
-    private const QUEUE_OPTION  = 'wp_watchdog_notification_queue';
-    private const FAILED_OPTION = 'wp_watchdog_failed_notification';
+    private const PREFIX = Version::PREFIX;
+    private const QUEUE_OPTION  = self::PREFIX . '_notification_queue';
+    private const FAILED_OPTION = self::PREFIX . '_failed_notification';
+
+    private const LEGACY_QUEUE_OPTION  = 'wp_watchdog_notification_queue';
+    private const LEGACY_FAILED_OPTION = 'wp_watchdog_failed_notification';
 
     private const BASE_DELAY = 300;
     private const MAX_DELAY  = 21600;
@@ -70,7 +76,7 @@ class NotificationQueue
 
     public function getLastFailed(): ?array
     {
-        $stored = get_option(self::FAILED_OPTION);
+        $stored = $this->getOptionWithLegacy(self::FAILED_OPTION, self::LEGACY_FAILED_OPTION, []);
         if (! is_array($stored)) {
             return null;
         }
@@ -125,7 +131,7 @@ class NotificationQueue
      */
     private function loadQueue(): array
     {
-        $stored = get_option(self::QUEUE_OPTION, []);
+        $stored = $this->getOptionWithLegacy(self::QUEUE_OPTION, self::LEGACY_QUEUE_OPTION, []);
         if (! is_array($stored)) {
             return [];
         }
@@ -217,6 +223,23 @@ class NotificationQueue
         update_option(self::QUEUE_OPTION, array_values($queue), false);
     }
 
+    private function getOptionWithLegacy(string $option, string $legacy, mixed $default): mixed
+    {
+        $value = get_option($option, $default);
+        if ($value !== $default) {
+            return $value;
+        }
+
+        $legacyValue = get_option($legacy, $default);
+        if ($legacyValue !== $default) {
+            update_option($option, $legacyValue, false);
+
+            return $legacyValue;
+        }
+
+        return $value;
+    }
+
     private function calculateDelay(int $attempts): int
     {
         if ($attempts <= 0) {
@@ -230,6 +253,6 @@ class NotificationQueue
 
     private function generateId(): string
     {
-        return uniqid('wp-watchdog-', true);
+        return uniqid(self::PREFIX . '-', true);
     }
 }

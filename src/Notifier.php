@@ -5,9 +5,12 @@ namespace Watchdog;
 use Watchdog\Models\Risk;
 use Watchdog\Repository\SettingsRepository;
 use Watchdog\Services\NotificationQueue;
+use Watchdog\Version;
 
 class Notifier
 {
+    private const PREFIX = Version::PREFIX;
+
     public function __construct(
         private readonly SettingsRepository $settingsRepository,
         private readonly NotificationQueue $notificationQueue
@@ -102,7 +105,7 @@ class Notifier
                         'message' => $plainTextReport,
                         'risks'   => array_map(static fn (Risk $risk): array => $risk->toArray(), $risks),
                         'links'   => [
-                            'dashboard' => admin_url('admin.php?page=wp-plugin-watchdog'),
+                            'dashboard' => admin_url('admin.php?page=site-add-on-watchdog'),
                             'updates'   => admin_url('update-core.php'),
                         ],
                         'meta'    => [
@@ -183,7 +186,7 @@ class Notifier
             );
 
             $this->logWebhookFailure($message);
-            set_transient('wp_watchdog_webhook_error', $message, $expiration);
+            set_transient(self::PREFIX . '_webhook_error', $message, $expiration);
 
             return $message;
         }
@@ -202,12 +205,12 @@ class Notifier
             }
 
             $this->logWebhookFailure($message);
-            set_transient('wp_watchdog_webhook_error', $message, $expiration);
+            set_transient(self::PREFIX . '_webhook_error', $message, $expiration);
 
             return $message;
         }
 
-        delete_transient('wp_watchdog_webhook_error');
+        delete_transient(self::PREFIX . '_webhook_error');
 
         return true;
     }
@@ -323,7 +326,7 @@ class Notifier
     private function formatSlackMessage(array $risks, string $plainTextReport): array
     {
         $hasRisks  = ! empty($risks);
-        $adminUrl  = admin_url('admin.php?page=wp-plugin-watchdog');
+        $adminUrl  = admin_url('admin.php?page=site-add-on-watchdog');
         $updateUrl = admin_url('update-core.php');
         $blocks    = [
             [
@@ -489,7 +492,7 @@ class Notifier
     private function formatTeamsMessage(array $risks): array
     {
         $hasRisks   = ! empty($risks);
-        $adminUrl   = admin_url('admin.php?page=wp-plugin-watchdog');
+        $adminUrl   = admin_url('admin.php?page=site-add-on-watchdog');
         $updateUrl  = admin_url('update-core.php');
         $riskBlocks = [];
         $introText  = __(

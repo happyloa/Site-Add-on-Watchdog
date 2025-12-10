@@ -9,7 +9,7 @@ class SettingsRepositoryTest extends TestCase
     public function testPrefillsAdministratorsWhenOptionIsMissing(): void
     {
         Functions\when('get_option')->alias(static function ($option, $default = false) {
-            if ($option === 'wp_watchdog_settings') {
+            if ($option === 'siteadwa_settings') {
                 return false;
             }
 
@@ -40,7 +40,7 @@ class SettingsRepositoryTest extends TestCase
     public function testFallsBackToAdminEmailWhenNoAdministratorsFound(): void
     {
         Functions\when('get_option')->alias(static function ($option, $default = false) {
-            if ($option === 'wp_watchdog_settings') {
+            if ($option === 'siteadwa_settings') {
                 return false;
             }
 
@@ -68,7 +68,7 @@ class SettingsRepositoryTest extends TestCase
     public function testReturnsTestingFrequencyFromStoredSettings(): void
     {
         Functions\when('get_option')->alias(static function ($option, $default = false) {
-            if ($option === 'wp_watchdog_settings') {
+            if ($option === 'siteadwa_settings') {
                 return [
                     'notifications' => [
                         'frequency' => 'testing',
@@ -112,7 +112,7 @@ class SettingsRepositoryTest extends TestCase
     public function testSavesTestingFrequency(): void
     {
         Functions\when('get_option')->alias(static function ($option, $default = false) {
-            if ($option === 'wp_watchdog_settings') {
+            if ($option === 'siteadwa_settings') {
                 return [
                     'notifications' => [
                         'frequency' => 'daily',
@@ -155,7 +155,7 @@ class SettingsRepositoryTest extends TestCase
 
         $updated = null;
         Functions\when('update_option')->alias(static function ($option, $value) use (&$updated) {
-            if ($option === 'wp_watchdog_settings') {
+            if ($option === 'siteadwa_settings') {
                 $updated = $value;
 
                 return true;
@@ -212,7 +212,7 @@ class SettingsRepositoryTest extends TestCase
     public function testKeepsExistingTestingExpirationWhenAlreadyInTestingMode(): void
     {
         Functions\when('get_option')->alias(static function ($option, $default = false) {
-            if ($option === 'wp_watchdog_settings') {
+            if ($option === 'siteadwa_settings') {
                 return [
                     'notifications' => [
                         'frequency'          => 'testing',
@@ -256,7 +256,7 @@ class SettingsRepositoryTest extends TestCase
 
         $updated = null;
         Functions\when('update_option')->alias(static function ($option, $value) use (&$updated) {
-            if ($option === 'wp_watchdog_settings') {
+            if ($option === 'siteadwa_settings') {
                 $updated = $value;
 
                 return true;
@@ -283,7 +283,7 @@ class SettingsRepositoryTest extends TestCase
     public function testClearsTestingExpirationWhenSwitchingToNonTestingMode(): void
     {
         Functions\when('get_option')->alias(static function ($option, $default = false) {
-            if ($option === 'wp_watchdog_settings') {
+            if ($option === 'siteadwa_settings') {
                 return [
                     'notifications' => [
                         'frequency'          => 'testing',
@@ -327,7 +327,7 @@ class SettingsRepositoryTest extends TestCase
 
         $updated = null;
         Functions\when('update_option')->alias(static function ($option, $value) use (&$updated) {
-            if ($option === 'wp_watchdog_settings') {
+            if ($option === 'siteadwa_settings') {
                 $updated = $value;
 
                 return true;
@@ -350,7 +350,7 @@ class SettingsRepositoryTest extends TestCase
     public function testUpdateNotificationFrequencyAppliesValues(): void
     {
         Functions\when('get_option')->alias(static function ($option, $default = false) {
-            if ($option === 'wp_watchdog_settings') {
+            if ($option === 'siteadwa_settings') {
                 return [
                     'notifications' => [
                         'frequency'          => 'testing',
@@ -394,7 +394,7 @@ class SettingsRepositoryTest extends TestCase
 
         $captured = null;
         Functions\when('update_option')->alias(static function ($option, $value) use (&$captured) {
-            if ($option === 'wp_watchdog_settings') {
+            if ($option === 'siteadwa_settings') {
                 $captured = $value;
 
                 return true;
@@ -414,7 +414,7 @@ class SettingsRepositoryTest extends TestCase
     public function testSavesHistoryRetentionSetting(): void
     {
         Functions\when('get_option')->alias(static function ($option, $default = false) {
-            if ($option === 'wp_watchdog_settings') {
+            if ($option === 'siteadwa_settings') {
                 return [
                     'notifications' => [
                         'frequency' => 'daily',
@@ -460,7 +460,7 @@ class SettingsRepositoryTest extends TestCase
 
         $updated = null;
         Functions\when('update_option')->alias(static function ($option, $value) use (&$updated) {
-            if ($option === 'wp_watchdog_settings') {
+            if ($option === 'siteadwa_settings') {
                 $updated = $value;
 
                 return true;
@@ -486,7 +486,7 @@ class SettingsRepositoryTest extends TestCase
     public function testSaveManualNotificationTimePersistsTimestamp(): void
     {
         Functions\when('get_option')->alias(static function ($option, $default = false) {
-            if ($option === 'wp_watchdog_settings') {
+            if ($option === 'siteadwa_settings') {
                 return [
                     'notifications' => [
                         'frequency' => 'daily',
@@ -530,7 +530,7 @@ class SettingsRepositoryTest extends TestCase
 
         $captured = null;
         Functions\when('update_option')->alias(static function ($option, $value) use (&$captured) {
-            if ($option === 'wp_watchdog_settings') {
+            if ($option === 'siteadwa_settings') {
                 $captured = $value;
 
                 return true;

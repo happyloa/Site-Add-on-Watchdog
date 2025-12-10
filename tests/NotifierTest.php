@@ -155,7 +155,7 @@ class NotifierTest extends TestCase
 
         expect('delete_transient')
             ->once()
-            ->with('wp_watchdog_webhook_error');
+            ->with('siteadwa_webhook_error');
 
         $notifier = $this->makeNotifier($repository);
         $notifier->notify([]);
@@ -300,7 +300,7 @@ class NotifierTest extends TestCase
 
         expect('delete_transient')
             ->once()
-            ->with('wp_watchdog_webhook_error');
+            ->with('siteadwa_webhook_error');
 
         expect('set_transient')->never();
 
@@ -370,7 +370,7 @@ class NotifierTest extends TestCase
 
         expect('set_transient')
             ->once()
-            ->with('wp_watchdog_webhook_error', 'Site Add-on Watchdog webhook request to https://example.com/hook failed: Something went wrong', 86400);
+            ->with('siteadwa_webhook_error', 'Site Add-on Watchdog webhook request to https://example.com/hook failed: Something went wrong', 86400);
 
         expect('delete_transient')->never();
 
@@ -435,7 +435,7 @@ class NotifierTest extends TestCase
 
         expect('set_transient')
             ->once()
-            ->with('wp_watchdog_webhook_error', $message, 86400);
+            ->with('siteadwa_webhook_error', $message, 86400);
 
         expect('delete_transient')->never();
 
@@ -509,7 +509,7 @@ class NotifierTest extends TestCase
 
         expect('delete_transient')
             ->once()
-            ->with('wp_watchdog_webhook_error');
+            ->with('siteadwa_webhook_error');
 
         expect('set_transient')->never();
 
@@ -583,7 +583,7 @@ class NotifierTest extends TestCase
 
         expect('delete_transient')
             ->once()
-            ->with('wp_watchdog_webhook_error');
+            ->with('siteadwa_webhook_error');
 
         expect('set_transient')->never();
 

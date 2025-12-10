@@ -3,10 +3,13 @@
 namespace Watchdog\Repository;
 
 use Watchdog\TestingMode;
+use Watchdog\Version;
 
 class SettingsRepository
 {
-    private const OPTION = 'wp_watchdog_settings';
+    private const PREFIX = Version::PREFIX;
+    private const OPTION = self::PREFIX . '_settings';
+    private const LEGACY_OPTION = 'wp_watchdog_settings';
 
     public function get(): array
     {
@@ -55,7 +58,13 @@ class SettingsRepository
                 $shouldPersistDefaults = true;
             }
 
-            $stored = [];
+            $legacyStored = get_option(self::LEGACY_OPTION);
+            if (is_array($legacyStored)) {
+                $stored = $legacyStored;
+                $shouldPersistDefaults = true;
+            } else {
+                $stored = [];
+            }
         }
 
         $normalized = $this->normalizeStoredSettings($stored);

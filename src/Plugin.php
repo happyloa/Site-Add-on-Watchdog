@@ -6,19 +6,26 @@ use Watchdog\Models\Risk;
 use Watchdog\Repository\RiskRepository;
 use Watchdog\Repository\SettingsRepository;
 use Watchdog\TestingMode;
+use Watchdog\Version;
 use WP_REST_Request;
 
 class Plugin
 {
-    private const CRON_HOOK = 'wp_watchdog_scheduled_scan';
-    private const QUEUE_CRON_HOOK = 'wp_watchdog_notification_queue';
-    private const QUEUE_CRON_SCHEDULE = 'watchdog_notification_queue';
+    private const PREFIX = Version::PREFIX;
+    private const CRON_HOOK = self::PREFIX . '_scheduled_scan';
+    private const QUEUE_CRON_HOOK = self::PREFIX . '_notification_queue';
+    private const QUEUE_CRON_SCHEDULE = self::PREFIX . '_notification_queue';
     private const LEGACY_CRON_HOOK = 'wp_watchdog_daily_scan';
-    private const CRON_STATUS_OPTION = 'wp_watchdog_cron_status';
+    private const LEGACY_QUEUE_CRON_HOOK = 'wp_watchdog_notification_queue';
+    private const LEGACY_QUEUE_CRON_SCHEDULE = 'watchdog_notification_queue';
+    private const CRON_STATUS_OPTION = self::PREFIX . '_cron_status';
+    private const LEGACY_CRON_STATUS_OPTION = 'wp_watchdog_cron_status';
+    private const UPDATE_CHECK_OPTION = self::PREFIX . '_update_check_scan_at';
+    private const LEGACY_UPDATE_CHECK_OPTION = 'wp_watchdog_update_check_scan_at';
 
     private const MANUAL_NOTIFICATION_INTERVAL = 60;
 
-    private const REST_NAMESPACE = 'wp-plugin-watchdog/v1';
+    private const REST_NAMESPACE = 'site-add-on-watchdog/v1';
 
     private bool $hooksRegistered = false;
 
@@ -68,6 +75,7 @@ class Plugin
         }
 
         $this->clearScheduledHook(self::LEGACY_CRON_HOOK);
+        $this->clearScheduledHook(self::LEGACY_QUEUE_CRON_HOOK);
 
         $this->scheduleNotificationQueueProcessor();
 
@@ -117,7 +125,9 @@ class Plugin
         $this->clearScheduledHook(self::CRON_HOOK);
         $this->clearScheduledHook(self::QUEUE_CRON_HOOK);
         $this->clearScheduledHook(self::LEGACY_CRON_HOOK);
-        delete_option('wp_watchdog_update_check_scan_at');
+        $this->clearScheduledHook(self::LEGACY_QUEUE_CRON_HOOK);
+        delete_option(self::UPDATE_CHECK_OPTION);
+        delete_option(self::LEGACY_UPDATE_CHECK_OPTION);
     }
 
     /**
@@ -211,6 +221,13 @@ class Plugin
             ];
         }
 
+        if (! isset($schedules[self::LEGACY_QUEUE_CRON_SCHEDULE])) {
+            $schedules[self::LEGACY_QUEUE_CRON_SCHEDULE] = [
+                'interval' => $this->queueProcessorInterval(),
+                'display'  => __('Every 5 Minutes (Watchdog queue)', 'site-add-on-watchdog'),
+            ];
+        }
+
         if (! isset($schedules['testing'])) {
             $schedules['testing'] = [
                 'interval' => TestingMode::intervalInSeconds(),
@@ -253,11 +270,14 @@ class Plugin
 
     private function cleanupUpdateCheckState(): void
     {
-        delete_option('wp_watchdog_update_check_scan_at');
+        delete_option(self::UPDATE_CHECK_OPTION);
+        delete_option(self::LEGACY_UPDATE_CHECK_OPTION);
     }
 
     private function scheduleNotificationQueueProcessor(): void
     {
+        $this->clearScheduledHook(self::LEGACY_QUEUE_CRON_HOOK);
+
         $timestamp = wp_next_scheduled(self::QUEUE_CRON_HOOK);
         $currentSchedule = $timestamp ? wp_get_schedule(self::QUEUE_CRON_HOOK) : false;
 
@@ -295,7 +315,7 @@ class Plugin
             return;
         }
 
-        $status = get_option(self::CRON_STATUS_OPTION);
+        $status = $this->getOptionWithLegacy(self::CRON_STATUS_OPTION, self::LEGACY_CRON_STATUS_OPTION, []);
         if (! is_array($status)) {
             return;
         }
@@ -323,7 +343,7 @@ class Plugin
 
     public function getCronStatus(): array
     {
-        $status = get_option(self::CRON_STATUS_OPTION);
+        $status = $this->getOptionWithLegacy(self::CRON_STATUS_OPTION, self::LEGACY_CRON_STATUS_OPTION, []);
         if (! is_array($status)) {
             $status = [];
         }
@@ -396,7 +416,7 @@ class Plugin
 
     private function recordCronStatus(bool $cronDisabled, bool $overdue): void
     {
-        $status = get_option(self::CRON_STATUS_OPTION);
+        $status = $this->getOptionWithLegacy(self::CRON_STATUS_OPTION, self::LEGACY_CRON_STATUS_OPTION, []);
         if (! is_array($status)) {
             $status = [
                 'overdue_streak' => 0,
@@ -629,6 +649,23 @@ class Plugin
             'message' => __('Scan triggered successfully.', 'site-add-on-watchdog'),
             'queue'   => $queueResult,
         ];
+    }
+
+    private function getOptionWithLegacy(string $option, string $legacy, mixed $default): mixed
+    {
+        $value = get_option($option, $default);
+        if ($value !== $default) {
+            return $value;
+        }
+
+        $legacyValue = get_option($legacy, $default);
+        if ($legacyValue !== $default) {
+            update_option($option, $legacyValue, false);
+
+            return $legacyValue;
+        }
+
+        return $value;
     }
 
     public function validateCronRequest(WP_REST_Request $request): bool

@@ -2,7 +2,7 @@
 <ruleset name="Site Add-on Watchdog">
     <description>Code style for Site Add-on Watchdog</description>
     <rule ref="PSR12" />
-    <file>wp-plugin-watchdog.php</file>
+    <file>site-add-on-watchdog.php</file>
     <file>src</file>
     <exclude-pattern>vendor/</exclude-pattern>
 </ruleset>

@@ -3,12 +3,18 @@
 namespace Watchdog\Repository;
 
 use Watchdog\Models\Risk;
+use Watchdog\Version;
 
 class RiskRepository
 {
-    private const RISKS_OPTION = 'wp_watchdog_risks';
-    private const IGNORE_OPTION = 'wp_watchdog_ignore';
-    private const HISTORY_OPTION = 'wp_watchdog_risk_history';
+    private const PREFIX = Version::PREFIX;
+    private const RISKS_OPTION = self::PREFIX . '_risks';
+    private const IGNORE_OPTION = self::PREFIX . '_ignore';
+    private const HISTORY_OPTION = self::PREFIX . '_risk_history';
+
+    private const LEGACY_RISKS_OPTION = 'wp_watchdog_risks';
+    private const LEGACY_IGNORE_OPTION = 'wp_watchdog_ignore';
+    private const LEGACY_HISTORY_OPTION = 'wp_watchdog_risk_history';
 
     public const DEFAULT_HISTORY_RETENTION = 5;
 
@@ -17,7 +23,7 @@ class RiskRepository
      */
     public function all(): array
     {
-        $stored = get_option(self::RISKS_OPTION, []);
+        $stored = $this->getOptionWithLegacy(self::RISKS_OPTION, self::LEGACY_RISKS_OPTION, []);
         if (! is_array($stored)) {
             return [];
         }
@@ -134,7 +140,7 @@ class RiskRepository
      */
     public function ignored(): array
     {
-        $ignored = get_option(self::IGNORE_OPTION, []);
+        $ignored = $this->getOptionWithLegacy(self::IGNORE_OPTION, self::LEGACY_IGNORE_OPTION, []);
         if (! is_array($ignored)) {
             return [];
         }
@@ -157,7 +163,7 @@ class RiskRepository
 
     private function loadHistory(): array
     {
-        $stored = get_option(self::HISTORY_OPTION, []);
+        $stored = $this->getOptionWithLegacy(self::HISTORY_OPTION, self::LEGACY_HISTORY_OPTION, []);
         if (! is_array($stored)) {
             return [];
         }
@@ -211,6 +217,23 @@ class RiskRepository
             'run_at' => $runAt,
             'risks'  => $risks,
         ];
+    }
+
+    private function getOptionWithLegacy(string $option, string $legacyOption, mixed $default): mixed
+    {
+        $value = get_option($option, $default);
+        if ($value !== $default) {
+            return $value;
+        }
+
+        $legacyValue = get_option($legacyOption, $default);
+        if ($legacyValue !== $default) {
+            update_option($option, $legacyValue, false);
+
+            return $legacyValue;
+        }
+
+        return $value;
     }
 
     private function sanitizeRetention(?int $retention): int
