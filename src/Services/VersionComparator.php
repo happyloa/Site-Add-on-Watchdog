@@ -9,18 +9,37 @@ class VersionComparator
      */
     public function isTwoMinorVersionsBehind(string $localVersion, string $remoteVersion): bool
     {
-        $localParts  = $this->normaliseVersion($localVersion);
-        $remoteParts = $this->normaliseVersion($remoteVersion);
+        $minorGap = $this->minorVersionsBehind($localVersion, $remoteVersion);
 
-        if ($remoteParts['major'] > $localParts['major']) {
-            return true;
-        }
+        return $minorGap !== null && $minorGap >= 2;
+    }
 
-        if ($remoteParts['major'] < $localParts['major']) {
+    public function isStandardVersion(string $version): bool
+    {
+        $trimmed = trim($version);
+        if ($trimmed === '') {
             return false;
         }
 
-        return ($remoteParts['minor'] - $localParts['minor']) >= 2;
+        return preg_match('/^\d+(?:\.\d+){0,2}$/', $trimmed) === 1;
+    }
+
+    public function minorVersionsBehind(string $localVersion, string $remoteVersion): ?int
+    {
+        if (! $this->isStandardVersion($localVersion) || ! $this->isStandardVersion($remoteVersion)) {
+            return null;
+        }
+
+        $localParts  = $this->normaliseVersion($localVersion);
+        $remoteParts = $this->normaliseVersion($remoteVersion);
+
+        if ($remoteParts['major'] !== $localParts['major']) {
+            return null;
+        }
+
+        $gap = $remoteParts['minor'] - $localParts['minor'];
+
+        return $gap > 0 ? $gap : 0;
     }
 
     private function normaliseVersion(string $version): array

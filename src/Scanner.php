@@ -41,27 +41,39 @@ class Scanner
 
             $localVersion  = $pluginData['Version'] ?? '';
             $remoteVersion = is_object($remote) && isset($remote->version) ? (string) $remote->version : null;
+            $hasComparableVersions = $remoteVersion
+                && $localVersion
+                && $this->versionComparator->isStandardVersion($localVersion)
+                && $this->versionComparator->isStandardVersion($remoteVersion);
 
             if (
-                $remoteVersion &&
-                $localVersion &&
+                $hasComparableVersions &&
                 version_compare($remoteVersion, $localVersion, '>')
             ) {
-                $reasons[] = __(
-                    'An update is available in the plugin directory.',
-                    'site-add-on-watchdog'
+                $reasons[] = $this->formatVersionComparisonReason(
+                    $localVersion,
+                    $remoteVersion,
+                    __('update available', 'site-add-on-watchdog')
                 );
             }
 
             if (
-                $remoteVersion &&
-                $localVersion &&
+                $hasComparableVersions &&
                 $this->versionComparator->isTwoMinorVersionsBehind($localVersion, $remoteVersion)
             ) {
-                $reasons[] = __(
-                    'Local version is more than two minor releases behind the directory version.',
-                    'site-add-on-watchdog'
-                );
+                $minorGap = $this->versionComparator->minorVersionsBehind($localVersion, $remoteVersion);
+                if ($minorGap !== null && $minorGap >= 2) {
+                    $minorLabel = sprintf(
+                        /* translators: %d is the number of minor versions behind. */
+                        _n('%d minor behind', '%d minors behind', $minorGap, 'site-add-on-watchdog'),
+                        $minorGap
+                    );
+                    $reasons[] = $this->formatVersionComparisonReason(
+                        $localVersion,
+                        $remoteVersion,
+                        $minorLabel
+                    );
+                }
             }
 
             if (
@@ -208,6 +220,13 @@ class Scanner
             return false;
         }
 
+        if (
+            ! $this->versionComparator->isStandardVersion($localVersion)
+            || ! $this->versionComparator->isStandardVersion($remoteVersion)
+        ) {
+            return false;
+        }
+
         if (! version_compare($remoteVersion, $localVersion, '>')) {
             return false;
         }
@@ -253,5 +272,19 @@ class Scanner
         }
 
         return $changelogHtml;
+    }
+
+    private function formatVersionComparisonReason(
+        string $localVersion,
+        string $remoteVersion,
+        string $descriptor
+    ): string {
+        return sprintf(
+            /* translators: 1: local version, 2: directory version, 3: comparison descriptor. */
+            __('Local %1$s vs Directory %2$s (%3$s)', 'site-add-on-watchdog'),
+            $localVersion,
+            $remoteVersion,
+            $descriptor
+        );
     }
 }
