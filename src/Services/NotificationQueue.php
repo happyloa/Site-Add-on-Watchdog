@@ -207,7 +207,7 @@ class NotificationQueue
         return $job;
     }
 
-    private function recordFailure(array $job, int $failedAt): void
+    public function recordFailure(array $job, int $failedAt): void
     {
         $payload = [
             'channel'     => (string) ($job['channel'] ?? ''),

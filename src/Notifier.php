@@ -215,8 +215,9 @@ class Notifier
         return true;
     }
 
-    private function sendEmailJob(array $payload): bool|string
+    private function sendEmailJob(array $job): bool|string
     {
+        $payload = isset($job['payload']) && is_array($job['payload']) ? $job['payload'] : [];
         $recipients = isset($payload['recipients']) && is_array($payload['recipients'])
             ? array_values($payload['recipients'])
             : [];
@@ -236,7 +237,20 @@ class Notifier
 
         $sent = wp_mail($recipients, $subject, $body, $headers);
 
-        return $sent ? true : __('Email delivery failed.', 'site-add-on-watchdog');
+        if ($sent) {
+            return true;
+        }
+
+        $message = __('Email delivery failed.', 'site-add-on-watchdog');
+        $this->notificationQueue->recordFailure([
+            'channel'     => 'email',
+            'description' => isset($job['description']) ? (string) $job['description'] : '',
+            'payload'     => $payload,
+            'attempts'    => isset($job['attempts']) ? (int) $job['attempts'] : 0,
+            'last_error'  => $message,
+        ], time());
+
+        return $message;
     }
 
     private function sendQueuedJob(array $job): bool|string
@@ -245,7 +259,7 @@ class Notifier
         $payload = $job['payload'] ?? [];
 
         if ($channel === 'email') {
-            return $this->sendEmailJob(is_array($payload) ? $payload : []);
+            return $this->sendEmailJob($job);
         }
 
         if ($channel === 'webhook') {
