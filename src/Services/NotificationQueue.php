@@ -61,9 +61,14 @@ class NotificationQueue
                 continue;
             }
 
-            $queue[$index]               = $this->markFailedJob($job, $result, $now);
-            $queue[$index]['last_error'] = $result;
-            $this->recordFailure($queue[$index]);
+            $failedJob = $this->markFailedJob($job, $result, $now);
+            if (! $failedJob['should_retry']) {
+                unset($queue[$index]);
+                $this->recordFailure($failedJob, $now);
+                continue;
+            }
+
+            $queue[$index] = $failedJob;
         }
 
         $this->persistQueue($queue);
@@ -193,6 +198,8 @@ class NotificationQueue
     {
         $job['attempts'] = min(self::MAX_ATTEMPTS, (int) ($job['attempts'] ?? 0) + 1);
         $job['last_error'] = $reason;
+        // Flag to avoid rescheduling when the job has permanently failed.
+        $job['should_retry'] = $job['attempts'] < self::MAX_ATTEMPTS;
 
         $delay = $this->calculateDelay($job['attempts']);
         $job['next_attempt_at'] = $now + $delay;
@@ -200,14 +207,14 @@ class NotificationQueue
         return $job;
     }
 
-    private function recordFailure(array $job): void
+    private function recordFailure(array $job, int $failedAt): void
     {
         $payload = [
             'channel'     => (string) ($job['channel'] ?? ''),
             'description' => (string) ($job['description'] ?? ''),
             'payload'     => isset($job['payload']) && is_array($job['payload']) ? $job['payload'] : [],
             'last_error'  => (string) ($job['last_error'] ?? ''),
-            'failed_at'   => time(),
+            'failed_at'   => $failedAt,
             'attempts'    => (int) ($job['attempts'] ?? 0),
         ];
 
