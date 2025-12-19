@@ -144,6 +144,14 @@ class Notifier
         return $this->notificationQueue->requeueLastFailed();
     }
 
+    /**
+     * @return array{length:int,next_attempt_at:?int}
+     */
+    public function getQueueStatus(): array
+    {
+        return $this->notificationQueue->getQueueStatus();
+    }
+
     private function dispatchWebhookJob(array $payload): bool|string
     {
         $url = isset($payload['url']) ? (string) $payload['url'] : '';

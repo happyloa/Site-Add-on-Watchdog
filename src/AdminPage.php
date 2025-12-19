@@ -132,6 +132,7 @@ class AdminPage
         }
 
         $watchdogLastFailedNotification = $this->notifier->getLastFailedNotification();
+        $watchdogQueueStatus = $this->notifier->getQueueStatus();
 
         $watchdogActionPrefix = self::PREFIX;
         $watchdogNoticeNonceValid = $this->isNoticeNonceValid();
