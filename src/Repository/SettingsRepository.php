@@ -240,6 +240,29 @@ class SettingsRepository
         }
     }
 
+    public function hasPersistedCronSecret(): bool
+    {
+        if (! function_exists('get_option')) {
+            return false;
+        }
+
+        $stored = get_option(self::OPTION);
+        if (! is_array($stored)) {
+            $stored = get_option(self::LEGACY_OPTION);
+        }
+
+        if (! is_array($stored)) {
+            return false;
+        }
+
+        $notifications = $stored['notifications'] ?? [];
+        if (! is_array($notifications)) {
+            $notifications = [];
+        }
+
+        return $this->sanitizeSecret((string) ($notifications['cron_secret'] ?? '')) !== '';
+    }
+
     private function canPersist(): bool
     {
         if (defined('PHPUNIT_COMPOSER_INSTALL')) {

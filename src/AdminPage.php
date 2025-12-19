@@ -75,6 +75,7 @@ class AdminPage
         $watchdogSettings  = $this->settingsRepository->get();
         $watchdogCronStatus = $this->plugin->getCronStatus();
         $watchdogCronEndpoint = $this->plugin->getCronEndpointUrl();
+        $watchdogCronSecretPersisted = $this->settingsRepository->hasPersistedCronSecret();
 
         $watchdogSettingsError = get_transient(self::PREFIX . '_settings_error');
         if ($watchdogSettingsError !== false) {

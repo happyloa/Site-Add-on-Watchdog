@@ -15,6 +15,7 @@
 /** @var array<string, bool> $watchdogNoticeFlags */
 /** @var string $watchdogNotificationResult */
 /** @var string $watchdogFailedNotificationStatus */
+/** @var bool $watchdogCronSecretPersisted */
 
 use Watchdog\TestingMode;
 defined('ABSPATH') || exit;
@@ -58,6 +59,10 @@ $watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
 
     <?php if (! empty($watchdogSettingsError)) : ?>
         <div class="notice notice-error is-dismissible"><p><?php echo esc_html($watchdogSettingsError); ?></p></div>
+    <?php endif; ?>
+
+    <?php if (empty($watchdogCronSecretPersisted)) : ?>
+        <div class="notice notice-warning"><p><?php esc_html_e('cron secret 尚未初始化或無法儲存，請重新保存設定', 'site-add-on-watchdog'); ?></p></div>
     <?php endif; ?>
 
     <?php if (! empty($watchdogWpScanError) && is_array($watchdogWpScanError)) : ?>
