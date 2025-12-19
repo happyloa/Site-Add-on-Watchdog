@@ -188,4 +188,107 @@ class ScannerTest extends TestCase
         $this->assertSame('medium', $risks[0]->details['vulnerabilities'][1]['severity']);
         $this->assertSame('Medium', $risks[0]->details['vulnerabilities'][1]['severity_label']);
     }
+
+    public function testUsesCachedPluginInfoWithoutCallingApi(): void
+    {
+        Functions\when('get_plugins')->justReturn([
+            'sample/sample.php' => [
+                'Name'    => 'Sample Plugin',
+                'Version' => '1.0.0',
+            ],
+        ]);
+
+        Functions\when('sanitize_title')->alias(static fn ($value) => $value);
+        Functions\when('__')->alias(static fn ($text) => $text);
+        Functions\when('get_option')->alias(static fn () => []);
+        Functions\when('get_transient')->alias(static function () {
+            return (object) [
+                'version'  => '1.1.0',
+                'sections' => [],
+            ];
+        });
+
+        Functions\expect('wp_debug_log')
+            ->once()
+            ->with('[Site Add-on Watchdog] Plugin info cache hit for sample.');
+
+        Functions\expect('plugins_api')->never();
+
+        $repository = new RiskRepository();
+        $wpscanClient = new class extends WPScanClient {
+            public function __construct()
+            {
+            }
+
+            public function fetchVulnerabilities(string $pluginSlug): array
+            {
+                return [];
+            }
+        };
+
+        $scanner = new Scanner($repository, new VersionComparator(), $wpscanClient);
+        $risks   = $scanner->scan();
+
+        $this->assertCount(1, $risks);
+        $this->assertSame('sample', $risks[0]->pluginSlug);
+    }
+
+    public function testSkipsApiWhenUpdatePluginsIndicatesNoUpdate(): void
+    {
+        Functions\when('get_plugins')->justReturn([
+            'sample/sample.php' => [
+                'Name'    => 'Sample Plugin',
+                'Version' => '1.2.0',
+            ],
+        ]);
+
+        Functions\when('sanitize_title')->alias(static fn ($value) => $value);
+        Functions\when('__')->alias(static fn ($text) => $text);
+        Functions\when('get_option')->alias(static fn () => []);
+        Functions\when('get_transient')->alias(static fn () => false);
+        Functions\when('get_site_transient')->alias(static function () {
+            return (object) [
+                'response'  => [],
+                'no_update' => [
+                    'sample/sample.php' => (object) [
+                        'new_version' => '1.2.0',
+                    ],
+                ],
+            ];
+        });
+
+        Functions\expect('wp_debug_log')
+            ->once()
+            ->with('[Site Add-on Watchdog] Plugin info cache miss for sample.');
+
+        Functions\expect('set_transient')
+            ->once()
+            ->withArgs(function ($key, $value, $ttl) {
+                self::assertSame('siteadwa_plugin_info_sample', $key);
+                self::assertSame('1.2.0', $value->version);
+                self::assertSame([], $value->sections);
+                self::assertIsInt($ttl);
+
+                return true;
+            });
+
+        Functions\expect('plugins_api')->never();
+
+        $repository = new RiskRepository();
+        $wpscanClient = new class extends WPScanClient {
+            public function __construct()
+            {
+            }
+
+            public function fetchVulnerabilities(string $pluginSlug): array
+            {
+                return [];
+            }
+        };
+
+        $scanner = new Scanner($repository, new VersionComparator(), $wpscanClient);
+        $risks   = $scanner->scan();
+
+        $this->assertCount(0, $risks);
+    }
 }

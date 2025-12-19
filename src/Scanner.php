@@ -9,6 +9,8 @@ use Watchdog\Services\WPScanClient;
 
 class Scanner
 {
+    private const PLUGIN_INFO_CACHE_TTL = 12 * 3600;
+
     public function __construct(
         private readonly RiskRepository $riskRepository,
         private readonly VersionComparator $versionComparator,
@@ -35,7 +37,7 @@ class Scanner
                 continue;
             }
 
-            $remote = $this->fetchRemoteData($slug);
+            $remote = $this->fetchRemoteData($slug, $pluginFile, $localVersion);
             $reasons = [];
             $details = [];
 
@@ -180,8 +182,44 @@ class Scanner
         return sanitize_title($basename);
     }
 
-    private function fetchRemoteData(string $slug): object|false
+    private function fetchRemoteData(string $slug, string $pluginFile, string $localVersion): object|false
     {
+        $cacheKey = $this->pluginInfoCacheKey($slug);
+        $cached = get_transient($cacheKey);
+        if ($cached !== false) {
+            $this->logCacheEvent(sprintf('[Site Add-on Watchdog] Plugin info cache hit for %s.', $slug));
+            return $cached;
+        }
+
+        $this->logCacheEvent(sprintf('[Site Add-on Watchdog] Plugin info cache miss for %s.', $slug));
+
+        $updatePlugins = get_site_transient('update_plugins');
+        $updateData = $this->extractUpdateData($updatePlugins, $pluginFile);
+        if ($updateData !== null) {
+            $remoteVersion = $updateData['new_version'] ?: null;
+            if (! $updateData['has_update']) {
+                $result = (object) [
+                    'version'  => $remoteVersion,
+                    'sections' => [],
+                ];
+
+                set_transient($cacheKey, $result, $this->pluginInfoCacheTtl());
+
+                return $result;
+            }
+
+            if ($remoteVersion !== null && ! version_compare($remoteVersion, $localVersion, '>')) {
+                $result = (object) [
+                    'version'  => $remoteVersion,
+                    'sections' => [],
+                ];
+
+                set_transient($cacheKey, $result, $this->pluginInfoCacheTtl());
+
+                return $result;
+            }
+        }
+
         require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
 
         $result = plugins_api('plugin_information', [
@@ -196,7 +234,70 @@ class Scanner
             return false;
         }
 
+        set_transient($cacheKey, $result, $this->pluginInfoCacheTtl());
+
         return $result;
+    }
+
+    private function pluginInfoCacheKey(string $slug): string
+    {
+        $key = sprintf('siteadwa_plugin_info_%s', $slug);
+
+        if (function_exists('sanitize_key')) {
+            return sanitize_key($key);
+        }
+
+        return $key;
+    }
+
+    private function pluginInfoCacheTtl(): int
+    {
+        if (defined('HOUR_IN_SECONDS')) {
+            return 12 * HOUR_IN_SECONDS;
+        }
+
+        return self::PLUGIN_INFO_CACHE_TTL;
+    }
+
+    private function extractUpdateData($updatePlugins, string $pluginFile): ?array
+    {
+        if (! is_object($updatePlugins) && ! is_array($updatePlugins)) {
+            return null;
+        }
+
+        $response = is_object($updatePlugins)
+            ? ($updatePlugins->response ?? [])
+            : ($updatePlugins['response'] ?? []);
+        $noUpdate = is_object($updatePlugins)
+            ? ($updatePlugins->no_update ?? [])
+            : ($updatePlugins['no_update'] ?? []);
+
+        if (isset($response[$pluginFile])) {
+            $entry = $response[$pluginFile];
+
+            return [
+                'has_update'  => true,
+                'new_version' => is_object($entry) ? ($entry->new_version ?? '') : ($entry['new_version'] ?? ''),
+            ];
+        }
+
+        if (isset($noUpdate[$pluginFile])) {
+            $entry = $noUpdate[$pluginFile];
+
+            return [
+                'has_update'  => false,
+                'new_version' => is_object($entry) ? ($entry->new_version ?? '') : ($entry['new_version'] ?? ''),
+            ];
+        }
+
+        return null;
+    }
+
+    private function logCacheEvent(string $message): void
+    {
+        if (function_exists('wp_debug_log')) {
+            wp_debug_log($message);
+        }
     }
 
     private function changelogHighlightsSecurity(
