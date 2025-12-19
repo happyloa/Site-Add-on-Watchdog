@@ -77,6 +77,29 @@ class AdminPage
         $watchdogCronEndpoint = $this->plugin->getCronEndpointUrl();
         $watchdogCronSecretPersisted = $this->settingsRepository->hasPersistedCronSecret();
 
+        $watchdogRiskSortParam = filter_input(INPUT_GET, 'risk_sort', FILTER_UNSAFE_RAW);
+        $watchdogRiskOrderParam = filter_input(INPUT_GET, 'risk_order', FILTER_UNSAFE_RAW);
+        $watchdogRiskSearchParam = filter_input(INPUT_GET, 'risk_search', FILTER_UNSAFE_RAW);
+        $watchdogRiskSort = is_string($watchdogRiskSortParam) ? sanitize_key($watchdogRiskSortParam) : '';
+        $watchdogRiskOrder = is_string($watchdogRiskOrderParam) ? sanitize_key($watchdogRiskOrderParam) : '';
+        $watchdogRiskSearch = is_string($watchdogRiskSearchParam) ? sanitize_text_field($watchdogRiskSearchParam) : '';
+        $watchdogAllowedSorts = ['plugin', 'local', 'remote', 'reasons', 'risk_count', 'version_gap'];
+        if (! in_array($watchdogRiskSort, $watchdogAllowedSorts, true)) {
+            $watchdogRiskSort = '';
+        }
+        if (! in_array($watchdogRiskOrder, ['asc', 'desc'], true)) {
+            $watchdogRiskOrder = '';
+        }
+        if ($watchdogRiskSort !== '') {
+            $watchdogRisks = $this->sortRisks(
+                $watchdogRisks,
+                $watchdogRiskSort,
+                $watchdogRiskOrder !== '' ? $watchdogRiskOrder : 'asc'
+            );
+        }
+        $watchdogRiskSortSelection = $watchdogRiskSort !== '' ? $watchdogRiskSort : 'plugin';
+        $watchdogRiskOrderSelection = $watchdogRiskOrder !== '' ? $watchdogRiskOrder : 'asc';
+
         $watchdogSettingsError = get_transient(self::PREFIX . '_settings_error');
         if ($watchdogSettingsError !== false) {
             delete_transient(self::PREFIX . '_settings_error');
@@ -341,9 +364,222 @@ class AdminPage
         wp_localize_script(self::PREFIX . '-admin-table', 'siteAddOnWatchdogTable', [
             /* translators: 1: current page number, 2: total number of pages. */
             'pageStatus' => __('Page %1$d of %2$d', 'site-add-on-watchdog'),
+            'noResults' => __('No risks match your search.', 'site-add-on-watchdog'),
         ]);
 
         $this->assetsEnqueued = true;
+    }
+
+    /**
+     * @param Risk[] $risks
+     * @return Risk[]
+     */
+    private function sortRisks(array $risks, string $sortKey, string $sortOrder): array
+    {
+        $direction = $sortOrder === 'desc' ? -1 : 1;
+
+        usort($risks, function (Risk $left, Risk $right) use ($sortKey, $direction): int {
+            $comparison = 0;
+
+            switch ($sortKey) {
+                case 'plugin':
+                    $comparison = $this->compareText($left->pluginName, $right->pluginName);
+                    break;
+                case 'local':
+                    $comparison = $this->compareVersions($left->localVersion, $right->localVersion);
+                    break;
+                case 'remote':
+                    $comparison = $this->compareVersions($left->remoteVersion, $right->remoteVersion);
+                    break;
+                case 'reasons':
+                    $comparison = $this->compareText(
+                        $this->buildReasonSortValue($left),
+                        $this->buildReasonSortValue($right)
+                    );
+                    break;
+                case 'risk_count':
+                    $comparison = $this->countRiskSignals($left) <=> $this->countRiskSignals($right);
+                    break;
+                case 'version_gap':
+                    $comparison = $this->versionGapScore($left) <=> $this->versionGapScore($right);
+                    break;
+            }
+
+            return $comparison * $direction;
+        });
+
+        return $risks;
+    }
+
+    private function compareText(string $left, string $right): int
+    {
+        $leftNormalized = $this->normalizeSortValue($left);
+        $rightNormalized = $this->normalizeSortValue($right);
+
+        if ($leftNormalized === $rightNormalized) {
+            return 0;
+        }
+
+        return $leftNormalized > $rightNormalized ? 1 : -1;
+    }
+
+    private function normalizeSortValue(string $value): string
+    {
+        $normalized = function_exists('remove_accents') ? remove_accents($value) : $value;
+
+        return strtolower($normalized);
+    }
+
+    private function buildReasonSortValue(Risk $risk): string
+    {
+        $parts = $risk->reasons;
+        if (! empty($risk->details['vulnerabilities'])) {
+            foreach ($risk->details['vulnerabilities'] as $vulnerability) {
+                if (! empty($vulnerability['severity_label'])) {
+                    $parts[] = $vulnerability['severity_label'];
+                }
+                if (! empty($vulnerability['title'])) {
+                    $parts[] = $vulnerability['title'];
+                }
+                if (! empty($vulnerability['cve'])) {
+                    $parts[] = $vulnerability['cve'];
+                }
+            }
+        }
+
+        return $this->normalizeSortValue(implode(' ', $parts));
+    }
+
+    private function countRiskSignals(Risk $risk): int
+    {
+        $count = count($risk->reasons);
+        if (! empty($risk->details['vulnerabilities'])) {
+            $count += count($risk->details['vulnerabilities']);
+        }
+
+        return $count;
+    }
+
+    private function compareVersions(?string $left, ?string $right): int
+    {
+        $leftTokens = $this->parseVersionTokens($left);
+        $rightTokens = $this->parseVersionTokens($right);
+
+        if ($leftTokens['missing'] && $rightTokens['missing']) {
+            return 0;
+        }
+
+        if ($leftTokens['missing']) {
+            return 1;
+        }
+
+        if ($rightTokens['missing']) {
+            return -1;
+        }
+
+        $maxLength = max(count($leftTokens['tokens']), count($rightTokens['tokens']));
+        for ($index = 0; $index < $maxLength; $index++) {
+            $leftToken = $leftTokens['tokens'][$index] ?? null;
+            $rightToken = $rightTokens['tokens'][$index] ?? null;
+
+            if ($leftToken === null && $rightToken === null) {
+                return 0;
+            }
+
+            if ($leftToken === null) {
+                return $this->isNumericToken($rightToken) ? -1 : 1;
+            }
+
+            if ($rightToken === null) {
+                return $this->isNumericToken($leftToken) ? 1 : -1;
+            }
+
+            $leftIsNumeric = $this->isNumericToken($leftToken);
+            $rightIsNumeric = $this->isNumericToken($rightToken);
+
+            if ($leftIsNumeric && $rightIsNumeric) {
+                $diff = (int) $leftToken - (int) $rightToken;
+                if ($diff !== 0) {
+                    return $diff;
+                }
+                continue;
+            }
+
+            if ($leftIsNumeric && ! $rightIsNumeric) {
+                return 1;
+            }
+
+            if (! $leftIsNumeric && $rightIsNumeric) {
+                return -1;
+            }
+
+            $leftLower = strtolower((string) $leftToken);
+            $rightLower = strtolower((string) $rightToken);
+            if ($leftLower === $rightLower) {
+                continue;
+            }
+
+            return $leftLower > $rightLower ? 1 : -1;
+        }
+
+        return 0;
+    }
+
+    /**
+     * @return array{tokens:string[], missing:bool}
+     */
+    private function parseVersionTokens(?string $version): array
+    {
+        if ($version === null) {
+            return ['tokens' => [], 'missing' => true];
+        }
+
+        $trimmed = trim($version);
+        if ($trimmed === '' || strtolower($trimmed) === 'n/a') {
+            return ['tokens' => [], 'missing' => true];
+        }
+
+        preg_match_all('/[0-9]+|[a-zA-Z]+/', $trimmed, $matches);
+        $tokens = $matches[0] ?? [];
+
+        return ['tokens' => $tokens, 'missing' => $tokens === []];
+    }
+
+    private function isNumericToken(?string $token): bool
+    {
+        if ($token === null) {
+            return false;
+        }
+
+        return preg_match('/^\d+$/', $token) === 1;
+    }
+
+    private function versionGapScore(Risk $risk): int
+    {
+        $localScore = $this->versionToScore($risk->localVersion);
+        $remoteScore = $this->versionToScore($risk->remoteVersion ?? '');
+
+        return abs($remoteScore - $localScore);
+    }
+
+    private function versionToScore(string $version): int
+    {
+        preg_match_all('/\d+/', $version, $matches);
+        $numbers = $matches[0] ?? [];
+        if ($numbers === []) {
+            return 0;
+        }
+
+        $weights = [100000000, 100000, 100, 1];
+        $score = 0;
+        foreach ($weights as $index => $weight) {
+            if (! isset($numbers[$index])) {
+                continue;
+            }
+            $score += ((int) $numbers[$index]) * $weight;
+        }
+
+        return $score;
     }
 
     private function buildHistoryDownloadUrl(int $runAt, string $format): string

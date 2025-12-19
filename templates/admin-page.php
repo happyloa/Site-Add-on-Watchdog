@@ -257,9 +257,111 @@ $watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
 
             return strtolower($watchdogNormalized);
         };
+        $watchdogRiskCount = static function (Risk $watchdogRisk): int {
+            $watchdogCount = count($watchdogRisk->reasons);
+            if (! empty($watchdogRisk->details['vulnerabilities'])) {
+                $watchdogCount += count($watchdogRisk->details['vulnerabilities']);
+            }
+
+            return $watchdogCount;
+        };
+        $watchdogVersionScore = static function (string $watchdogVersion): int {
+            preg_match_all('/\d+/', $watchdogVersion, $watchdogMatches);
+            $watchdogNumbers = $watchdogMatches[0] ?? [];
+            if (empty($watchdogNumbers)) {
+                return 0;
+            }
+
+            $watchdogWeights = [100000000, 100000, 100, 1];
+            $watchdogScore = 0;
+            foreach ($watchdogWeights as $watchdogIndex => $watchdogWeight) {
+                if (! isset($watchdogNumbers[$watchdogIndex])) {
+                    continue;
+                }
+                $watchdogScore += ((int) $watchdogNumbers[$watchdogIndex]) * $watchdogWeight;
+            }
+
+            return $watchdogScore;
+        };
         ?>
         <div class="wp-watchdog-risk-table" data-wp-watchdog-table data-per-page="<?php echo esc_attr(max($watchdogPerPage, 1)); ?>">
             <div class="wp-watchdog-risk-table__controls">
+                <form method="get" class="wp-watchdog-risk-table__filter-form">
+                    <input type="hidden" name="page" value="site-add-on-watchdog" />
+                    <label class="wp-watchdog-risk-table__search">
+                        <span class="screen-reader-text"><?php esc_html_e('Search risks', 'site-add-on-watchdog'); ?></span>
+                        <input
+                            type="search"
+                            name="risk_search"
+                            value="<?php echo esc_attr($watchdogRiskSearch); ?>"
+                            placeholder="<?php esc_attr_e('Search plugin or reason', 'site-add-on-watchdog'); ?>"
+                            data-risk-search
+                        />
+                    </label>
+                    <div class="wp-watchdog-risk-table__sort-select">
+                        <label class="screen-reader-text" for="wp-watchdog-risk-sort"><?php esc_html_e('Sort risks by', 'site-add-on-watchdog'); ?></label>
+                        <select id="wp-watchdog-risk-sort" name="risk_sort" data-risk-sort>
+                            <option
+                                value="plugin"
+                                data-sort-key="sortPlugin"
+                                data-sort-default="asc"
+                                <?php selected($watchdogRiskSortSelection, 'plugin'); ?>
+                            >
+                                <?php esc_html_e('Plugin name', 'site-add-on-watchdog'); ?>
+                            </option>
+                            <option
+                                value="risk_count"
+                                data-sort-key="sortRiskCount"
+                                data-sort-default="desc"
+                                <?php selected($watchdogRiskSortSelection, 'risk_count'); ?>
+                            >
+                                <?php esc_html_e('Risk count', 'site-add-on-watchdog'); ?>
+                            </option>
+                            <option
+                                value="version_gap"
+                                data-sort-key="sortVersionGap"
+                                data-sort-default="desc"
+                                <?php selected($watchdogRiskSortSelection, 'version_gap'); ?>
+                            >
+                                <?php esc_html_e('Version gap', 'site-add-on-watchdog'); ?>
+                            </option>
+                            <option
+                                value="local"
+                                data-sort-key="sortLocal"
+                                data-sort-default="desc"
+                                <?php selected($watchdogRiskSortSelection, 'local'); ?>
+                            >
+                                <?php esc_html_e('Local version', 'site-add-on-watchdog'); ?>
+                            </option>
+                            <option
+                                value="remote"
+                                data-sort-key="sortRemote"
+                                data-sort-default="desc"
+                                <?php selected($watchdogRiskSortSelection, 'remote'); ?>
+                            >
+                                <?php esc_html_e('Directory version', 'site-add-on-watchdog'); ?>
+                            </option>
+                            <option
+                                value="reasons"
+                                data-sort-key="sortReasons"
+                                data-sort-default="asc"
+                                <?php selected($watchdogRiskSortSelection, 'reasons'); ?>
+                            >
+                                <?php esc_html_e('Reasons', 'site-add-on-watchdog'); ?>
+                            </option>
+                        </select>
+                        <label class="screen-reader-text" for="wp-watchdog-risk-order"><?php esc_html_e('Sort order', 'site-add-on-watchdog'); ?></label>
+                        <select id="wp-watchdog-risk-order" name="risk_order" data-risk-order>
+                            <option value="asc" <?php selected($watchdogRiskOrderSelection, 'asc'); ?>>
+                                <?php esc_html_e('Ascending', 'site-add-on-watchdog'); ?>
+                            </option>
+                            <option value="desc" <?php selected($watchdogRiskOrderSelection, 'desc'); ?>>
+                                <?php esc_html_e('Descending', 'site-add-on-watchdog'); ?>
+                            </option>
+                        </select>
+                        <button class="button" type="submit"><?php esc_html_e('Apply', 'site-add-on-watchdog'); ?></button>
+                    </div>
+                </form>
                 <div class="wp-watchdog-risk-table__pagination" data-pagination>
                     <button type="button" class="button" data-action="prev" aria-label="<?php esc_attr_e('Previous page', 'site-add-on-watchdog'); ?>" disabled>&lsaquo;</button>
                     <span class="wp-watchdog-risk-table__page-status" data-page-status></span>
@@ -317,12 +419,25 @@ $watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
                             }
                         }
                         $watchdogReasonSort = $watchdogNormalizeForSort(implode(' ', $watchdogReasonParts));
+                        $watchdogRiskCountValue = $watchdogRiskCount($watchdogRisk);
+                        $watchdogVersionGapValue = abs(
+                            $watchdogVersionScore($watchdogRemoteVersion) - $watchdogVersionScore($watchdogRisk->localVersion)
+                        );
+                        $watchdogFilterText = $watchdogNormalizeForSort(implode(' ', [
+                            $watchdogRisk->pluginName,
+                            $watchdogRisk->localVersion,
+                            $watchdogRemoteVersion,
+                            implode(' ', $watchdogReasonParts),
+                        ]));
                         ?>
                         <tr
                             data-sort-plugin="<?php echo esc_attr($watchdogNormalizeForSort($watchdogRisk->pluginName)); ?>"
                             data-sort-local="<?php echo esc_attr($watchdogNormalizeForSort($watchdogRisk->localVersion)); ?>"
                             data-sort-remote="<?php echo esc_attr($watchdogRemoteSort); ?>"
                             data-sort-reasons="<?php echo esc_attr($watchdogReasonSort); ?>"
+                            data-sort-risk-count="<?php echo esc_attr((string) $watchdogRiskCountValue); ?>"
+                            data-sort-version-gap="<?php echo esc_attr((string) $watchdogVersionGapValue); ?>"
+                            data-filter-text="<?php echo esc_attr($watchdogFilterText); ?>"
                         >
                             <td class="column-primary" data-column="plugin" data-column-label="<?php echo esc_attr($watchdogColumns['plugin']); ?>">
                                 <?php echo esc_html($watchdogRisk->pluginName); ?>

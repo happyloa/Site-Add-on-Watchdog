@@ -65,6 +65,24 @@
     flex-wrap: wrap;
 }
 
+.wp-watchdog-risk-table__filter-form {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.wp-watchdog-risk-table__search input[type="search"] {
+    min-width: 220px;
+}
+
+.wp-watchdog-risk-table__sort-select {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
 .wp-watchdog-risk-table__pagination {
     display: flex;
     align-items: center;
