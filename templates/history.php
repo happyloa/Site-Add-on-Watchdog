@@ -50,9 +50,9 @@ $watchdogHistoryDownloads = $watchdogHistoryDownloads ?? $historyDownloads ?? []
                     <span class="wp-watchdog-history-badge <?php echo $watchdogHasRisks ? 'wp-watchdog-history-badge--risk' : 'wp-watchdog-history-badge--safe'; ?>">
                         <span class="dashicons <?php echo $watchdogHasRisks ? 'dashicons-warning' : 'dashicons-yes-alt'; ?>" aria-hidden="true"></span>
                         <?php
-                        /* translators: %s: number of risks. */
                         $watchdogRiskLabel = function_exists('_n')
                             ? _n(
+                                /* translators: %s: number of risks. */
                                 '%s risk',
                                 '%s risks',
                                 $watchdogRecord['risk_count'],
