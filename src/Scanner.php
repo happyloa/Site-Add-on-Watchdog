@@ -37,11 +37,11 @@ class Scanner
                 continue;
             }
 
+            $localVersion = $pluginData['Version'] ?? '';
             $remote = $this->fetchRemoteData($slug, $pluginFile, $localVersion);
             $reasons = [];
             $details = [];
 
-            $localVersion  = $pluginData['Version'] ?? '';
             $remoteVersion = is_object($remote) && isset($remote->version) ? (string) $remote->version : null;
 
             if (
