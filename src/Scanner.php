@@ -185,7 +185,7 @@ class Scanner
     private function fetchRemoteData(string $slug, string $pluginFile, string $localVersion): object|false
     {
         $cacheKey = $this->pluginInfoCacheKey($slug);
-        $cached = get_transient($cacheKey);
+        $cached = \get_transient($cacheKey);
         if ($cached !== false) {
             $this->logCacheEvent(sprintf('[Site Add-on Watchdog] Plugin info cache hit for %s.', $slug));
             return $cached;
@@ -193,7 +193,7 @@ class Scanner
 
         $this->logCacheEvent(sprintf('[Site Add-on Watchdog] Plugin info cache miss for %s.', $slug));
 
-        $updatePlugins = get_site_transient('update_plugins');
+        $updatePlugins = \get_site_transient('update_plugins');
         $updateData = $this->extractUpdateData($updatePlugins, $pluginFile);
         if ($updateData !== null) {
             $remoteVersion = $updateData['new_version'] ?: null;
@@ -203,7 +203,7 @@ class Scanner
                     'sections' => [],
                 ];
 
-                set_transient($cacheKey, $result, $this->pluginInfoCacheTtl());
+                \set_transient($cacheKey, $result, $this->pluginInfoCacheTtl());
 
                 return $result;
             }
@@ -214,7 +214,7 @@ class Scanner
                     'sections' => [],
                 ];
 
-                set_transient($cacheKey, $result, $this->pluginInfoCacheTtl());
+                \set_transient($cacheKey, $result, $this->pluginInfoCacheTtl());
 
                 return $result;
             }
@@ -234,7 +234,7 @@ class Scanner
             return false;
         }
 
-        set_transient($cacheKey, $result, $this->pluginInfoCacheTtl());
+        \set_transient($cacheKey, $result, $this->pluginInfoCacheTtl());
 
         return $result;
     }
@@ -244,7 +244,7 @@ class Scanner
         $key = sprintf('siteadwa_plugin_info_%s', $slug);
 
         if (function_exists('sanitize_key')) {
-            return sanitize_key($key);
+            return \sanitize_key($key);
         }
 
         return $key;
@@ -296,7 +296,7 @@ class Scanner
     private function logCacheEvent(string $message): void
     {
         if (function_exists('wp_debug_log')) {
-            wp_debug_log($message);
+            \wp_debug_log($message);
         }
     }
 
