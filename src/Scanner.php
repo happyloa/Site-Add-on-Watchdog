@@ -229,7 +229,7 @@ class Scanner
             return \wp_strip_all_tags($text);
         }
 
-        return strip_tags($text);
+        return preg_replace('/<[^>]*>/', '', $text) ?? '';
     }
 
     private function extractLatestChangelogEntry(string $changelogHtml, string $remoteVersion): string

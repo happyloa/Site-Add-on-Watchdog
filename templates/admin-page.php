@@ -11,7 +11,9 @@
 /** @var string|null $watchdogSettingsError */
 /** @var array|null $watchdogLastFailedNotification */
 /** @var string $watchdogActionPrefix */
-/** @var bool $watchdogNoticeNonceValid */
+/** @var array<string, bool> $watchdogNoticeFlags */
+/** @var string $watchdogNotificationResult */
+/** @var string $watchdogFailedNotificationStatus */
 
 use Watchdog\TestingMode;
 defined('ABSPATH') || exit;
@@ -57,16 +59,15 @@ $watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
         <div class="notice notice-error is-dismissible"><p><?php echo esc_html($watchdogSettingsError); ?></p></div>
     <?php endif; ?>
 
-    <?php if ($watchdogNoticeNonceValid && isset($_GET['updated'])) : ?>
+    <?php if (! empty($watchdogNoticeFlags['updated'])) : ?>
         <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Settings saved.', 'site-add-on-watchdog'); ?></p></div>
     <?php endif; ?>
 
-    <?php if ($watchdogNoticeNonceValid && isset($_GET['scan'])) : ?>
+    <?php if (! empty($watchdogNoticeFlags['scan'])) : ?>
         <div class="notice notice-info is-dismissible"><p><?php esc_html_e('Manual scan completed.', 'site-add-on-watchdog'); ?></p></div>
     <?php endif; ?>
 
-    <?php if ($watchdogNoticeNonceValid && isset($_GET['notifications'])) : ?>
-        <?php $watchdogNotificationResult = sanitize_key(wp_unslash((string) $_GET['notifications'])); ?>
+    <?php if ($watchdogNotificationResult !== '') : ?>
         <?php if ($watchdogNotificationResult === 'sent') : ?>
             <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Notifications were dispatched.', 'site-add-on-watchdog'); ?></p></div>
         <?php elseif ($watchdogNotificationResult === 'throttled') : ?>
@@ -76,11 +77,10 @@ $watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
         <?php endif; ?>
     <?php endif; ?>
 
-    <?php if ($watchdogNoticeNonceValid && isset($_GET['failed_notification'])) : ?>
-        <?php $watchdogFailedStatus = sanitize_key(wp_unslash((string) $_GET['failed_notification'])); ?>
-        <?php if ($watchdogFailedStatus === 'resent') : ?>
+    <?php if ($watchdogFailedNotificationStatus !== '') : ?>
+        <?php if ($watchdogFailedNotificationStatus === 'resent') : ?>
             <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Queued the captured notification payload for resend.', 'site-add-on-watchdog'); ?></p></div>
-        <?php elseif ($watchdogFailedStatus === 'missing') : ?>
+        <?php elseif ($watchdogFailedNotificationStatus === 'missing') : ?>
             <div class="notice notice-error is-dismissible"><p><?php esc_html_e('No failed notification payload was available to resend.', 'site-add-on-watchdog'); ?></p></div>
         <?php endif; ?>
     <?php endif; ?>
@@ -227,7 +227,7 @@ $watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
             'reasons'  => __('Reasons', 'site-add-on-watchdog'),
             'actions'  => __('Actions', 'site-add-on-watchdog'),
         ];
-        $watchdogPerPage = (int) apply_filters($watchdogActionPrefix . '_main_admin_risks_per_page', 10);
+        $watchdogPerPage = (int) apply_filters('siteadwa_main_admin_risks_per_page', 10);
         $watchdogNormalizeForSort = static function (string $watchdogValue): string {
             $watchdogNormalized = function_exists('remove_accents') ? remove_accents($watchdogValue) : $watchdogValue;
 
@@ -533,8 +533,8 @@ $watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
                             if (! $watchdogTimezone) {
                                 $watchdogGmtOffset = get_option('gmt_offset');
                                 if (is_numeric($watchdogGmtOffset)) {
-                                    $secondsInHour = defined('HOUR_IN_SECONDS') ? HOUR_IN_SECONDS : 3600;
-                                    $watchdogSecondsOffset = (int) round((float) $watchdogGmtOffset * $secondsInHour);
+                                    $watchdogSecondsInHour = defined('HOUR_IN_SECONDS') ? HOUR_IN_SECONDS : 3600;
+                                    $watchdogSecondsOffset = (int) round((float) $watchdogGmtOffset * $watchdogSecondsInHour);
                                     $watchdogTimezoneName  = timezone_name_from_abbr('', $watchdogSecondsOffset, 0);
                                     if ($watchdogTimezoneName !== false) {
                                         try {

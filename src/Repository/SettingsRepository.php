@@ -533,7 +533,7 @@ class SettingsRepository
             return trim(\wp_strip_all_tags($secret));
         }
 
-        return trim(strip_tags($secret));
+        return trim(preg_replace('/<[^>]*>/', '', $secret) ?? '');
     }
 
     private function generateSecret(): string
