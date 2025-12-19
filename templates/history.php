@@ -4,8 +4,17 @@
  * @var int   $watchdogHistoryDisplay
  * @var array $watchdogHistoryRecords
  * @var array $watchdogHistoryDownloads
+ * @var int   $historyRetention
+ * @var int   $historyDisplay
+ * @var array $historyRecords
+ * @var array $historyDownloads
  */
 defined('ABSPATH') || exit;
+
+$watchdogHistoryRetention = $watchdogHistoryRetention ?? $historyRetention ?? 0;
+$watchdogHistoryDisplay   = $watchdogHistoryDisplay ?? $historyDisplay ?? 0;
+$watchdogHistoryRecords   = $watchdogHistoryRecords ?? $historyRecords ?? [];
+$watchdogHistoryDownloads = $watchdogHistoryDownloads ?? $historyDownloads ?? [];
 ?>
 
 <?php if (empty($watchdogHistoryRecords)) : ?>
