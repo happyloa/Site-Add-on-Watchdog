@@ -81,7 +81,9 @@ class AdminPage
             delete_transient(self::PREFIX . '_settings_error');
         }
 
-        $watchdogHistoryRetention = (int) ($watchdogSettings['history']['retention'] ?? RiskRepository::DEFAULT_HISTORY_RETENTION);
+        $watchdogHistoryRetention = (int) (
+            $watchdogSettings['history']['retention'] ?? RiskRepository::DEFAULT_HISTORY_RETENTION
+        );
         if ($watchdogHistoryRetention < 1) {
             $watchdogHistoryRetention = RiskRepository::DEFAULT_HISTORY_RETENTION;
         }

@@ -68,12 +68,28 @@ use Watchdog\Services\WPScanClient;
 $watchdog_settingsRepository = new SettingsRepository();
 $watchdog_riskRepository     = new RiskRepository();
 $watchdog_currentSettings    = $watchdog_settingsRepository->get();
-$watchdog_wpscanClient       = new WPScanClient($watchdog_currentSettings['notifications']['wpscan_api_key']);
-$watchdog_scanner            = new Scanner($watchdog_riskRepository, new VersionComparator(), $watchdog_wpscanClient);
+$watchdog_wpscanClient       = new WPScanClient(
+    $watchdog_currentSettings['notifications']['wpscan_api_key']
+);
+$watchdog_scanner            = new Scanner(
+    $watchdog_riskRepository,
+    new VersionComparator(),
+    $watchdog_wpscanClient
+);
 $watchdog_notificationQueue  = new NotificationQueue();
 $watchdog_notifier           = new Notifier($watchdog_settingsRepository, $watchdog_notificationQueue);
-$watchdog_plugin             = new Plugin($watchdog_scanner, $watchdog_riskRepository, $watchdog_settingsRepository, $watchdog_notifier);
-$watchdog_adminPage          = new AdminPage($watchdog_riskRepository, $watchdog_settingsRepository, $watchdog_plugin, $watchdog_notifier);
+$watchdog_plugin             = new Plugin(
+    $watchdog_scanner,
+    $watchdog_riskRepository,
+    $watchdog_settingsRepository,
+    $watchdog_notifier
+);
+$watchdog_adminPage          = new AdminPage(
+    $watchdog_riskRepository,
+    $watchdog_settingsRepository,
+    $watchdog_plugin,
+    $watchdog_notifier
+);
 
 $watchdog_plugin->register();
 $watchdog_adminPage->register();
