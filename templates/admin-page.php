@@ -148,6 +148,7 @@ $watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
                 <p class="wp-watchdog-muted">
                     <?php
                     printf(
+                        /* translators: %d: number of queued jobs. */
                         esc_html__('Queued jobs: %d', 'site-add-on-watchdog'),
                         esc_html(number_format_i18n($watchdogQueueLength))
                     );
