@@ -134,8 +134,10 @@ class Plugin
      * Executes the scan and persists results.
      *
      * @param bool $notify Whether notifications should be dispatched.
+     *
+     * @return bool Whether notifications were dispatched.
      */
-    public function runScan(bool $notify = true, string $context = 'automatic'): void
+    public function runScan(bool $notify = true, string $context = 'automatic'): bool
     {
         $risks = $this->scanner->scan();
         $settings = $this->settingsRepository->get();
@@ -167,12 +169,14 @@ class Plugin
                 $this->settingsRepository->saveManualNotificationTime($runAt);
             }
 
-            return;
+            return true;
         }
 
         if ($notify && $hash !== $lastHash && ! $manualThrottle) {
             $this->settingsRepository->saveNotificationHash($hash);
         }
+
+        return false;
     }
 
     /**

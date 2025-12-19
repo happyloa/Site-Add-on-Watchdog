@@ -36,6 +36,19 @@ class ScanCommand
             }
         }
 
-        $this->plugin->runScan($notify);
+        try {
+            $notified = $this->plugin->runScan($notify);
+
+            if (class_exists('\WP_CLI')) {
+                \WP_CLI::success(sprintf(
+                    'Scan completed. Notified: %s.',
+                    $notified ? 'yes' : 'no'
+                ));
+            }
+        } catch (\Throwable $exception) {
+            if (class_exists('\WP_CLI')) {
+                \WP_CLI::error($exception->getMessage());
+            }
+        }
     }
 }

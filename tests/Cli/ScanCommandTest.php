@@ -9,8 +9,39 @@ use Watchdog\Repository\RiskRepository;
 use Watchdog\Repository\SettingsRepository;
 use Watchdog\Scanner;
 
+if (! class_exists('WP_CLI')) {
+    class WP_CLI
+    {
+        public static array $successes = [];
+        public static array $errors = [];
+
+        public static function success(string $message): void
+        {
+            self::$successes[] = $message;
+        }
+
+        public static function error(string $message): void
+        {
+            self::$errors[] = $message;
+        }
+
+        public static function reset(): void
+        {
+            self::$successes = [];
+            self::$errors = [];
+        }
+    }
+}
+
 class ScanCommandTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        WP_CLI::reset();
+    }
+
     public function testCommandRunsScanAndNotifiesByDefault(): void
     {
         when('wp_json_encode')->alias(static fn ($data) => json_encode($data, JSON_THROW_ON_ERROR));
@@ -107,5 +138,45 @@ class ScanCommandTest extends TestCase
         $command = new ScanCommand($plugin);
 
         $command([], ['notify' => 'false']);
+    }
+
+    public function testCommandReportsNotificationStatus(): void
+    {
+        $plugin = $this->getMockBuilder(Plugin::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['runScan'])
+            ->getMock();
+
+        $plugin->expects($this->once())
+            ->method('runScan')
+            ->with(true)
+            ->willReturn(true);
+
+        $command = new ScanCommand($plugin);
+
+        $command([], []);
+
+        $this->assertSame(['Scan completed. Notified: yes.'], WP_CLI::$successes);
+        $this->assertSame([], WP_CLI::$errors);
+    }
+
+    public function testCommandReportsErrorsFromScan(): void
+    {
+        $plugin = $this->getMockBuilder(Plugin::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['runScan'])
+            ->getMock();
+
+        $plugin->expects($this->once())
+            ->method('runScan')
+            ->with(false)
+            ->willThrowException(new RuntimeException('Scan failed'));
+
+        $command = new ScanCommand($plugin);
+
+        $command([], ['notify' => 'false']);
+
+        $this->assertSame([], WP_CLI::$successes);
+        $this->assertSame(['Scan failed'], WP_CLI::$errors);
     }
 }
