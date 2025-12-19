@@ -132,6 +132,31 @@ class NotificationQueue
     }
 
     /**
+     * @return array{length:int,next_attempt_at:?int}
+     */
+    public function getQueueStatus(): array
+    {
+        $queue = $this->loadQueue();
+        $nextAttemptAt = null;
+
+        foreach ($queue as $job) {
+            $jobNextAttemptAt = isset($job['next_attempt_at']) ? (int) $job['next_attempt_at'] : null;
+            if ($jobNextAttemptAt === null) {
+                continue;
+            }
+
+            if ($nextAttemptAt === null || $jobNextAttemptAt < $nextAttemptAt) {
+                $nextAttemptAt = $jobNextAttemptAt;
+            }
+        }
+
+        return [
+            'length' => count($queue),
+            'next_attempt_at' => $nextAttemptAt,
+        ];
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     private function loadQueue(): array

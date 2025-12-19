@@ -11,6 +11,7 @@
 /** @var string|null $watchdogSettingsError */
 /** @var array|null $watchdogWpScanError */
 /** @var array|null $watchdogLastFailedNotification */
+/** @var array{length:int,next_attempt_at:?int} $watchdogQueueStatus */
 /** @var string $watchdogActionPrefix */
 /** @var array<string, bool> $watchdogNoticeFlags */
 /** @var string $watchdogNotificationResult */
@@ -137,6 +138,35 @@ $watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
                 <code><?php echo esc_html($watchdogCronEndpoint); ?></code>
             </p>
             <p class="wp-watchdog-muted"><?php esc_html_e('Call this URL from a system cron or monitoring service to trigger scans or notification retries even when wp-cron is disabled.', 'site-add-on-watchdog'); ?></p>
+            <div class="wp-watchdog-divider"></div>
+            <div>
+                <p class="wp-watchdog-muted" style="margin-bottom:8px;"><strong><?php esc_html_e('Queue status', 'site-add-on-watchdog'); ?></strong></p>
+                <?php
+                $watchdogQueueLength = (int) ($watchdogQueueStatus['length'] ?? 0);
+                $watchdogQueueNextAttempt = $watchdogQueueStatus['next_attempt_at'] ?? null;
+                ?>
+                <p class="wp-watchdog-muted">
+                    <?php
+                    printf(
+                        esc_html__('Queued jobs: %d', 'site-add-on-watchdog'),
+                        esc_html(number_format_i18n($watchdogQueueLength))
+                    );
+                    ?>
+                </p>
+                <?php if ($watchdogQueueLength > 0 && $watchdogQueueNextAttempt) : ?>
+                    <p class="wp-watchdog-muted">
+                        <?php
+                        printf(
+                            /* translators: 1: scheduled time */
+                            esc_html__('Next attempt: %1$s', 'site-add-on-watchdog'),
+                            esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), (int) $watchdogQueueNextAttempt))
+                        );
+                        ?>
+                    </p>
+                <?php else : ?>
+                    <p class="wp-watchdog-muted"><?php esc_html_e('No pending notifications in the queue.', 'site-add-on-watchdog'); ?></p>
+                <?php endif; ?>
+            </div>
             <div class="wp-watchdog-divider"></div>
             <div>
                 <p class="wp-watchdog-muted" style="margin-bottom:8px;"><strong><?php esc_html_e('Captured notification payloads', 'site-add-on-watchdog'); ?></strong></p>
