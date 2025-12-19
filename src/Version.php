@@ -4,7 +4,7 @@ namespace Watchdog;
 
 final class Version
 {
-    public const NUMBER = '1.5.3';
+    public const NUMBER = '1.6.0';
 
     public const PREFIX = 'siteadwa';
 }
