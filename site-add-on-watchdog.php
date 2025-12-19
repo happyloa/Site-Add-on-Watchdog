@@ -3,13 +3,13 @@
 /**
  * Plugin Name: Site Add-on Watchdog
  * Description: Monitors installed plugins for potential security risks and outdated versions.
- * Version:     1.5.1
+ * Version:     1.5.2
  * Author:      Aaron
  * Author URI:  https://www.worksbyaaron.com/
  * License:     GPLv2 or later
  * Text Domain: site-add-on-watchdog
  * Requires PHP: 8.1
- * Tested up to: 6.8
+ * Tested up to: 6.9
  */
 
 defined('ABSPATH') || exit;

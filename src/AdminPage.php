@@ -89,7 +89,7 @@ class AdminPage
         }
 
         $watchdogHistoryDisplay = (int) apply_filters(
-            self::PREFIX . '_main_admin_history_display',
+            'siteadwa_main_admin_history_display',
             min($watchdogHistoryRetention, 10)
         );
         if ($watchdogHistoryDisplay < 1) {
@@ -109,6 +109,18 @@ class AdminPage
 
         $watchdogActionPrefix = self::PREFIX;
         $watchdogNoticeNonceValid = $this->isNoticeNonceValid();
+        $watchdogNoticeFlags = [
+            'updated' => $watchdogNoticeNonceValid && isset($_GET['updated']),
+            'scan' => $watchdogNoticeNonceValid && isset($_GET['scan']),
+        ];
+        $watchdogNotificationResult = '';
+        if ($watchdogNoticeNonceValid && isset($_GET['notifications'])) {
+            $watchdogNotificationResult = sanitize_key(wp_unslash((string) $_GET['notifications']));
+        }
+        $watchdogFailedNotificationStatus = '';
+        if ($watchdogNoticeNonceValid && isset($_GET['failed_notification'])) {
+            $watchdogFailedNotificationStatus = sanitize_key(wp_unslash((string) $_GET['failed_notification']));
+        }
 
         require __DIR__ . '/../templates/admin-page.php';
     }
@@ -252,7 +264,7 @@ class AdminPage
         $this->guardAccess();
         check_admin_referer(self::HISTORY_DOWNLOAD_ACTION);
 
-        $runAt = isset($_GET['run_at']) ? (int) wp_unslash($_GET['run_at']) : 0;
+        $runAt = isset($_GET['run_at']) ? absint(wp_unslash($_GET['run_at'])) : 0;
         if ($runAt <= 0) {
             wp_die(esc_html__('Invalid history request.', 'site-add-on-watchdog'));
         }
@@ -401,6 +413,7 @@ class AdminPage
 
         if ($target === 'php://output') {
             $csvContent = $this->buildCsvContent($rows);
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV download response.
             echo $csvContent;
         } else {
             $filesystem = $this->getFilesystem();
