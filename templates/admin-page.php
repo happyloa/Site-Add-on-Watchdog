@@ -9,6 +9,7 @@
 /** @var array $watchdogCronStatus */
 /** @var string $watchdogCronEndpoint */
 /** @var string|null $watchdogSettingsError */
+/** @var array|null $watchdogWpScanError */
 /** @var array|null $watchdogLastFailedNotification */
 /** @var string $watchdogActionPrefix */
 /** @var array<string, bool> $watchdogNoticeFlags */
@@ -57,6 +58,24 @@ $watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
 
     <?php if (! empty($watchdogSettingsError)) : ?>
         <div class="notice notice-error is-dismissible"><p><?php echo esc_html($watchdogSettingsError); ?></p></div>
+    <?php endif; ?>
+
+    <?php if (! empty($watchdogWpScanError) && is_array($watchdogWpScanError)) : ?>
+        <?php
+        $watchdogWpScanMessage = $watchdogWpScanError['message'] ?? '';
+        $watchdogWpScanCode = isset($watchdogWpScanError['code']) ? (string) $watchdogWpScanError['code'] : '';
+        if ($watchdogWpScanMessage !== '' && $watchdogWpScanCode !== '') {
+            $watchdogWpScanMessage = sprintf(
+                /* translators: 1: WPScan response code, 2: message */
+                __('WPScan error (%1$s): %2$s', 'site-add-on-watchdog'),
+                $watchdogWpScanCode,
+                $watchdogWpScanMessage
+            );
+        }
+        ?>
+        <?php if ($watchdogWpScanMessage !== '') : ?>
+            <div class="notice notice-warning"><p><?php echo esc_html($watchdogWpScanMessage); ?></p></div>
+        <?php endif; ?>
     <?php endif; ?>
 
     <?php if (! empty($watchdogNoticeFlags['updated'])) : ?>
