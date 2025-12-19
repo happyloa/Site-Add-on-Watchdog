@@ -259,12 +259,6 @@ class Notifier
     {
         if (function_exists('wp_debug_log')) {
             wp_debug_log($message);
-
-            return;
-        }
-
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log($message);
         }
     }
 

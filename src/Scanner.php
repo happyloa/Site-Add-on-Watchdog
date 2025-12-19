@@ -225,11 +225,7 @@ class Scanner
 
     private function stripAllTags(string $text): string
     {
-        if (function_exists('wp_strip_all_tags')) {
-            return wp_strip_all_tags($text);
-        }
-
-        return strip_tags($text);
+        return wp_strip_all_tags($text);
     }
 
     private function extractLatestChangelogEntry(string $changelogHtml, string $remoteVersion): string

@@ -529,7 +529,7 @@ class SettingsRepository
     {
         $secret = (string) $secret;
 
-        return trim(strip_tags($secret));
+        return trim(wp_strip_all_tags($secret));
     }
 
     private function generateSecret(): string

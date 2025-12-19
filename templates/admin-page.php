@@ -1,18 +1,22 @@
 <?php
-/** @var Risk[] $risks */
-/** @var string[] $ignored */
-/** @var array $settings */
-/** @var string $scanNonce */
-/** @var int $historyRetention */
-/** @var int $historyDisplay */
-/** @var array<int, array{run_at:int, risks:array<int, array<string, mixed>>, risk_count:int}> $historyRecords */
-/** @var array<int, array<string, string>> $historyDownloads */
-/** @var array $cronStatus */
+/** @var Risk[] $watchdogRisks */
+/** @var string[] $watchdogIgnored */
+/** @var array $watchdogSettings */
+/** @var int $watchdogHistoryRetention */
+/** @var int $watchdogHistoryDisplay */
+/** @var array<int, array{run_at:int, risks:array<int, array<string, mixed>>, risk_count:int}> $watchdogHistoryRecords */
+/** @var array<int, array<string, string>> $watchdogHistoryDownloads */
+/** @var array $watchdogCronStatus */
+/** @var string $watchdogCronEndpoint */
+/** @var string|null $watchdogSettingsError */
+/** @var array|null $watchdogLastFailedNotification */
+/** @var string $watchdogActionPrefix */
+/** @var bool $watchdogNoticeNonceValid */
 
 use Watchdog\TestingMode;
 defined('ABSPATH') || exit;
 
-$actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
+$watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
 ?>
 <div class="wrap wp-watchdog-admin">
     <div class="wp-watchdog-section-header">
@@ -25,16 +29,16 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <?php wp_nonce_field($actionPrefix . '_scan'); ?>
-                <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_scan'); ?>">
+                <?php wp_nonce_field($watchdogActionPrefix . '_scan'); ?>
+                <input type="hidden" name="action" value="<?php echo esc_attr($watchdogActionPrefix . '_scan'); ?>">
                 <button class="button button-primary button-hero" type="submit">
                     <span class="dashicons dashicons-update" aria-hidden="true"></span>
                     <?php esc_html_e('Run manual scan', 'site-add-on-watchdog'); ?>
                 </button>
             </form>
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <?php wp_nonce_field($actionPrefix . '_send_notifications'); ?>
-                <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_send_notifications'); ?>">
+                <?php wp_nonce_field($watchdogActionPrefix . '_send_notifications'); ?>
+                <input type="hidden" name="action" value="<?php echo esc_attr($watchdogActionPrefix . '_send_notifications'); ?>">
                 <input type="hidden" name="force" value="1" />
                 <button class="button button-secondary button-hero" type="submit">
                     <span class="dashicons dashicons-megaphone" aria-hidden="true"></span>
@@ -44,39 +48,39 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
         </div>
     </div>
 
-    <?php $webhookError = get_transient($actionPrefix . '_webhook_error'); ?>
-    <?php if (! empty($webhookError)) : ?>
-        <div class="notice notice-error is-dismissible"><p><?php echo esc_html($webhookError); ?></p></div>
+    <?php $watchdogWebhookError = get_transient($watchdogActionPrefix . '_webhook_error'); ?>
+    <?php if (! empty($watchdogWebhookError)) : ?>
+        <div class="notice notice-error is-dismissible"><p><?php echo esc_html($watchdogWebhookError); ?></p></div>
     <?php endif; ?>
 
-    <?php if (! empty($settingsError)) : ?>
-        <div class="notice notice-error is-dismissible"><p><?php echo esc_html($settingsError); ?></p></div>
+    <?php if (! empty($watchdogSettingsError)) : ?>
+        <div class="notice notice-error is-dismissible"><p><?php echo esc_html($watchdogSettingsError); ?></p></div>
     <?php endif; ?>
 
-    <?php if (isset($_GET['updated'])) : ?>
+    <?php if ($watchdogNoticeNonceValid && isset($_GET['updated'])) : ?>
         <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Settings saved.', 'site-add-on-watchdog'); ?></p></div>
     <?php endif; ?>
 
-    <?php if (isset($_GET['scan'])) : ?>
+    <?php if ($watchdogNoticeNonceValid && isset($_GET['scan'])) : ?>
         <div class="notice notice-info is-dismissible"><p><?php esc_html_e('Manual scan completed.', 'site-add-on-watchdog'); ?></p></div>
     <?php endif; ?>
 
-    <?php if (isset($_GET['notifications'])) : ?>
-        <?php $notificationResult = sanitize_key((string) $_GET['notifications']); ?>
-        <?php if ($notificationResult === 'sent') : ?>
+    <?php if ($watchdogNoticeNonceValid && isset($_GET['notifications'])) : ?>
+        <?php $watchdogNotificationResult = sanitize_key(wp_unslash((string) $_GET['notifications'])); ?>
+        <?php if ($watchdogNotificationResult === 'sent') : ?>
             <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Notifications were dispatched.', 'site-add-on-watchdog'); ?></p></div>
-        <?php elseif ($notificationResult === 'throttled') : ?>
+        <?php elseif ($watchdogNotificationResult === 'throttled') : ?>
             <div class="notice notice-warning is-dismissible"><p><?php esc_html_e('Notifications skipped to avoid rapid re-sends. Please wait a moment and try again.', 'site-add-on-watchdog'); ?></p></div>
-        <?php elseif ($notificationResult === 'unchanged') : ?>
+        <?php elseif ($watchdogNotificationResult === 'unchanged') : ?>
             <div class="notice notice-info is-dismissible"><p><?php esc_html_e('No notification changes detected since the last send.', 'site-add-on-watchdog'); ?></p></div>
         <?php endif; ?>
     <?php endif; ?>
 
-    <?php if (isset($_GET['failed_notification'])) : ?>
-        <?php $failedStatus = sanitize_key((string) $_GET['failed_notification']); ?>
-        <?php if ($failedStatus === 'resent') : ?>
+    <?php if ($watchdogNoticeNonceValid && isset($_GET['failed_notification'])) : ?>
+        <?php $watchdogFailedStatus = sanitize_key(wp_unslash((string) $_GET['failed_notification'])); ?>
+        <?php if ($watchdogFailedStatus === 'resent') : ?>
             <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Queued the captured notification payload for resend.', 'site-add-on-watchdog'); ?></p></div>
-        <?php elseif ($failedStatus === 'missing') : ?>
+        <?php elseif ($watchdogFailedStatus === 'missing') : ?>
             <div class="notice notice-error is-dismissible"><p><?php esc_html_e('No failed notification payload was available to resend.', 'site-add-on-watchdog'); ?></p></div>
         <?php endif; ?>
     <?php endif; ?>
@@ -87,12 +91,12 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                 <span class="dashicons dashicons-heart" aria-hidden="true"></span>
                 <?php esc_html_e('Delivery health', 'site-add-on-watchdog'); ?>
             </div>
-                <?php $isCronDisabled = ! empty($cronStatus['cron_disabled']); ?>
-            <?php if ($isCronDisabled) : ?>
+                <?php $watchdogIsCronDisabled = ! empty($watchdogCronStatus['cron_disabled']); ?>
+            <?php if ($watchdogIsCronDisabled) : ?>
                 <p class="wp-watchdog-muted"><?php esc_html_e('WP-Cron appears disabled. Use a real cron job or the server endpoint below to keep scans running.', 'site-add-on-watchdog'); ?></p>
                 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin:12px 0;">
-                    <?php wp_nonce_field($actionPrefix . '_send_notifications'); ?>
-                    <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_send_notifications'); ?>">
+                    <?php wp_nonce_field($watchdogActionPrefix . '_send_notifications'); ?>
+                    <input type="hidden" name="action" value="<?php echo esc_attr($watchdogActionPrefix . '_send_notifications'); ?>">
                     <input type="hidden" name="force" value="1" />
                     <input type="hidden" name="ignore_throttle" value="1" />
                     <button class="button button-primary" type="submit">
@@ -106,46 +110,46 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
             <div class="wp-watchdog-divider"></div>
             <p class="wp-watchdog-muted" style="word-break:break-word;">
                 <strong><?php esc_html_e('Server cron endpoint:', 'site-add-on-watchdog'); ?></strong><br />
-                <code><?php echo esc_html($cronEndpoint); ?></code>
+                <code><?php echo esc_html($watchdogCronEndpoint); ?></code>
             </p>
             <p class="wp-watchdog-muted"><?php esc_html_e('Call this URL from a system cron or monitoring service to trigger scans or notification retries even when wp-cron is disabled.', 'site-add-on-watchdog'); ?></p>
             <div class="wp-watchdog-divider"></div>
             <div>
                 <p class="wp-watchdog-muted" style="margin-bottom:8px;"><strong><?php esc_html_e('Captured notification payloads', 'site-add-on-watchdog'); ?></strong></p>
-                <?php if (! empty($lastFailedNotification)) : ?>
+                <?php if (! empty($watchdogLastFailedNotification)) : ?>
                     <?php
-                    $failedTime = isset($lastFailedNotification['failed_at'])
-                        ? (int) $lastFailedNotification['failed_at']
+                    $watchdogFailedTime = isset($watchdogLastFailedNotification['failed_at'])
+                        ? (int) $watchdogLastFailedNotification['failed_at']
                         : time();
-                    $failedChannel = $lastFailedNotification['description']
-                        ?: ($lastFailedNotification['channel'] ?? __('Unknown channel', 'site-add-on-watchdog'));
-                    $failedError = $lastFailedNotification['last_error'] ?? '';
+                    $watchdogFailedChannel = $watchdogLastFailedNotification['description']
+                        ?: ($watchdogLastFailedNotification['channel'] ?? __('Unknown channel', 'site-add-on-watchdog'));
+                    $watchdogFailedError = $watchdogLastFailedNotification['last_error'] ?? '';
                     ?>
                     <p class="wp-watchdog-muted">
                         <?php
                         printf(
                             /* translators: 1: human readable time, 2: channel name */
                             esc_html__('Last failure recorded %1$s via %2$s.', 'site-add-on-watchdog'),
-                            esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), $failedTime)),
-                            esc_html($failedChannel)
+                            esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), $watchdogFailedTime)),
+                            esc_html($watchdogFailedChannel)
                         );
-                        if ($failedError !== '') {
-                            echo '<br />' . esc_html($failedError);
+                        if ($watchdogFailedError !== '') {
+                            echo '<br />' . esc_html($watchdogFailedError);
                         }
                         ?>
                     </p>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                            <?php wp_nonce_field($actionPrefix . '_resend_failed_notification'); ?>
-                            <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_resend_failed_notification'); ?>" />
+                            <?php wp_nonce_field($watchdogActionPrefix . '_resend_failed_notification'); ?>
+                            <input type="hidden" name="action" value="<?php echo esc_attr($watchdogActionPrefix . '_resend_failed_notification'); ?>" />
                             <button class="button button-primary" type="submit">
                                 <span class="dashicons dashicons-controls-repeat" aria-hidden="true"></span>
                                 <?php esc_html_e('Re-queue payload', 'site-add-on-watchdog'); ?>
                             </button>
                         </form>
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                            <?php wp_nonce_field($actionPrefix . '_download_failed_notification'); ?>
-                            <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_download_failed_notification'); ?>" />
+                            <?php wp_nonce_field($watchdogActionPrefix . '_download_failed_notification'); ?>
+                            <input type="hidden" name="action" value="<?php echo esc_attr($watchdogActionPrefix . '_download_failed_notification'); ?>" />
                             <button class="button" type="submit">
                                 <span class="dashicons dashicons-download" aria-hidden="true"></span>
                                 <?php esc_html_e('Download payload', 'site-add-on-watchdog'); ?>
@@ -173,7 +177,7 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                 <?php esc_html_e('Notification channels', 'site-add-on-watchdog'); ?>
             </div>
             <?php
-            $channels = [
+            $watchdogChannels = [
                 'email'   => __('Email', 'site-add-on-watchdog'),
                 'slack'   => __('Slack', 'site-add-on-watchdog'),
                 'teams'   => __('Microsoft Teams', 'site-add-on-watchdog'),
@@ -182,15 +186,15 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
             ];
             ?>
             <ul class="wp-watchdog-inline-list">
-                <?php foreach ($channels as $key => $label) : ?>
-                    <?php $enabled = ! empty($settings['notifications'][$key]['enabled']); ?>
-                    <?php $badgeClass = $enabled ? 'wp-watchdog-badge--success' : 'wp-watchdog-badge--muted'; ?>
+                <?php foreach ($watchdogChannels as $watchdogChannelKey => $watchdogChannelLabel) : ?>
+                    <?php $watchdogChannelEnabled = ! empty($watchdogSettings['notifications'][$watchdogChannelKey]['enabled']); ?>
+                    <?php $watchdogBadgeClass = $watchdogChannelEnabled ? 'wp-watchdog-badge--success' : 'wp-watchdog-badge--muted'; ?>
                     <li>
-                        <span class="wp-watchdog-badge <?php echo esc_attr($badgeClass); ?>">
-                            <span class="dashicons <?php echo $enabled ? 'dashicons-yes-alt' : 'dashicons-dismiss'; ?>" aria-hidden="true"></span>
-                            <?php echo esc_html($label); ?>
+                        <span class="wp-watchdog-badge <?php echo esc_attr($watchdogBadgeClass); ?>">
+                            <span class="dashicons <?php echo $watchdogChannelEnabled ? 'dashicons-yes-alt' : 'dashicons-dismiss'; ?>" aria-hidden="true"></span>
+                            <?php echo esc_html($watchdogChannelLabel); ?>
                             <span aria-hidden="true">•</span>
-                            <?php echo $enabled ? esc_html__('On', 'site-add-on-watchdog') : esc_html__('Off', 'site-add-on-watchdog'); ?>
+                            <?php echo $watchdogChannelEnabled ? esc_html__('On', 'site-add-on-watchdog') : esc_html__('Off', 'site-add-on-watchdog'); ?>
                         </span>
                     </li>
                 <?php endforeach; ?>
@@ -208,29 +212,29 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                 <?php esc_html_e('Potential Risks', 'site-add-on-watchdog'); ?>
             </div>
             <div class="wp-watchdog-summary">
-                <span class="wp-watchdog-summary__count"><?php echo esc_html(number_format_i18n(count($risks))); ?></span>
+                <span class="wp-watchdog-summary__count"><?php echo esc_html(number_format_i18n(count($watchdogRisks))); ?></span>
                 <span class="wp-watchdog-summary__label"><?php esc_html_e('items flagged', 'site-add-on-watchdog'); ?></span>
             </div>
         </div>
-    <?php if (empty($risks)) : ?>
+    <?php if (empty($watchdogRisks)) : ?>
         <p class="wp-watchdog-muted"><?php esc_html_e('No risks detected.', 'site-add-on-watchdog'); ?></p>
     <?php else : ?>
         <?php
-        $columns = [
+        $watchdogColumns = [
             'plugin'   => __('Plugin', 'site-add-on-watchdog'),
             'local'    => __('Local Version', 'site-add-on-watchdog'),
             'remote'   => __('Directory Version', 'site-add-on-watchdog'),
             'reasons'  => __('Reasons', 'site-add-on-watchdog'),
             'actions'  => __('Actions', 'site-add-on-watchdog'),
         ];
-        $perPage = (int) apply_filters($actionPrefix . '_main_admin_risks_per_page', 10);
-        $normalizeForSort = static function (string $value): string {
-            $normalized = function_exists('remove_accents') ? remove_accents($value) : $value;
+        $watchdogPerPage = (int) apply_filters($watchdogActionPrefix . '_main_admin_risks_per_page', 10);
+        $watchdogNormalizeForSort = static function (string $watchdogValue): string {
+            $watchdogNormalized = function_exists('remove_accents') ? remove_accents($watchdogValue) : $watchdogValue;
 
-            return strtolower($normalized);
+            return strtolower($watchdogNormalized);
         };
         ?>
-        <div class="wp-watchdog-risk-table" data-wp-watchdog-table data-per-page="<?php echo esc_attr(max($perPage, 1)); ?>">
+        <div class="wp-watchdog-risk-table" data-wp-watchdog-table data-per-page="<?php echo esc_attr(max($watchdogPerPage, 1)); ?>">
             <div class="wp-watchdog-risk-table__controls">
                 <div class="wp-watchdog-risk-table__pagination" data-pagination>
                     <button type="button" class="button" data-action="prev" aria-label="<?php esc_attr_e('Previous page', 'site-add-on-watchdog'); ?>" disabled>&lsaquo;</button>
@@ -244,94 +248,94 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                     <tr>
                         <th scope="col">
                             <button type="button" class="wp-watchdog-risk-table__sort" data-sort-key="sortPlugin" data-sort-default="asc" data-sort-initial aria-sort="ascending">
-                                <?php echo esc_html($columns['plugin']); ?>
+                                <?php echo esc_html($watchdogColumns['plugin']); ?>
                                 <span class="wp-watchdog-risk-table__sort-indicator" aria-hidden="true"></span>
                             </button>
                         </th>
                         <th scope="col">
                             <button type="button" class="wp-watchdog-risk-table__sort" data-sort-key="sortLocal" data-sort-default="desc" aria-sort="none">
-                                <?php echo esc_html($columns['local']); ?>
+                                <?php echo esc_html($watchdogColumns['local']); ?>
                                 <span class="wp-watchdog-risk-table__sort-indicator" aria-hidden="true"></span>
                             </button>
                         </th>
                         <th scope="col">
                             <button type="button" class="wp-watchdog-risk-table__sort" data-sort-key="sortRemote" data-sort-default="desc" aria-sort="none">
-                                <?php echo esc_html($columns['remote']); ?>
+                                <?php echo esc_html($watchdogColumns['remote']); ?>
                                 <span class="wp-watchdog-risk-table__sort-indicator" aria-hidden="true"></span>
                             </button>
                         </th>
                         <th scope="col">
                             <button type="button" class="wp-watchdog-risk-table__sort" data-sort-key="sortReasons" data-sort-default="asc" aria-sort="none">
-                                <?php echo esc_html($columns['reasons']); ?>
+                                <?php echo esc_html($watchdogColumns['reasons']); ?>
                                 <span class="wp-watchdog-risk-table__sort-indicator" aria-hidden="true"></span>
                             </button>
                         </th>
-                        <th scope="col"><?php echo esc_html($columns['actions']); ?></th>
+                        <th scope="col"><?php echo esc_html($watchdogColumns['actions']); ?></th>
                     </tr>
                     </thead>
                     <tbody>
-                    <?php foreach ($risks as $risk) : ?>
+                    <?php foreach ($watchdogRisks as $watchdogRisk) : ?>
                         <?php
-                        $remoteVersion = $risk->remoteVersion ?? __('N/A', 'site-add-on-watchdog');
-                        $remoteSort    = is_string($risk->remoteVersion) ? $normalizeForSort($risk->remoteVersion) : '';
-                        $reasonParts   = $risk->reasons;
-                        if (! empty($risk->details['vulnerabilities'])) {
-                            foreach ($risk->details['vulnerabilities'] as $vulnerability) {
-                                if (! empty($vulnerability['severity_label'])) {
-                                    $reasonParts[] = $vulnerability['severity_label'];
+                        $watchdogRemoteVersion = $watchdogRisk->remoteVersion ?? __('N/A', 'site-add-on-watchdog');
+                        $watchdogRemoteSort    = is_string($watchdogRisk->remoteVersion) ? $watchdogNormalizeForSort($watchdogRisk->remoteVersion) : '';
+                        $watchdogReasonParts   = $watchdogRisk->reasons;
+                        if (! empty($watchdogRisk->details['vulnerabilities'])) {
+                            foreach ($watchdogRisk->details['vulnerabilities'] as $watchdogVulnerability) {
+                                if (! empty($watchdogVulnerability['severity_label'])) {
+                                    $watchdogReasonParts[] = $watchdogVulnerability['severity_label'];
                                 }
-                                if (! empty($vulnerability['title'])) {
-                                    $reasonParts[] = $vulnerability['title'];
+                                if (! empty($watchdogVulnerability['title'])) {
+                                    $watchdogReasonParts[] = $watchdogVulnerability['title'];
                                 }
-                                if (! empty($vulnerability['cve'])) {
-                                    $reasonParts[] = $vulnerability['cve'];
+                                if (! empty($watchdogVulnerability['cve'])) {
+                                    $watchdogReasonParts[] = $watchdogVulnerability['cve'];
                                 }
                             }
                         }
-                        $reasonSort = $normalizeForSort(implode(' ', $reasonParts));
+                        $watchdogReasonSort = $watchdogNormalizeForSort(implode(' ', $watchdogReasonParts));
                         ?>
                         <tr
-                            data-sort-plugin="<?php echo esc_attr($normalizeForSort($risk->pluginName)); ?>"
-                            data-sort-local="<?php echo esc_attr($normalizeForSort($risk->localVersion)); ?>"
-                            data-sort-remote="<?php echo esc_attr($remoteSort); ?>"
-                            data-sort-reasons="<?php echo esc_attr($reasonSort); ?>"
+                            data-sort-plugin="<?php echo esc_attr($watchdogNormalizeForSort($watchdogRisk->pluginName)); ?>"
+                            data-sort-local="<?php echo esc_attr($watchdogNormalizeForSort($watchdogRisk->localVersion)); ?>"
+                            data-sort-remote="<?php echo esc_attr($watchdogRemoteSort); ?>"
+                            data-sort-reasons="<?php echo esc_attr($watchdogReasonSort); ?>"
                         >
-                            <td class="column-primary" data-column="plugin" data-column-label="<?php echo esc_attr($columns['plugin']); ?>">
-                                <?php echo esc_html($risk->pluginName); ?>
+                            <td class="column-primary" data-column="plugin" data-column-label="<?php echo esc_attr($watchdogColumns['plugin']); ?>">
+                                <?php echo esc_html($watchdogRisk->pluginName); ?>
                             </td>
-                            <td data-column="local" data-column-label="<?php echo esc_attr($columns['local']); ?>">
-                                <?php echo esc_html($risk->localVersion); ?>
+                            <td data-column="local" data-column-label="<?php echo esc_attr($watchdogColumns['local']); ?>">
+                                <?php echo esc_html($watchdogRisk->localVersion); ?>
                             </td>
-                            <td data-column="remote" data-column-label="<?php echo esc_attr($columns['remote']); ?>">
-                                <?php echo esc_html($remoteVersion); ?>
+                            <td data-column="remote" data-column-label="<?php echo esc_attr($watchdogColumns['remote']); ?>">
+                                <?php echo esc_html($watchdogRemoteVersion); ?>
                             </td>
-                            <td data-column="reasons" data-column-label="<?php echo esc_attr($columns['reasons']); ?>">
+                            <td data-column="reasons" data-column-label="<?php echo esc_attr($watchdogColumns['reasons']); ?>">
                                 <ul>
-                                    <?php foreach ($risk->reasons as $reason) : ?>
-                                        <li><?php echo esc_html($reason); ?></li>
+                                    <?php foreach ($watchdogRisk->reasons as $watchdogReason) : ?>
+                                        <li><?php echo esc_html($watchdogReason); ?></li>
                                     <?php endforeach; ?>
-                                    <?php if (! empty($risk->details['vulnerabilities'])) : ?>
+                                    <?php if (! empty($watchdogRisk->details['vulnerabilities'])) : ?>
                                         <li>
                                             <?php esc_html_e('WPScan vulnerabilities:', 'site-add-on-watchdog'); ?>
                                             <ul>
-                                                <?php foreach ($risk->details['vulnerabilities'] as $vuln) : ?>
+                                                <?php foreach ($watchdogRisk->details['vulnerabilities'] as $watchdogVuln) : ?>
                                                     <li>
-                                                        <?php if (! empty($vuln['severity']) && ! empty($vuln['severity_label'])) : ?>
-                                                            <?php $severityClass = 'wp-watchdog-severity wp-watchdog-severity--' . sanitize_html_class((string) $vuln['severity']); ?>
-                                                            <span class="<?php echo esc_attr($severityClass); ?>"><?php echo esc_html($vuln['severity_label']); ?></span>
+                                                        <?php if (! empty($watchdogVuln['severity']) && ! empty($watchdogVuln['severity_label'])) : ?>
+                                                            <?php $watchdogSeverityClass = 'wp-watchdog-severity wp-watchdog-severity--' . sanitize_html_class((string) $watchdogVuln['severity']); ?>
+                                                            <span class="<?php echo esc_attr($watchdogSeverityClass); ?>"><?php echo esc_html($watchdogVuln['severity_label']); ?></span>
                                                         <?php endif; ?>
-                                                        <?php if (! empty($vuln['title'])) : ?>
-                                                            <span class="wp-watchdog-vulnerability__title"><?php echo esc_html($vuln['title']); ?></span>
+                                                        <?php if (! empty($watchdogVuln['title'])) : ?>
+                                                            <span class="wp-watchdog-vulnerability__title"><?php echo esc_html($watchdogVuln['title']); ?></span>
                                                         <?php endif; ?>
-                                                        <?php if (! empty($vuln['cve'])) : ?>
-                                                            <span class="wp-watchdog-vulnerability__cve">- <?php echo esc_html($vuln['cve']); ?></span>
+                                                        <?php if (! empty($watchdogVuln['cve'])) : ?>
+                                                            <span class="wp-watchdog-vulnerability__cve">- <?php echo esc_html($watchdogVuln['cve']); ?></span>
                                                         <?php endif; ?>
-                                                        <?php if (! empty($vuln['fixed_in'])) : ?>
+                                                        <?php if (! empty($watchdogVuln['fixed_in'])) : ?>
                                                             <span class="wp-watchdog-vulnerability__fixed">(<?php
                                                             printf(
                                                                 /* translators: %s is a plugin version number */
                                                                 esc_html__('Fixed in %s', 'site-add-on-watchdog'),
-                                                                esc_html($vuln['fixed_in'])
+                                                                esc_html($watchdogVuln['fixed_in'])
                                                             );
                                                             ?>)</span>
                                                         <?php endif; ?>
@@ -342,11 +346,11 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                                     <?php endif; ?>
                                 </ul>
                             </td>
-                            <td data-column="actions" data-column-label="<?php echo esc_attr($columns['actions']); ?>">
+                            <td data-column="actions" data-column-label="<?php echo esc_attr($watchdogColumns['actions']); ?>">
                                 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                                    <?php wp_nonce_field($actionPrefix . '_ignore'); ?>
-                                    <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_ignore'); ?>">
-                                    <input type="hidden" name="plugin_slug" value="<?php echo esc_attr($risk->pluginSlug); ?>">
+                                    <?php wp_nonce_field($watchdogActionPrefix . '_ignore'); ?>
+                                    <input type="hidden" name="action" value="<?php echo esc_attr($watchdogActionPrefix . '_ignore'); ?>">
+                                    <input type="hidden" name="plugin_slug" value="<?php echo esc_attr($watchdogRisk->pluginSlug); ?>">
                                     <button class="button" type="submit"><?php esc_html_e('Ignore', 'site-add-on-watchdog'); ?></button>
                                 </form>
                             </td>
@@ -365,19 +369,19 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                 <span class="dashicons dashicons-hidden" aria-hidden="true"></span>
                 <?php esc_html_e('Ignored Plugins', 'site-add-on-watchdog'); ?>
             </div>
-            <?php if (empty($ignored)) : ?>
+            <?php if (empty($watchdogIgnored)) : ?>
                 <p class="wp-watchdog-muted"><?php esc_html_e('No plugins are being ignored.', 'site-add-on-watchdog'); ?></p>
             <?php else : ?>
                 <ul class="wp-watchdog-inline-list">
-                    <?php foreach ($ignored as $slug) : ?>
+                    <?php foreach ($watchdogIgnored as $watchdogIgnoredSlug) : ?>
                         <li>
                             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
-                                <?php wp_nonce_field($actionPrefix . '_unignore'); ?>
-                                <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_unignore'); ?>">
-                                <input type="hidden" name="plugin_slug" value="<?php echo esc_attr($slug); ?>">
+                                <?php wp_nonce_field($watchdogActionPrefix . '_unignore'); ?>
+                                <input type="hidden" name="action" value="<?php echo esc_attr($watchdogActionPrefix . '_unignore'); ?>">
+                                <input type="hidden" name="plugin_slug" value="<?php echo esc_attr($watchdogIgnoredSlug); ?>">
                                 <button class="button" type="submit">
                                     <span class="dashicons dashicons-no" aria-hidden="true"></span>
-                                    <?php echo esc_html($slug); ?>
+                                    <?php echo esc_html($watchdogIgnoredSlug); ?>
                                 </button>
                             </form>
                         </li>
@@ -391,8 +395,8 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                 <?php esc_html_e('Notifications', 'site-add-on-watchdog'); ?>
             </div>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-        <?php wp_nonce_field($actionPrefix . '_settings'); ?>
-        <input type="hidden" name="action" value="<?php echo esc_attr($actionPrefix . '_save_settings'); ?>">
+        <?php wp_nonce_field($watchdogActionPrefix . '_settings'); ?>
+        <input type="hidden" name="action" value="<?php echo esc_attr($watchdogActionPrefix . '_save_settings'); ?>">
         <table class="form-table" role="presentation">
             <tr>
                 <th scope="row"><?php esc_html_e('History retention', 'site-add-on-watchdog'); ?></th>
@@ -402,7 +406,7 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                         type="number"
                         id="wp-watchdog-history-retention"
                         name="settings[history][retention]"
-                        value="<?php echo esc_attr($settings['history']['retention'] ?? $historyRetention); ?>"
+                        value="<?php echo esc_attr($watchdogSettings['history']['retention'] ?? $watchdogHistoryRetention); ?>"
                         min="1"
                         max="15"
                         step="1"
@@ -416,53 +420,53 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                 <th scope="row"><?php esc_html_e('Scan frequency', 'site-add-on-watchdog'); ?></th>
                 <td>
                     <?php
-                    $defaultFrequencyMessage = __('Choose how often the automatic scan should run.', 'site-add-on-watchdog');
-                    $testingFrequencyMessage = sprintf(
+                    $watchdogDefaultFrequencyMessage = __('Choose how often the automatic scan should run.', 'site-add-on-watchdog');
+                    $watchdogTestingFrequencyMessage = sprintf(
                         /* translators: 1: interval minutes, 2: duration hours */
                         __('Testing mode sends notifications every %1$d minutes to all configured channels and automatically switches back to daily scans after %2$d hours.', 'site-add-on-watchdog'),
                         TestingMode::INTERVAL_MINUTES,
                         TestingMode::DURATION_HOURS
                     );
-                    $isTestingFrequency      = ($settings['notifications']['frequency'] ?? '') === 'testing';
-                    $testingExpiresAt        = (int) ($settings['notifications']['testing_expires_at'] ?? 0);
-                    $now                     = time();
-                    $showTestingExpiry       = $isTestingFrequency && $testingExpiresAt > $now;
-                    $dailyTime               = isset($settings['notifications']['daily_time'])
-                        ? (string) $settings['notifications']['daily_time']
+                    $watchdogIsTestingFrequency      = ($watchdogSettings['notifications']['frequency'] ?? '') === 'testing';
+                    $watchdogTestingExpiresAt        = (int) ($watchdogSettings['notifications']['testing_expires_at'] ?? 0);
+                    $watchdogNow                     = time();
+                    $watchdogShowTestingExpiry       = $watchdogIsTestingFrequency && $watchdogTestingExpiresAt > $watchdogNow;
+                    $watchdogDailyTime               = isset($watchdogSettings['notifications']['daily_time'])
+                        ? (string) $watchdogSettings['notifications']['daily_time']
                         : '08:00';
-                    $weeklyDay = isset($settings['notifications']['weekly_day'])
-                        ? (int) $settings['notifications']['weekly_day']
+                    $watchdogWeeklyDay = isset($watchdogSettings['notifications']['weekly_day'])
+                        ? (int) $watchdogSettings['notifications']['weekly_day']
                         : 1;
-                    $weeklyTime = isset($settings['notifications']['weekly_time'])
-                        ? (string) $settings['notifications']['weekly_time']
+                    $watchdogWeeklyTime = isset($watchdogSettings['notifications']['weekly_time'])
+                        ? (string) $watchdogSettings['notifications']['weekly_time']
                         : '08:00';
                     ?>
                     <label for="wp-watchdog-notification-frequency" class="screen-reader-text"><?php esc_html_e('Scan frequency', 'site-add-on-watchdog'); ?></label>
                     <select id="wp-watchdog-notification-frequency" name="settings[notifications][frequency]">
-                        <option value="daily" <?php selected($settings['notifications']['frequency'], 'daily'); ?>><?php esc_html_e('Daily', 'site-add-on-watchdog'); ?></option>
-                        <option value="weekly" <?php selected($settings['notifications']['frequency'], 'weekly'); ?>><?php esc_html_e('Weekly', 'site-add-on-watchdog'); ?></option>
-                        <option value="testing" <?php selected($settings['notifications']['frequency'], 'testing'); ?>><?php echo esc_html(
+                        <option value="daily" <?php selected($watchdogSettings['notifications']['frequency'], 'daily'); ?>><?php esc_html_e('Daily', 'site-add-on-watchdog'); ?></option>
+                        <option value="weekly" <?php selected($watchdogSettings['notifications']['frequency'], 'weekly'); ?>><?php esc_html_e('Weekly', 'site-add-on-watchdog'); ?></option>
+                        <option value="testing" <?php selected($watchdogSettings['notifications']['frequency'], 'testing'); ?>><?php echo esc_html(
                             sprintf(
                                 /* translators: %d: interval minutes */
                                 __('Testing (every %d minutes)', 'site-add-on-watchdog'),
                                 TestingMode::INTERVAL_MINUTES
                             )
                         ); ?></option>
-                        <option value="manual" <?php selected($settings['notifications']['frequency'], 'manual'); ?>><?php esc_html_e('Manual (no automatic scans)', 'site-add-on-watchdog'); ?></option>
+                        <option value="manual" <?php selected($watchdogSettings['notifications']['frequency'], 'manual'); ?>><?php esc_html_e('Manual (no automatic scans)', 'site-add-on-watchdog'); ?></option>
                     </select>
                     <?php
-                    $frequencyDescriptionClass = 'description wp-watchdog-frequency-description';
-                    if ($isTestingFrequency) {
-                        $frequencyDescriptionClass .= ' wp-watchdog-frequency-description--testing';
+                    $watchdogFrequencyDescriptionClass = 'description wp-watchdog-frequency-description';
+                    if ($watchdogIsTestingFrequency) {
+                        $watchdogFrequencyDescriptionClass .= ' wp-watchdog-frequency-description--testing';
                     }
                     ?>
                     <p
-                        class="<?php echo esc_attr($frequencyDescriptionClass); ?>"
+                        class="<?php echo esc_attr($watchdogFrequencyDescriptionClass); ?>"
                         data-watchdog-frequency-description
-                        data-default-message="<?php echo esc_attr($defaultFrequencyMessage); ?>"
-                        data-testing-message="<?php echo esc_attr($testingFrequencyMessage); ?>"
+                        data-default-message="<?php echo esc_attr($watchdogDefaultFrequencyMessage); ?>"
+                        data-testing-message="<?php echo esc_attr($watchdogTestingFrequencyMessage); ?>"
                     >
-                        <?php echo esc_html($isTestingFrequency ? $testingFrequencyMessage : $defaultFrequencyMessage); ?>
+                        <?php echo esc_html($watchdogIsTestingFrequency ? $watchdogTestingFrequencyMessage : $watchdogDefaultFrequencyMessage); ?>
                     </p>
                     <div class="wp-watchdog-frequency-options" data-watchdog-frequency-options>
                         <div class="wp-watchdog-frequency-options__row" data-watchdog-frequency-target="daily">
@@ -473,7 +477,7 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                                 id="wp-watchdog-daily-time"
                                 name="settings[notifications][daily_time]"
                                 type="time"
-                                value="<?php echo esc_attr($dailyTime); ?>"
+                                value="<?php echo esc_attr($watchdogDailyTime); ?>"
                                 aria-describedby="wp-watchdog-daily-time-help"
                             />
                             <p class="description" id="wp-watchdog-daily-time-help">
@@ -486,13 +490,13 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                                     <?php esc_html_e('Weekly send day', 'site-add-on-watchdog'); ?>
                                 </label>
                                 <select id="wp-watchdog-weekly-day" name="settings[notifications][weekly_day]">
-                                    <option value="1" <?php selected($weeklyDay, 1); ?>><?php esc_html_e('Monday', 'site-add-on-watchdog'); ?></option>
-                                    <option value="2" <?php selected($weeklyDay, 2); ?>><?php esc_html_e('Tuesday', 'site-add-on-watchdog'); ?></option>
-                                    <option value="3" <?php selected($weeklyDay, 3); ?>><?php esc_html_e('Wednesday', 'site-add-on-watchdog'); ?></option>
-                                    <option value="4" <?php selected($weeklyDay, 4); ?>><?php esc_html_e('Thursday', 'site-add-on-watchdog'); ?></option>
-                                    <option value="5" <?php selected($weeklyDay, 5); ?>><?php esc_html_e('Friday', 'site-add-on-watchdog'); ?></option>
-                                    <option value="6" <?php selected($weeklyDay, 6); ?>><?php esc_html_e('Saturday', 'site-add-on-watchdog'); ?></option>
-                                    <option value="7" <?php selected($weeklyDay, 7); ?>><?php esc_html_e('Sunday', 'site-add-on-watchdog'); ?></option>
+                                    <option value="1" <?php selected($watchdogWeeklyDay, 1); ?>><?php esc_html_e('Monday', 'site-add-on-watchdog'); ?></option>
+                                    <option value="2" <?php selected($watchdogWeeklyDay, 2); ?>><?php esc_html_e('Tuesday', 'site-add-on-watchdog'); ?></option>
+                                    <option value="3" <?php selected($watchdogWeeklyDay, 3); ?>><?php esc_html_e('Wednesday', 'site-add-on-watchdog'); ?></option>
+                                    <option value="4" <?php selected($watchdogWeeklyDay, 4); ?>><?php esc_html_e('Thursday', 'site-add-on-watchdog'); ?></option>
+                                    <option value="5" <?php selected($watchdogWeeklyDay, 5); ?>><?php esc_html_e('Friday', 'site-add-on-watchdog'); ?></option>
+                                    <option value="6" <?php selected($watchdogWeeklyDay, 6); ?>><?php esc_html_e('Saturday', 'site-add-on-watchdog'); ?></option>
+                                    <option value="7" <?php selected($watchdogWeeklyDay, 7); ?>><?php esc_html_e('Sunday', 'site-add-on-watchdog'); ?></option>
                                 </select>
                             </div>
                             <div class="wp-watchdog-frequency-weekly">
@@ -503,7 +507,7 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                                     id="wp-watchdog-weekly-time"
                                     name="settings[notifications][weekly_time]"
                                     type="time"
-                                    value="<?php echo esc_attr($weeklyTime); ?>"
+                                    value="<?php echo esc_attr($watchdogWeeklyTime); ?>"
                                     aria-describedby="wp-watchdog-weekly-time-help"
                                 />
                             </div>
@@ -512,29 +516,29 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                             </p>
                         </div>
                     </div>
-                    <?php if ($showTestingExpiry) : ?>
+                    <?php if ($watchdogShowTestingExpiry) : ?>
                         <?php
-                        $timezone = null;
+                        $watchdogTimezone = null;
                         if (function_exists('wp_timezone')) {
-                            $timezone = wp_timezone();
+                            $watchdogTimezone = wp_timezone();
                         } else {
-                            $timezoneString = (string) get_option('timezone_string');
-                            if ($timezoneString !== '') {
+                            $watchdogTimezoneString = (string) get_option('timezone_string');
+                            if ($watchdogTimezoneString !== '') {
                                 try {
-                                    $timezone = new DateTimeZone($timezoneString);
+                                    $watchdogTimezone = new DateTimeZone($watchdogTimezoneString);
                                 } catch (Exception $exception) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
                                 }
                             }
 
-                            if (! $timezone) {
-                                $gmtOffset = get_option('gmt_offset');
-                                if (is_numeric($gmtOffset)) {
+                            if (! $watchdogTimezone) {
+                                $watchdogGmtOffset = get_option('gmt_offset');
+                                if (is_numeric($watchdogGmtOffset)) {
                                     $secondsInHour = defined('HOUR_IN_SECONDS') ? HOUR_IN_SECONDS : 3600;
-                                    $secondsOffset = (int) round((float) $gmtOffset * $secondsInHour);
-                                    $timezoneName  = timezone_name_from_abbr('', $secondsOffset, 0);
-                                    if ($timezoneName !== false) {
+                                    $watchdogSecondsOffset = (int) round((float) $watchdogGmtOffset * $secondsInHour);
+                                    $watchdogTimezoneName  = timezone_name_from_abbr('', $watchdogSecondsOffset, 0);
+                                    if ($watchdogTimezoneName !== false) {
                                         try {
-                                            $timezone = new DateTimeZone($timezoneName);
+                                            $watchdogTimezone = new DateTimeZone($watchdogTimezoneName);
                                         } catch (Exception $exception) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
                                         }
                                     }
@@ -542,23 +546,23 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                             }
                         }
 
-                        if (! $timezone && class_exists('DateTimeZone')) {
-                            $timezone = new DateTimeZone('UTC');
+                        if (! $watchdogTimezone && class_exists('DateTimeZone')) {
+                            $watchdogTimezone = new DateTimeZone('UTC');
                         }
 
-                        $testingExpiryMessage = sprintf(
+                        $watchdogTestingExpiryMessage = sprintf(
                             /* translators: 1: datetime, 2: relative time */
                             __('Testing mode will automatically switch back to daily scans on %1$s (%2$s remaining).', 'site-add-on-watchdog'),
                             wp_date(
                                 get_option('date_format') . ' ' . get_option('time_format'),
-                                $testingExpiresAt,
-                                $timezone
+                                $watchdogTestingExpiresAt,
+                                $watchdogTimezone
                             ),
-                            human_time_diff($now, $testingExpiresAt)
+                            human_time_diff($watchdogNow, $watchdogTestingExpiresAt)
                         );
                         ?>
                         <p class="description wp-watchdog-frequency-description wp-watchdog-frequency-description--expires">
-                            <?php echo esc_html($testingExpiryMessage); ?>
+                            <?php echo esc_html($watchdogTestingExpiryMessage); ?>
                         </p>
                     <?php endif; ?>
                 </td>
@@ -567,13 +571,13 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                 <th scope="row"><?php esc_html_e('Email notifications', 'site-add-on-watchdog'); ?></th>
                 <td data-watchdog-notification>
                     <label class="wp-watchdog-notification-toggle">
-                        <input type="checkbox" name="settings[notifications][email][enabled]" <?php checked($settings['notifications']['email']['enabled']); ?> data-watchdog-toggle />
+                        <input type="checkbox" name="settings[notifications][email][enabled]" <?php checked($watchdogSettings['notifications']['email']['enabled']); ?> data-watchdog-toggle />
                         <?php esc_html_e('Enabled', 'site-add-on-watchdog'); ?>
                     </label>
                     <div class="wp-watchdog-notification-fields" data-watchdog-fields>
                         <label>
                             <?php esc_html_e('Recipients (comma separated)', 'site-add-on-watchdog'); ?><br />
-                            <input type="text" name="settings[notifications][email][recipients]" value="<?php echo esc_attr($settings['notifications']['email']['recipients']); ?>" class="regular-text" />
+                            <input type="text" name="settings[notifications][email][recipients]" value="<?php echo esc_attr($watchdogSettings['notifications']['email']['recipients']); ?>" class="regular-text" />
                         </label>
                     </div>
                 </td>
@@ -582,13 +586,13 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                 <th scope="row"><?php esc_html_e('Discord notifications', 'site-add-on-watchdog'); ?></th>
                 <td data-watchdog-notification>
                     <label class="wp-watchdog-notification-toggle">
-                        <input type="checkbox" name="settings[notifications][discord][enabled]" <?php checked($settings['notifications']['discord']['enabled']); ?> data-watchdog-toggle />
+                        <input type="checkbox" name="settings[notifications][discord][enabled]" <?php checked($watchdogSettings['notifications']['discord']['enabled']); ?> data-watchdog-toggle />
                         <?php esc_html_e('Enabled', 'site-add-on-watchdog'); ?>
                     </label>
                     <div class="wp-watchdog-notification-fields" data-watchdog-fields>
                         <label>
                             <?php esc_html_e('Discord webhook URL', 'site-add-on-watchdog'); ?><br />
-                            <input type="url" name="settings[notifications][discord][webhook]" value="<?php echo esc_attr($settings['notifications']['discord']['webhook']); ?>" class="regular-text" />
+                            <input type="url" name="settings[notifications][discord][webhook]" value="<?php echo esc_attr($watchdogSettings['notifications']['discord']['webhook']); ?>" class="regular-text" />
                         </label>
                     </div>
                 </td>
@@ -597,13 +601,13 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                 <th scope="row"><?php esc_html_e('Slack notifications', 'site-add-on-watchdog'); ?></th>
                 <td data-watchdog-notification>
                     <label class="wp-watchdog-notification-toggle">
-                        <input type="checkbox" name="settings[notifications][slack][enabled]" <?php checked($settings['notifications']['slack']['enabled']); ?> data-watchdog-toggle />
+                        <input type="checkbox" name="settings[notifications][slack][enabled]" <?php checked($watchdogSettings['notifications']['slack']['enabled']); ?> data-watchdog-toggle />
                         <?php esc_html_e('Enabled', 'site-add-on-watchdog'); ?>
                     </label>
                     <div class="wp-watchdog-notification-fields" data-watchdog-fields>
                         <label>
                             <?php esc_html_e('Slack webhook URL', 'site-add-on-watchdog'); ?><br />
-                            <input type="url" name="settings[notifications][slack][webhook]" value="<?php echo esc_attr($settings['notifications']['slack']['webhook']); ?>" class="regular-text" />
+                            <input type="url" name="settings[notifications][slack][webhook]" value="<?php echo esc_attr($watchdogSettings['notifications']['slack']['webhook']); ?>" class="regular-text" />
                         </label>
                     </div>
                 </td>
@@ -612,13 +616,13 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                 <th scope="row"><?php esc_html_e('Microsoft Teams notifications', 'site-add-on-watchdog'); ?></th>
                 <td data-watchdog-notification>
                     <label class="wp-watchdog-notification-toggle">
-                        <input type="checkbox" name="settings[notifications][teams][enabled]" <?php checked($settings['notifications']['teams']['enabled']); ?> data-watchdog-toggle />
+                        <input type="checkbox" name="settings[notifications][teams][enabled]" <?php checked($watchdogSettings['notifications']['teams']['enabled']); ?> data-watchdog-toggle />
                         <?php esc_html_e('Enabled', 'site-add-on-watchdog'); ?>
                     </label>
                     <div class="wp-watchdog-notification-fields" data-watchdog-fields>
                         <label>
                             <?php esc_html_e('Teams webhook URL', 'site-add-on-watchdog'); ?><br />
-                            <input type="url" name="settings[notifications][teams][webhook]" value="<?php echo esc_attr($settings['notifications']['teams']['webhook']); ?>" class="regular-text" />
+                            <input type="url" name="settings[notifications][teams][webhook]" value="<?php echo esc_attr($watchdogSettings['notifications']['teams']['webhook']); ?>" class="regular-text" />
                         </label>
                     </div>
                 </td>
@@ -627,18 +631,18 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
                 <th scope="row"><?php esc_html_e('Generic webhook', 'site-add-on-watchdog'); ?></th>
                 <td data-watchdog-notification>
                     <label class="wp-watchdog-notification-toggle">
-                        <input type="checkbox" name="settings[notifications][webhook][enabled]" <?php checked($settings['notifications']['webhook']['enabled']); ?> data-watchdog-toggle />
+                        <input type="checkbox" name="settings[notifications][webhook][enabled]" <?php checked($watchdogSettings['notifications']['webhook']['enabled']); ?> data-watchdog-toggle />
                         <?php esc_html_e('Enabled', 'site-add-on-watchdog'); ?>
                     </label>
                     <div class="wp-watchdog-notification-fields" data-watchdog-fields>
                         <label>
                             <?php esc_html_e('Webhook URL', 'site-add-on-watchdog'); ?><br />
-                            <input type="url" name="settings[notifications][webhook][url]" value="<?php echo esc_attr($settings['notifications']['webhook']['url']); ?>" class="regular-text" />
+                            <input type="url" name="settings[notifications][webhook][url]" value="<?php echo esc_attr($watchdogSettings['notifications']['webhook']['url']); ?>" class="regular-text" />
                         </label>
                         <p>
                             <label>
                                 <?php esc_html_e('Webhook secret (optional)', 'site-add-on-watchdog'); ?><br />
-                                <input type="text" name="settings[notifications][webhook][secret]" value="<?php echo esc_attr($settings['notifications']['webhook']['secret'] ?? ''); ?>" class="regular-text" autocomplete="off" />
+                                <input type="text" name="settings[notifications][webhook][secret]" value="<?php echo esc_attr($watchdogSettings['notifications']['webhook']['secret'] ?? ''); ?>" class="regular-text" autocomplete="off" />
                             </label>
                             <span class="description"><?php esc_html_e('Used to sign webhook payloads with an HMAC signature.', 'site-add-on-watchdog'); ?></span>
                         </p>
@@ -648,7 +652,7 @@ $actionPrefix = $actionPrefix ?? \Watchdog\Version::PREFIX;
             <tr>
                 <th scope="row"><?php esc_html_e('WPScan API key', 'site-add-on-watchdog'); ?></th>
                 <td>
-                    <input type="text" name="settings[notifications][wpscan_api_key]" value="<?php echo esc_attr($settings['notifications']['wpscan_api_key']); ?>" class="regular-text" />
+                    <input type="text" name="settings[notifications][wpscan_api_key]" value="<?php echo esc_attr($watchdogSettings['notifications']['wpscan_api_key']); ?>" class="regular-text" />
                     <p class="description"><?php esc_html_e('Optional. Provide your own WPScan API key to enrich vulnerability reports.', 'site-add-on-watchdog'); ?></p>
                 </td>
             </tr>
