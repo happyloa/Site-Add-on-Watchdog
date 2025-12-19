@@ -109,17 +109,21 @@ class AdminPage
 
         $watchdogActionPrefix = self::PREFIX;
         $watchdogNoticeNonceValid = $this->isNoticeNonceValid();
+        $watchdogUpdatedNotice = filter_input(INPUT_GET, 'updated', FILTER_UNSAFE_RAW);
+        $watchdogScanNotice = filter_input(INPUT_GET, 'scan', FILTER_UNSAFE_RAW);
         $watchdogNoticeFlags = [
-            'updated' => $watchdogNoticeNonceValid && isset($_GET['updated']),
-            'scan' => $watchdogNoticeNonceValid && isset($_GET['scan']),
+            'updated' => $watchdogNoticeNonceValid && $watchdogUpdatedNotice !== null,
+            'scan' => $watchdogNoticeNonceValid && $watchdogScanNotice !== null,
         ];
         $watchdogNotificationResult = '';
-        if ($watchdogNoticeNonceValid && isset($_GET['notifications'])) {
-            $watchdogNotificationResult = sanitize_key(wp_unslash((string) $_GET['notifications']));
+        $watchdogNotificationsParam = filter_input(INPUT_GET, 'notifications', FILTER_UNSAFE_RAW);
+        if ($watchdogNoticeNonceValid && is_string($watchdogNotificationsParam)) {
+            $watchdogNotificationResult = sanitize_key($watchdogNotificationsParam);
         }
         $watchdogFailedNotificationStatus = '';
-        if ($watchdogNoticeNonceValid && isset($_GET['failed_notification'])) {
-            $watchdogFailedNotificationStatus = sanitize_key(wp_unslash((string) $_GET['failed_notification']));
+        $watchdogFailedNotificationParam = filter_input(INPUT_GET, 'failed_notification', FILTER_UNSAFE_RAW);
+        if ($watchdogNoticeNonceValid && is_string($watchdogFailedNotificationParam)) {
+            $watchdogFailedNotificationStatus = sanitize_key($watchdogFailedNotificationParam);
         }
 
         require __DIR__ . '/../templates/admin-page.php';
@@ -264,17 +268,14 @@ class AdminPage
         $this->guardAccess();
         check_admin_referer(self::HISTORY_DOWNLOAD_ACTION);
 
-        $runAt = isset($_GET['run_at']) ? absint(wp_unslash($_GET['run_at'])) : 0;
+        $runAtParam = filter_input(INPUT_GET, 'run_at', FILTER_UNSAFE_RAW);
+        $runAt = $runAtParam !== null ? absint($runAtParam) : 0;
         if ($runAt <= 0) {
             wp_die(esc_html__('Invalid history request.', 'site-add-on-watchdog'));
         }
 
-        $formatParam = wp_unslash($_GET['format'] ?? 'json');
-        if (is_array($formatParam)) {
-            $formatParam = reset($formatParam) ?: 'json';
-        }
-
-        $format = sanitize_key((string) $formatParam);
+        $formatParam = filter_input(INPUT_GET, 'format', FILTER_UNSAFE_RAW);
+        $format = is_string($formatParam) ? sanitize_key($formatParam) : 'json';
         if ($format === '' || ! in_array($format, ['json', 'csv'], true)) {
             $format = 'json';
         }
@@ -473,11 +474,12 @@ class AdminPage
 
     private function isNoticeNonceValid(): bool
     {
-        if (! isset($_GET['_wpnonce'])) {
+        $nonce = filter_input(INPUT_GET, '_wpnonce', FILTER_UNSAFE_RAW);
+        if (! is_string($nonce) || $nonce === '') {
             return false;
         }
 
-        $nonce = sanitize_text_field(wp_unslash($_GET['_wpnonce']));
+        $nonce = sanitize_text_field($nonce);
 
         return wp_verify_nonce($nonce, self::PREFIX . '_admin_notice') === 1;
     }

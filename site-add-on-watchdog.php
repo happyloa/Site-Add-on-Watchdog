@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Site Add-on Watchdog
  * Description: Monitors installed plugins for potential security risks and outdated versions.
- * Version:     1.5.2
+ * Version:     1.5.3
  * Author:      Aaron
  * Author URI:  https://www.worksbyaaron.com/
  * License:     GPLv2 or later
