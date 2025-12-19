@@ -247,7 +247,7 @@ class Plugin
         register_rest_route(self::REST_NAMESPACE, '/cron', [
             'methods'             => ['GET', 'POST'],
             'callback'            => [$this, 'handleRestCronRequest'],
-            'permission_callback' => [$this, 'validateCronRequest'],
+            'permission_callback' => [$this, 'authorizeCronRequest'],
             'args'                => [
                 'force' => [
                     'type' => 'boolean',
@@ -667,7 +667,33 @@ class Plugin
         $provided = (string) ($request->get_param('key') ?? '');
         $stored   = $this->getCronSecret();
 
+        if ($stored === '') {
+            return false;
+        }
+
         return hash_equals($stored, $provided);
+    }
+
+    public function authorizeCronRequest(WP_REST_Request $request): bool|\WP_Error
+    {
+        if ($this->validateCronRequest($request)) {
+            return true;
+        }
+
+        $stored = $this->getCronSecret();
+        if ($stored === '') {
+            return new \WP_Error(
+                'watchdog_cron_secret_missing',
+                __('Cron secret is missing. Please resave your settings.', 'site-add-on-watchdog'),
+                ['status' => 403]
+            );
+        }
+
+        return new \WP_Error(
+            'watchdog_cron_secret_invalid',
+            __('Invalid cron secret.', 'site-add-on-watchdog'),
+            ['status' => 403]
+        );
     }
 
     /**

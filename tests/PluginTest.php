@@ -9,6 +9,20 @@ use Watchdog\Repository\RiskRepository;
 use Watchdog\Repository\SettingsRepository;
 use Watchdog\Scanner;
 
+if (! class_exists('WP_REST_Request')) {
+    class WP_REST_Request
+    {
+        public function __construct(private array $params = [])
+        {
+        }
+
+        public function get_param(string $key): mixed
+        {
+            return $this->params[$key] ?? null;
+        }
+    }
+}
+
 class PluginTest extends TestCase
 {
     public function testScheduleTriggersOverdueCatchUpForTesting(): void
@@ -335,5 +349,37 @@ class PluginTest extends TestCase
 
         $plugin = new Plugin($scanner, $riskRepository, $settingsRepository, $notifier);
         $plugin->schedule();
+    }
+
+    public function testValidateCronRequestRejectsEmptySecret(): void
+    {
+        $scanner = $this->createMock(Scanner::class);
+        $riskRepository = $this->createMock(RiskRepository::class);
+        $settingsRepository = $this->createMock(SettingsRepository::class);
+        $settingsRepository->method('get')->willReturn([
+            'notifications' => ['cron_secret' => ''],
+        ]);
+        $notifier = $this->createMock(Notifier::class);
+
+        $plugin = new Plugin($scanner, $riskRepository, $settingsRepository, $notifier);
+
+        $request = new WP_REST_Request(['key' => 'anything']);
+        self::assertFalse($plugin->validateCronRequest($request));
+    }
+
+    public function testValidateCronRequestAllowsMatchingSecret(): void
+    {
+        $scanner = $this->createMock(Scanner::class);
+        $riskRepository = $this->createMock(RiskRepository::class);
+        $settingsRepository = $this->createMock(SettingsRepository::class);
+        $settingsRepository->method('get')->willReturn([
+            'notifications' => ['cron_secret' => 'secret123'],
+        ]);
+        $notifier = $this->createMock(Notifier::class);
+
+        $plugin = new Plugin($scanner, $riskRepository, $settingsRepository, $notifier);
+
+        $request = new WP_REST_Request(['key' => 'secret123']);
+        self::assertTrue($plugin->validateCronRequest($request));
     }
 }
