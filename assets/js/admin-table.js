@@ -13,18 +13,23 @@
         }
 
         const perPage = parseInt(tableWrapper.dataset.perPage || '10', 10);
-        let rows = Array.from(tbody.querySelectorAll('tr'));
+        const baseRows = Array.from(tbody.querySelectorAll('tr'));
+        let rows = baseRows.slice();
         const pagination = tableWrapper.querySelector('[data-pagination]');
         const statusEl = tableWrapper.querySelector('[data-page-status]');
         const prevBtn = pagination ? pagination.querySelector('[data-action="prev"]') : null;
         const nextBtn = pagination ? pagination.querySelector('[data-action="next"]') : null;
         const headers = Array.from(tableWrapper.querySelectorAll('[data-sort-key]'));
+        const searchInput = tableWrapper.querySelector('[data-risk-search]');
+        const sortSelect = tableWrapper.querySelector('[data-risk-sort]');
+        const orderSelect = tableWrapper.querySelector('[data-risk-order]');
 
         const state = {
             page: 1,
             perPage: Number.isFinite(perPage) && perPage > 0 ? perPage : rows.length,
             sortKey: null,
-            sortOrder: 'asc'
+            sortOrder: 'asc',
+            filterQuery: searchInput ? searchInput.value.trim() : ''
         };
 
         const initialHeader = headers.find((header) => header.hasAttribute('data-sort-initial'));
@@ -34,10 +39,28 @@
         }
 
         const VERSION_SORT_KEYS = new Set(['sortLocal', 'sortRemote']);
+        const NUMERIC_SORT_KEYS = new Set(['sortRiskCount', 'sortVersionGap']);
         const NUMERIC_TOKEN_PATTERN = /^\d+$/;
+
+        if (sortSelect) {
+            const selectedOption = sortSelect.selectedOptions[0];
+            if (selectedOption && selectedOption.dataset.sortKey) {
+                state.sortKey = selectedOption.dataset.sortKey;
+                state.sortOrder = orderSelect
+                    ? orderSelect.value
+                    : (selectedOption.dataset.sortDefault || 'asc');
+            }
+        }
 
         function getSortValue(row, key, options = {}) {
             const { raw = false } = options;
+
+            if (NUMERIC_SORT_KEYS.has(key)) {
+                const datasetKey = key.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
+                const value = row.dataset[datasetKey];
+                const parsed = value ? parseFloat(value) : 0;
+                return Number.isFinite(parsed) ? parsed : 0;
+            }
 
             if (VERSION_SORT_KEYS.has(key)) {
                 const columnKey = key === 'sortLocal' ? 'local' : 'remote';
@@ -163,24 +186,32 @@
             const start = (state.page - 1) * state.perPage;
             const end = start + state.perPage;
 
-            rows.forEach((row, index) => {
-                row.style.display = index >= start && index < end ? '' : 'none';
+            baseRows.forEach((row) => {
+                row.style.display = 'none';
             });
 
             if (statusEl) {
-                const template = i18n.pageStatus || 'Page %1$d of %2$d';
-                statusEl.textContent = template
-                    .replace('%1$d', String(state.page))
-                    .replace('%2$d', String(totalPages));
+                if (rows.length === 0) {
+                    statusEl.textContent = i18n.noResults || 'No results.';
+                } else {
+                    const template = i18n.pageStatus || 'Page %1$d of %2$d';
+                    statusEl.textContent = template
+                        .replace('%1$d', String(state.page))
+                        .replace('%2$d', String(totalPages));
+                }
             }
 
             if (prevBtn) {
-                prevBtn.disabled = state.page <= 1;
+                prevBtn.disabled = state.page <= 1 || rows.length === 0;
             }
 
             if (nextBtn) {
-                nextBtn.disabled = state.page >= totalPages;
+                nextBtn.disabled = state.page >= totalPages || rows.length === 0;
             }
+
+            rows.forEach((row, index) => {
+                row.style.display = index >= start && index < end ? '' : 'none';
+            });
         }
 
         function applySort() {
@@ -193,7 +224,11 @@
             const sortedRows = rows.slice().sort((a, b) => {
                 let comparison = 0;
 
-                if (isVersionSort) {
+                if (NUMERIC_SORT_KEYS.has(state.sortKey)) {
+                    const aValue = getSortValue(a, state.sortKey);
+                    const bValue = getSortValue(b, state.sortKey);
+                    comparison = aValue - bValue;
+                } else if (isVersionSort) {
                     const aVersion = parseVersionForSort(getSortValue(a, state.sortKey, { raw: true }));
                     const bVersion = parseVersionForSort(getSortValue(b, state.sortKey, { raw: true }));
                     comparison = compareVersionTokens(aVersion, bVersion);
@@ -218,6 +253,38 @@
             sortedRows.forEach((row) => tbody.appendChild(row));
         }
 
+        function syncSortControls() {
+            if (sortSelect) {
+                const option = sortSelect.querySelector(`[data-sort-key="${state.sortKey}"]`);
+                if (option) {
+                    sortSelect.value = option.value;
+                }
+            }
+
+            if (orderSelect) {
+                orderSelect.value = state.sortOrder;
+            }
+        }
+
+        function getFilterText(row) {
+            return (row.dataset.filterText || row.textContent || '').toLowerCase();
+        }
+
+        function applyFilter() {
+            const query = state.filterQuery.trim().toLowerCase();
+            if (!query) {
+                rows = baseRows.slice();
+            } else {
+                rows = baseRows.filter((row) => getFilterText(row).includes(query));
+            }
+
+            applySort();
+            updateSortIndicators();
+            syncSortControls();
+            state.page = 1;
+            applyPagination();
+        }
+
         headers.forEach((header) => {
             header.addEventListener('click', () => {
                 const sortKey = header.getAttribute('data-sort-key');
@@ -234,12 +301,47 @@
 
                 applySort();
                 updateSortIndicators();
+                syncSortControls();
                 state.page = 1;
                 applyPagination();
             });
 
             header.setAttribute('aria-sort', 'none');
         });
+
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                state.filterQuery = searchInput.value;
+                applyFilter();
+            });
+        }
+
+        if (sortSelect) {
+            sortSelect.addEventListener('change', () => {
+                const option = sortSelect.selectedOptions[0];
+                if (!option || !option.dataset.sortKey) {
+                    return;
+                }
+                state.sortKey = option.dataset.sortKey;
+                state.sortOrder = orderSelect ? orderSelect.value : (option.dataset.sortDefault || 'asc');
+                applySort();
+                updateSortIndicators();
+                syncSortControls();
+                state.page = 1;
+                applyPagination();
+            });
+        }
+
+        if (orderSelect) {
+            orderSelect.addEventListener('change', () => {
+                state.sortOrder = orderSelect.value;
+                applySort();
+                updateSortIndicators();
+                syncSortControls();
+                state.page = 1;
+                applyPagination();
+            });
+        }
 
         if (prevBtn) {
             prevBtn.addEventListener('click', () => {
@@ -260,9 +362,7 @@
             });
         }
 
-        applySort();
-        updateSortIndicators();
-        applyPagination();
+        applyFilter();
     }
 
     function initNotificationToggles() {
