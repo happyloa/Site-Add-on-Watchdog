@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Site Add-on Watchdog
  * Description: Monitors installed plugins for potential security risks and outdated versions.
- * Version:     1.5.0
+ * Version:     1.5.1
  * Author:      Aaron
  * Author URI:  https://www.worksbyaaron.com/
  * License:     GPLv2 or later
@@ -35,20 +35,20 @@ if (version_compare(PHP_VERSION, '8.1', '<')) {
     return;
 }
 
-$autoload = __DIR__ . '/vendor/autoload.php';
-if (is_readable($autoload)) {
-    require_once $autoload;
+$watchdog_autoload = __DIR__ . '/vendor/autoload.php';
+if (is_readable($watchdog_autoload)) {
+    require_once $watchdog_autoload;
 } else {
     spl_autoload_register(static function (string $class): void {
-        $prefix = "Watchdog\\";
-        if (! str_starts_with($class, $prefix)) {
+        $watchdog_prefix = "Watchdog\\";
+        if (! str_starts_with($class, $watchdog_prefix)) {
             return;
         }
 
-        $relativeClass = substr($class, strlen($prefix));
-        $path          = __DIR__ . '/src/' . str_replace('\\', '/', $relativeClass) . '.php';
-        if (is_readable($path)) {
-            require_once $path;
+        $watchdog_relativeClass = substr($class, strlen($watchdog_prefix));
+        $watchdog_path          = __DIR__ . '/src/' . str_replace('\\', '/', $watchdog_relativeClass) . '.php';
+        if (is_readable($watchdog_path)) {
+            require_once $watchdog_path;
         }
     });
 }
@@ -65,29 +65,45 @@ use Watchdog\Services\NotificationQueue;
 use Watchdog\Services\VersionComparator;
 use Watchdog\Services\WPScanClient;
 
-$settingsRepository = new SettingsRepository();
-$riskRepository     = new RiskRepository();
-$currentSettings    = $settingsRepository->get();
-$wpscanClient       = new WPScanClient($currentSettings['notifications']['wpscan_api_key']);
-$scanner            = new Scanner($riskRepository, new VersionComparator(), $wpscanClient);
-$notificationQueue  = new NotificationQueue();
-$notifier           = new Notifier($settingsRepository, $notificationQueue);
-$plugin             = new Plugin($scanner, $riskRepository, $settingsRepository, $notifier);
-$adminPage          = new AdminPage($riskRepository, $settingsRepository, $plugin, $notifier);
+$watchdog_settingsRepository = new SettingsRepository();
+$watchdog_riskRepository     = new RiskRepository();
+$watchdog_currentSettings    = $watchdog_settingsRepository->get();
+$watchdog_wpscanClient       = new WPScanClient(
+    $watchdog_currentSettings['notifications']['wpscan_api_key']
+);
+$watchdog_scanner            = new Scanner(
+    $watchdog_riskRepository,
+    new VersionComparator(),
+    $watchdog_wpscanClient
+);
+$watchdog_notificationQueue  = new NotificationQueue();
+$watchdog_notifier           = new Notifier($watchdog_settingsRepository, $watchdog_notificationQueue);
+$watchdog_plugin             = new Plugin(
+    $watchdog_scanner,
+    $watchdog_riskRepository,
+    $watchdog_settingsRepository,
+    $watchdog_notifier
+);
+$watchdog_adminPage          = new AdminPage(
+    $watchdog_riskRepository,
+    $watchdog_settingsRepository,
+    $watchdog_plugin,
+    $watchdog_notifier
+);
 
-$plugin->register();
-$adminPage->register();
+$watchdog_plugin->register();
+$watchdog_adminPage->register();
 
 if (defined('WP_CLI') && WP_CLI) {
-    \WP_CLI::add_command('watchdog scan', new ScanCommand($plugin));
-    \WP_CLI::add_command('watchdog notifications flush', new NotificationQueueCommand($plugin));
+    \WP_CLI::add_command('watchdog scan', new ScanCommand($watchdog_plugin));
+    \WP_CLI::add_command('watchdog notifications flush', new NotificationQueueCommand($watchdog_plugin));
 }
 
-register_activation_hook(__FILE__, static function () use ($plugin): void {
-    $plugin->schedule();
-    $plugin->runScan();
+register_activation_hook(__FILE__, static function () use ($watchdog_plugin): void {
+    $watchdog_plugin->schedule();
+    $watchdog_plugin->runScan();
 });
 
-register_deactivation_hook(__FILE__, static function () use ($plugin): void {
-    $plugin->deactivate();
+register_deactivation_hook(__FILE__, static function () use ($watchdog_plugin): void {
+    $watchdog_plugin->deactivate();
 });

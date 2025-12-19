@@ -529,6 +529,10 @@ class SettingsRepository
     {
         $secret = (string) $secret;
 
+        if (function_exists('wp_strip_all_tags')) {
+            return trim(\wp_strip_all_tags($secret));
+        }
+
         return trim(strip_tags($secret));
     }
 

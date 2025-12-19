@@ -65,48 +65,50 @@ class AdminPage
     public function render(): void
     {
         if (! current_user_can('manage_options')) {
-            wp_die(__('You do not have permission to access this page.', 'site-add-on-watchdog'));
+            wp_die(esc_html__('You do not have permission to access this page.', 'site-add-on-watchdog'));
         }
 
         $this->enqueuePageAssets();
 
-        $risks     = $this->riskRepository->all();
-        $ignored   = $this->riskRepository->ignored();
-        $settings  = $this->settingsRepository->get();
-        $scanNonce = wp_create_nonce(self::PREFIX . '_scan');
-        $cronStatus = $this->plugin->getCronStatus();
-        $cronEndpoint = $this->plugin->getCronEndpointUrl();
+        $watchdogRisks     = $this->riskRepository->all();
+        $watchdogIgnored   = $this->riskRepository->ignored();
+        $watchdogSettings  = $this->settingsRepository->get();
+        $watchdogCronStatus = $this->plugin->getCronStatus();
+        $watchdogCronEndpoint = $this->plugin->getCronEndpointUrl();
 
-        $settingsError = get_transient(self::PREFIX . '_settings_error');
-        if ($settingsError !== false) {
+        $watchdogSettingsError = get_transient(self::PREFIX . '_settings_error');
+        if ($watchdogSettingsError !== false) {
             delete_transient(self::PREFIX . '_settings_error');
         }
 
-        $historyRetention = (int) ($settings['history']['retention'] ?? RiskRepository::DEFAULT_HISTORY_RETENTION);
-        if ($historyRetention < 1) {
-            $historyRetention = RiskRepository::DEFAULT_HISTORY_RETENTION;
-        }
-
-        $historyDisplay = (int) apply_filters(
-            self::PREFIX . '_main_admin_history_display',
-            min($historyRetention, 10)
+        $watchdogHistoryRetention = (int) (
+            $watchdogSettings['history']['retention'] ?? RiskRepository::DEFAULT_HISTORY_RETENTION
         );
-        if ($historyDisplay < 1) {
-            $historyDisplay = min($historyRetention, RiskRepository::DEFAULT_HISTORY_RETENTION);
+        if ($watchdogHistoryRetention < 1) {
+            $watchdogHistoryRetention = RiskRepository::DEFAULT_HISTORY_RETENTION;
         }
 
-        $historyRecords   = $this->riskRepository->history($historyDisplay);
-        $historyDownloads = [];
-        foreach ($historyRecords as $record) {
-            $historyDownloads[$record['run_at']] = [
-                'json' => $this->buildHistoryDownloadUrl($record['run_at'], 'json'),
-                'csv'  => $this->buildHistoryDownloadUrl($record['run_at'], 'csv'),
+        $watchdogHistoryDisplay = (int) apply_filters(
+            self::PREFIX . '_main_admin_history_display',
+            min($watchdogHistoryRetention, 10)
+        );
+        if ($watchdogHistoryDisplay < 1) {
+            $watchdogHistoryDisplay = min($watchdogHistoryRetention, RiskRepository::DEFAULT_HISTORY_RETENTION);
+        }
+
+        $watchdogHistoryRecords   = $this->riskRepository->history($watchdogHistoryDisplay);
+        $watchdogHistoryDownloads = [];
+        foreach ($watchdogHistoryRecords as $watchdogRecord) {
+            $watchdogHistoryDownloads[$watchdogRecord['run_at']] = [
+                'json' => $this->buildHistoryDownloadUrl($watchdogRecord['run_at'], 'json'),
+                'csv'  => $this->buildHistoryDownloadUrl($watchdogRecord['run_at'], 'csv'),
             ];
         }
 
-        $lastFailedNotification = $this->notifier->getLastFailedNotification();
+        $watchdogLastFailedNotification = $this->notifier->getLastFailedNotification();
 
-        $actionPrefix = self::PREFIX;
+        $watchdogActionPrefix = self::PREFIX;
+        $watchdogNoticeNonceValid = $this->isNoticeNonceValid();
 
         require __DIR__ . '/../templates/admin-page.php';
     }
@@ -129,6 +131,7 @@ class AdminPage
         $this->guardAccess();
         check_admin_referer(self::PREFIX . '_settings');
 
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         $payload = wp_unslash($_POST['settings'] ?? []);
         if (! is_array($payload)) {
             $payload = [];
@@ -157,13 +160,7 @@ class AdminPage
         $this->settingsRepository->save($payload);
         $this->plugin->schedule();
 
-                wp_safe_redirect(
-                    add_query_arg(
-                        'updated',
-                        'true',
-                        wp_get_referer() ?: admin_url('admin.php?page=' . self::MENU_SLUG)
-                    )
-                );
+        $this->redirectWithNotice(['updated' => 'true']);
         exit;
     }
 
@@ -202,13 +199,7 @@ class AdminPage
 
         $this->plugin->runScan(true, 'manual');
 
-                wp_safe_redirect(
-                    add_query_arg(
-                        'scan',
-                        'done',
-                        wp_get_referer() ?: admin_url('admin.php?page=' . self::MENU_SLUG)
-                    )
-                );
+        $this->redirectWithNotice(['scan' => 'done']);
         exit;
     }
 
@@ -221,13 +212,7 @@ class AdminPage
         $respectThrottle = empty($_POST['ignore_throttle']);
         $result          = $this->plugin->sendNotifications($force, $respectThrottle);
 
-                wp_safe_redirect(
-                    add_query_arg(
-                        'notifications',
-                        $result,
-                        wp_get_referer() ?: admin_url('admin.php?page=' . self::MENU_SLUG)
-                    )
-                );
+        $this->redirectWithNotice(['notifications' => $result]);
         exit;
     }
 
@@ -240,13 +225,7 @@ class AdminPage
 
         $status = $resent ? 'resent' : 'missing';
 
-                wp_safe_redirect(
-                    add_query_arg(
-                        'failed_notification',
-                        $status,
-                        wp_get_referer() ?: admin_url('admin.php?page=' . self::MENU_SLUG)
-                    )
-                );
+        $this->redirectWithNotice(['failed_notification' => $status]);
         exit;
     }
 
@@ -257,7 +236,7 @@ class AdminPage
 
         $failed = $this->notifier->getLastFailedNotification();
         if ($failed === null) {
-            wp_die(__('No failed notification payload is available.', 'site-add-on-watchdog'));
+            wp_die(esc_html__('No failed notification payload is available.', 'site-add-on-watchdog'));
         }
 
         nocache_headers();
@@ -273,13 +252,12 @@ class AdminPage
         $this->guardAccess();
         check_admin_referer(self::HISTORY_DOWNLOAD_ACTION);
 
-        $runAt = isset($_GET['run_at']) ? (int) $_GET['run_at'] : 0;
+        $runAt = isset($_GET['run_at']) ? (int) wp_unslash($_GET['run_at']) : 0;
         if ($runAt <= 0) {
-            wp_die(__('Invalid history request.', 'site-add-on-watchdog'));
+            wp_die(esc_html__('Invalid history request.', 'site-add-on-watchdog'));
         }
 
-        $formatParam = $_GET['format'] ?? 'json';
-        $formatParam = wp_unslash($formatParam);
+        $formatParam = wp_unslash($_GET['format'] ?? 'json');
         if (is_array($formatParam)) {
             $formatParam = reset($formatParam) ?: 'json';
         }
@@ -291,7 +269,7 @@ class AdminPage
 
         $entry = $this->riskRepository->historyEntry($runAt);
         if ($entry === null) {
-            wp_die(__('History entry not found.', 'site-add-on-watchdog'));
+            wp_die(esc_html__('History entry not found.', 'site-add-on-watchdog'));
         }
 
         if ($format === 'csv') {
@@ -306,7 +284,7 @@ class AdminPage
     private function guardAccess(): void
     {
         if (! current_user_can('manage_options')) {
-            wp_die(__('You do not have permission to perform this action.', 'site-add-on-watchdog'));
+            wp_die(esc_html__('You do not have permission to perform this action.', 'site-add-on-watchdog'));
         }
     }
 
@@ -420,33 +398,16 @@ class AdminPage
         }
 
         $target = 'php://output';
-        $delimiter = ',';
-        $enclosure = '"';
-        $escape    = '\\';
 
         if ($target === 'php://output') {
-            $handle = fopen($target, 'wb');
-
-            if ($handle === false) {
-                wp_die(__('Unable to generate history export.', 'site-add-on-watchdog'));
-            }
-
-            foreach ($rows as $row) {
-                $row = array_map(static fn ($value): string => (string) $value, $row);
-
-                if (fputcsv($handle, $row, $delimiter, $enclosure, $escape) === false) {
-                    fclose($handle);
-                    wp_die(__('Unable to generate history export.', 'site-add-on-watchdog'));
-                }
-            }
-
-            fclose($handle);
+            $csvContent = $this->buildCsvContent($rows);
+            echo $csvContent;
         } else {
             $filesystem = $this->getFilesystem();
             $csvContent  = $this->buildCsvContent($rows);
 
             if (! $filesystem->put_contents($target, $csvContent)) {
-                wp_die(__('Unable to generate history export.', 'site-add-on-watchdog'));
+                wp_die(esc_html__('Unable to generate history export.', 'site-add-on-watchdog'));
             }
         }
         exit;
@@ -480,6 +441,32 @@ class AdminPage
         }, $row);
 
         return implode(',', $escaped);
+    }
+
+    /**
+     * @param array<string, string> $args
+     */
+    private function redirectWithNotice(array $args): void
+    {
+        $args['_wpnonce'] = wp_create_nonce(self::PREFIX . '_admin_notice');
+
+        wp_safe_redirect(
+            add_query_arg(
+                $args,
+                wp_get_referer() ?: admin_url('admin.php?page=' . self::MENU_SLUG)
+            )
+        );
+    }
+
+    private function isNoticeNonceValid(): bool
+    {
+        if (! isset($_GET['_wpnonce'])) {
+            return false;
+        }
+
+        $nonce = sanitize_text_field(wp_unslash($_GET['_wpnonce']));
+
+        return wp_verify_nonce($nonce, self::PREFIX . '_admin_notice') === 1;
     }
 
     private function getFilesystem()
