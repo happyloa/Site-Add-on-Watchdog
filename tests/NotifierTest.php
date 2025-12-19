@@ -161,6 +161,105 @@ class NotifierTest extends TestCase
         $notifier->notify([]);
     }
 
+    public function testEmailFailureRecordsFailedNotification(): void
+    {
+        $settings = [
+            'notifications' => [
+                'frequency' => 'daily',
+                'email'     => [
+                    'enabled'    => true,
+                    'recipients' => 'user@example.com',
+                ],
+                'discord'   => [
+                    'enabled' => false,
+                    'webhook' => '',
+                ],
+                'slack'     => [
+                    'enabled' => false,
+                    'webhook' => '',
+                ],
+                'teams'     => [
+                    'enabled' => false,
+                    'webhook' => '',
+                ],
+                'webhook'   => [
+                    'enabled' => false,
+                    'url'     => '',
+                ],
+                'wpscan_api_key' => '',
+            ],
+        ];
+
+        $repository = $this->createMock(SettingsRepository::class);
+        $repository->method('get')->willReturn($settings);
+
+        when('get_users')->alias(static fn () => []);
+        when('admin_url')->alias(static fn ($path = '') => 'https://example.com/wp-admin/' . ltrim($path, '/'));
+        when('esc_url')->alias(static fn ($url) => $url);
+        when('esc_html')->alias(static fn ($text) => $text);
+        when('esc_attr')->alias(static fn ($text) => $text);
+        when('__')->alias(static fn ($text) => $text);
+        when('esc_html__')->alias(static fn ($text) => $text);
+        when('sanitize_email')->alias(static fn ($email) => strtolower(trim((string) $email)));
+        when('is_email')->alias(static fn ($email) => $email !== '' && str_contains($email, '@'));
+
+        expect('wp_mail')
+            ->once()
+            ->andReturn(false);
+
+        $queue = $this->createMock(NotificationQueue::class);
+        $jobs  = [];
+
+        $queue->expects($this->once())
+            ->method('enqueue')
+            ->with($this->callback(static function ($queued) use (&$jobs): bool {
+                $jobs = $queued;
+
+                return is_array($queued) && ! empty($queued);
+            }));
+
+        $queue->expects($this->once())
+            ->method('process')
+            ->with($this->callback(static fn () => true))
+            ->willReturnCallback(static function (callable $callback) use (&$jobs): array {
+                $processed = 0;
+                $succeeded = 0;
+
+                foreach ($jobs as $job) {
+                    $processed++;
+                    $result = $callback($job);
+
+                    if ($result === true) {
+                        $succeeded++;
+                    }
+                }
+
+                return [
+                    'processed' => $processed,
+                    'succeeded' => $succeeded,
+                ];
+            });
+
+        $queue->expects($this->once())
+            ->method('recordFailure')
+            ->with(
+                $this->callback(function ($job): bool {
+                    self::assertSame('email', $job['channel']);
+                    self::assertSame('Email alert', $job['description']);
+                    self::assertSame(['user@example.com'], $job['payload']['recipients']);
+                    self::assertSame('Email delivery failed.', $job['last_error']);
+
+                    return true;
+                }),
+                $this->isType('int')
+            );
+
+        $notifier = new Notifier($repository, $queue);
+        $notifier->notify([
+            new Risk('plugin-slug', 'Plugin Name', '1.0.0', null, ['Example reason']),
+        ]);
+    }
+
     public function testConfiguredRecipientsAreMergedAndDeduplicatedWithAdministrators(): void
     {
         $settings = [
