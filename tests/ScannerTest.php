@@ -20,6 +20,7 @@ class ScannerTest extends TestCase
         Functions\when('sanitize_title')->alias(static fn ($value) => $value);
         Functions\when('__')->alias(static fn ($text) => $text);
         Functions\when('get_option')->alias(static fn () => []);
+        Functions\when('get_transient')->alias(static fn () => false);
 
         Functions\when('plugins_api')->alias(static function () {
             return (object) [
@@ -64,6 +65,7 @@ class ScannerTest extends TestCase
         Functions\when('sanitize_title')->alias(static fn ($value) => $value);
         Functions\when('__')->alias(static fn ($text) => $text);
         Functions\when('get_option')->alias(static fn () => []);
+        Functions\when('get_transient')->alias(static fn () => false);
 
         Functions\when('plugins_api')->alias(static function () {
             return (object) [
@@ -107,6 +109,7 @@ class ScannerTest extends TestCase
         Functions\when('sanitize_title')->alias(static fn ($value) => $value);
         Functions\when('__')->alias(static fn ($text) => $text);
         Functions\when('get_option')->alias(static fn () => []);
+        Functions\when('get_transient')->alias(static fn () => false);
 
         Functions\when('plugins_api')->alias(static function () {
             return (object) [
@@ -147,6 +150,7 @@ class ScannerTest extends TestCase
         Functions\when('sanitize_title')->alias(static fn ($value) => $value);
         Functions\when('__')->alias(static fn ($text) => $text);
         Functions\when('get_option')->alias(static fn () => []);
+        Functions\when('get_transient')->alias(static fn () => false);
 
         Functions\when('plugins_api')->alias(static function () {
             return (object) [
