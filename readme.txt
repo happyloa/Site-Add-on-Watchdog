@@ -4,7 +4,7 @@ Tags: security, plugins, monitoring, notifications
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 1.6.1
+Stable tag: 1.6.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -99,6 +99,9 @@ Examples:
 Recommended workflow: on CI/CD platforms, add a job step that boots your WordPress/WP-CLI container, runs pending database migrations if needed, and then calls `wp watchdog scan --notify=false` to verify the plugin state without spamming production channels. Promote to production by rerunning the same command with notifications enabled when you are ready to alert your team.
 
 == Changelog ==
+
+= 1.6.2 =
+* Bump plugin metadata, Version constant, and stable tag to 1.6.2.
 
 = 1.6.1 =
 * Add missing translator comments for placeholder strings to satisfy plugin check.
