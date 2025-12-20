@@ -51,8 +51,8 @@ $watchdogHistoryDownloads = $watchdogHistoryDownloads ?? $historyDownloads ?? []
                         <span class="dashicons <?php echo $watchdogHasRisks ? 'dashicons-warning' : 'dashicons-yes-alt'; ?>" aria-hidden="true"></span>
                         <?php
                         $watchdogRiskLabel = function_exists('_n')
-                            ? _n(
-                                /* translators: %s: number of risks. */
+                            ? /* translators: %s: number of risks. */
+                            _n(
                                 '%s risk',
                                 '%s risks',
                                 $watchdogRecord['risk_count'],
