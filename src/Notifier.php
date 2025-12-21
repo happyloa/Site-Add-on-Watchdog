@@ -48,10 +48,10 @@ class Notifier
             if (! empty($recipients)) {
                 $jobs[] = [
                     'channel'     => 'email',
-                    'description' => __('Email alert', 'Site-Add-on-Watchdog-main'),
+                    'description' => __('Email alert', 'site-add-on-watchdog'),
                     'payload'     => [
                         'recipients' => $recipients,
-                        'subject'    => __('Site Add-on Watchdog Risk Alert', 'Site-Add-on-Watchdog-main'),
+                        'subject'    => __('Site Add-on Watchdog Risk Alert', 'site-add-on-watchdog'),
                         'body'       => $emailReport,
                         'headers'    => ['Content-Type: text/html; charset=UTF-8'],
                     ],
@@ -62,7 +62,7 @@ class Notifier
         if (! empty($discordSettings['enabled']) && ! empty($discordSettings['webhook'])) {
             $jobs[] = [
                 'channel'     => 'webhook',
-                'description' => __('Discord webhook', 'Site-Add-on-Watchdog-main'),
+                'description' => __('Discord webhook', 'site-add-on-watchdog'),
                 'payload'     => [
                     'url'    => $discordSettings['webhook'],
                     'body'   => $this->formatDiscordMessage($risks, $plainTextReport),
@@ -74,7 +74,7 @@ class Notifier
         if (! empty($slackSettings['enabled']) && ! empty($slackSettings['webhook'])) {
             $jobs[] = [
                 'channel'     => 'webhook',
-                'description' => __('Slack webhook', 'Site-Add-on-Watchdog-main'),
+                'description' => __('Slack webhook', 'site-add-on-watchdog'),
                 'payload'     => [
                     'url'    => $slackSettings['webhook'],
                     'body'   => $this->formatSlackMessage($risks, $plainTextReport),
@@ -86,7 +86,7 @@ class Notifier
         if (! empty($teamsSettings['enabled']) && ! empty($teamsSettings['webhook'])) {
             $jobs[] = [
                 'channel'     => 'webhook',
-                'description' => __('Microsoft Teams webhook', 'Site-Add-on-Watchdog-main'),
+                'description' => __('Microsoft Teams webhook', 'site-add-on-watchdog'),
                 'payload'     => [
                     'url'    => $teamsSettings['webhook'],
                     'body'   => $this->formatTeamsMessage($risks),
@@ -98,7 +98,7 @@ class Notifier
         if (! empty($webhookSettings['enabled']) && ! empty($webhookSettings['url'])) {
             $jobs[] = [
                 'channel'     => 'webhook',
-                'description' => __('Custom webhook', 'Site-Add-on-Watchdog-main'),
+                'description' => __('Custom webhook', 'site-add-on-watchdog'),
                 'payload'     => [
                     'url'    => $webhookSettings['url'],
                     'body'   => [
@@ -156,12 +156,12 @@ class Notifier
     {
         $url = isset($payload['url']) ? (string) $payload['url'] : '';
         if ($url === '') {
-            return __('Webhook URL missing.', 'Site-Add-on-Watchdog-main');
+            return __('Webhook URL missing.', 'site-add-on-watchdog');
         }
 
         $body = $payload['body'] ?? [];
         if (! is_array($body)) {
-            return __('Webhook payload invalid.', 'Site-Add-on-Watchdog-main');
+            return __('Webhook payload invalid.', 'site-add-on-watchdog');
         }
 
         $secret  = isset($payload['secret']) ? (string) $payload['secret'] : null;
@@ -236,7 +236,7 @@ class Notifier
         ));
 
         if ($recipients === []) {
-            return __('Email recipients missing.', 'Site-Add-on-Watchdog-main');
+            return __('Email recipients missing.', 'site-add-on-watchdog');
         }
 
         $subject = isset($payload['subject']) ? (string) $payload['subject'] : '';
@@ -249,7 +249,7 @@ class Notifier
             return true;
         }
 
-        $message = __('Email delivery failed.', 'Site-Add-on-Watchdog-main');
+        $message = __('Email delivery failed.', 'site-add-on-watchdog');
         $this->notificationQueue->recordFailure([
             'channel'     => 'email',
             'description' => isset($job['description']) ? (string) $job['description'] : '',
@@ -274,7 +274,7 @@ class Notifier
             return $this->dispatchWebhookJob(is_array($payload) ? $payload : []);
         }
 
-        return __('Unknown notification channel.', 'Site-Add-on-Watchdog-main');
+        return __('Unknown notification channel.', 'site-add-on-watchdog');
     }
 
     private function logWebhookFailure(string $message): void
@@ -291,18 +291,18 @@ class Notifier
     {
         if (empty($risks)) {
             return implode("\n", [
-                __('No plugin risks detected on your site at this time.', 'Site-Add-on-Watchdog-main'),
+                __('No plugin risks detected on your site at this time.', 'site-add-on-watchdog'),
                 '',
                 sprintf(
                     /* translators: %s is the URL to the Plugins page in the WordPress admin. */
-                    __('Review plugins here: %s', 'Site-Add-on-Watchdog-main'),
+                    __('Review plugins here: %s', 'site-add-on-watchdog'),
                     esc_url(admin_url('plugins.php'))
                 ),
             ]);
         }
 
         $lines = [
-            __('Potential plugin risks detected on your site:', 'Site-Add-on-Watchdog-main'),
+            __('Potential plugin risks detected on your site:', 'site-add-on-watchdog'),
             '',
         ];
 
@@ -313,13 +313,13 @@ class Notifier
             );
             $lines[] = sprintf(
                 /* translators: %s is the currently installed plugin version. */
-                __('Current version: %s', 'Site-Add-on-Watchdog-main'),
-                $risk->localVersion ?? __('Unknown', 'Site-Add-on-Watchdog-main')
+                __('Current version: %s', 'site-add-on-watchdog'),
+                $risk->localVersion ?? __('Unknown', 'site-add-on-watchdog')
             );
             $lines[] = sprintf(
                 /* translators: %s is the latest plugin version available in the directory. */
-                __('Available version: %s', 'Site-Add-on-Watchdog-main'),
-                $risk->remoteVersion ?? __('N/A', 'Site-Add-on-Watchdog-main')
+                __('Available version: %s', 'site-add-on-watchdog'),
+                $risk->remoteVersion ?? __('N/A', 'site-add-on-watchdog')
             );
             foreach ($risk->reasons as $reason) {
                 $lines[] = sprintf('- %s', $reason);
@@ -329,7 +329,7 @@ class Notifier
 
         $lines[] = sprintf(
             /* translators: %s is the URL to the Updates page in the WordPress admin. */
-            __('Update plugins here: %s', 'Site-Add-on-Watchdog-main'),
+            __('Update plugins here: %s', 'site-add-on-watchdog'),
             esc_url(admin_url('update-core.php'))
         );
 
@@ -349,7 +349,7 @@ class Notifier
                 'type' => 'header',
                 'text' => [
                     'type'  => 'plain_text',
-                    'text'  => __('Site Add-on Watchdog Risk Alert', 'Site-Add-on-Watchdog-main'),
+                    'text'  => __('Site Add-on Watchdog Risk Alert', 'site-add-on-watchdog'),
                     'emoji' => true,
                 ],
             ],
@@ -358,8 +358,8 @@ class Notifier
                 'text' => [
                     'type' => 'mrkdwn',
                     'text' => $hasRisks
-                        ? __('Potential plugin risks detected on your site:', 'Site-Add-on-Watchdog-main')
-                        : __('No plugin risks detected on your site at this time.', 'Site-Add-on-Watchdog-main'),
+                        ? __('Potential plugin risks detected on your site:', 'site-add-on-watchdog')
+                        : __('No plugin risks detected on your site at this time.', 'site-add-on-watchdog'),
                 ],
             ],
         ];
@@ -386,7 +386,7 @@ class Notifier
                     'text' => sprintf(
                         '<%s|%s>',
                         $adminUrl,
-                        __('Open the Watchdog dashboard', 'Site-Add-on-Watchdog-main')
+                        __('Open the Watchdog dashboard', 'site-add-on-watchdog')
                     ),
                 ],
             ],
@@ -399,7 +399,7 @@ class Notifier
                     'type' => 'button',
                     'text' => [
                         'type'  => 'plain_text',
-                        'text'  => __('Review updates', 'Site-Add-on-Watchdog-main'),
+                        'text'  => __('Review updates', 'site-add-on-watchdog'),
                         'emoji' => true,
                     ],
                     'url'  => $updateUrl,
@@ -409,7 +409,7 @@ class Notifier
                     'type' => 'button',
                     'text' => [
                         'type'  => 'plain_text',
-                        'text'  => __('View dashboard', 'Site-Add-on-Watchdog-main'),
+                        'text'  => __('View dashboard', 'site-add-on-watchdog'),
                         'emoji' => true,
                     ],
                     'url'  => $adminUrl,
@@ -424,7 +424,7 @@ class Notifier
             'attachments' => [
                 [
                     'color' => '#2271b1',
-                    'text'  => __('Stay ahead of plugin risks with Site Add-on Watchdog.', 'Site-Add-on-Watchdog-main'),
+                    'text'  => __('Stay ahead of plugin risks with Site Add-on Watchdog.', 'site-add-on-watchdog'),
                 ],
             ],
         ];
@@ -436,13 +436,13 @@ class Notifier
         $lines[] = sprintf('*%s*', $risk->pluginName);
         $lines[] = sprintf(
             '• %s %s',
-            __('Current version', 'Site-Add-on-Watchdog-main'),
-            $risk->localVersion ?? __('Unknown', 'Site-Add-on-Watchdog-main')
+            __('Current version', 'site-add-on-watchdog'),
+            $risk->localVersion ?? __('Unknown', 'site-add-on-watchdog')
         );
         $lines[] = sprintf(
             '• %s %s',
-            __('Directory version', 'Site-Add-on-Watchdog-main'),
-            $risk->remoteVersion ?? __('N/A', 'Site-Add-on-Watchdog-main')
+            __('Directory version', 'site-add-on-watchdog'),
+            $risk->remoteVersion ?? __('N/A', 'site-add-on-watchdog')
         );
 
         foreach ($risk->reasons as $reason) {
@@ -466,7 +466,7 @@ class Notifier
                 if (! empty($vulnerability['fixed_in'])) {
                     $summary[] = sprintf(
                         /* translators: %s is a plugin version number */
-                        __('Fixed in %s', 'Site-Add-on-Watchdog-main'),
+                        __('Fixed in %s', 'site-add-on-watchdog'),
                         $vulnerability['fixed_in']
                     );
                 }
@@ -513,9 +513,9 @@ class Notifier
         $riskBlocks = [];
         $introText  = __(
             'Review the cards below for plugin, version, and vulnerability details.',
-            'Site-Add-on-Watchdog-main'
+            'site-add-on-watchdog'
         );
-        $noRiskText = __('Everything looks good after the latest scan.', 'Site-Add-on-Watchdog-main');
+        $noRiskText = __('Everything looks good after the latest scan.', 'site-add-on-watchdog');
 
         foreach ($risks as $risk) {
             $riskBlocks[] = [
@@ -528,8 +528,8 @@ class Notifier
         $sections = [
             [
                 'activityTitle' => $hasRisks
-                    ? __('Potential plugin risks detected on your site:', 'Site-Add-on-Watchdog-main')
-                    : __('No plugin risks detected on your site at this time.', 'Site-Add-on-Watchdog-main'),
+                    ? __('Potential plugin risks detected on your site:', 'site-add-on-watchdog')
+                    : __('No plugin risks detected on your site at this time.', 'site-add-on-watchdog'),
                 'markdown'      => true,
                 'text'          => $hasRisks ? $introText : $noRiskText,
             ],
@@ -542,14 +542,14 @@ class Notifier
         return [
             '@type'    => 'MessageCard',
             '@context' => 'https://schema.org/extensions',
-            'summary'  => __('Site Add-on Watchdog Risk Alert', 'Site-Add-on-Watchdog-main'),
+            'summary'  => __('Site Add-on Watchdog Risk Alert', 'site-add-on-watchdog'),
             'themeColor' => '2271B1',
-            'title'      => __('Site Add-on Watchdog Risk Alert', 'Site-Add-on-Watchdog-main'),
+            'title'      => __('Site Add-on Watchdog Risk Alert', 'site-add-on-watchdog'),
             'sections'   => $sections,
             'potentialAction' => [
                 [
                     '@type'  => 'OpenUri',
-                    'name'   => __('Review updates', 'Site-Add-on-Watchdog-main'),
+                    'name'   => __('Review updates', 'site-add-on-watchdog'),
                     'targets' => [
                         [
                             'os'  => 'default',
@@ -559,7 +559,7 @@ class Notifier
                 ],
                 [
                     '@type'  => 'OpenUri',
-                    'name'   => __('Open Watchdog dashboard', 'Site-Add-on-Watchdog-main'),
+                    'name'   => __('Open Watchdog dashboard', 'site-add-on-watchdog'),
                     'targets' => [
                         [
                             'os'  => 'default',
@@ -578,17 +578,17 @@ class Notifier
     {
         $facts   = [];
         $facts[] = [
-            'name'  => __('Current version', 'Site-Add-on-Watchdog-main'),
-            'value' => (string) ($risk->localVersion ?? __('Unknown', 'Site-Add-on-Watchdog-main')),
+            'name'  => __('Current version', 'site-add-on-watchdog'),
+            'value' => (string) ($risk->localVersion ?? __('Unknown', 'site-add-on-watchdog')),
         ];
         $facts[] = [
-            'name'  => __('Directory version', 'Site-Add-on-Watchdog-main'),
-            'value' => (string) ($risk->remoteVersion ?? __('N/A', 'Site-Add-on-Watchdog-main')),
+            'name'  => __('Directory version', 'site-add-on-watchdog'),
+            'value' => (string) ($risk->remoteVersion ?? __('N/A', 'site-add-on-watchdog')),
         ];
 
         if (! empty($risk->reasons)) {
             $facts[] = [
-                'name'  => __('Reasons', 'Site-Add-on-Watchdog-main'),
+                'name'  => __('Reasons', 'site-add-on-watchdog'),
                 'value' => implode("\n", $risk->reasons),
             ];
         }
@@ -609,7 +609,7 @@ class Notifier
                 if (! empty($vulnerability['fixed_in'])) {
                     $summary[] = sprintf(
                         /* translators: %s is a plugin version number */
-                        __('Fixed in %s', 'Site-Add-on-Watchdog-main'),
+                        __('Fixed in %s', 'site-add-on-watchdog'),
                         $vulnerability['fixed_in']
                     );
                 }
@@ -621,7 +621,7 @@ class Notifier
 
             if (! empty($labels)) {
                 $facts[] = [
-                    'name'  => __('Vulnerabilities', 'Site-Add-on-Watchdog-main'),
+                    'name'  => __('Vulnerabilities', 'site-add-on-watchdog'),
                     'value' => implode("\n", $labels),
                 ];
             }
@@ -659,13 +659,13 @@ class Notifier
                 . '<p style="font-size:12px; color:#4b5563; margin:12px 0 0 0;">%9$s</p>',
                 esc_attr($background),
                 esc_attr($brandColor),
-                esc_html__('Site Add-on Watchdog', 'Site-Add-on-Watchdog-main'),
-                esc_html__('Latest scan completed — no risks detected.', 'Site-Add-on-Watchdog-main'),
-                esc_html__('No plugin risks detected on your site at this time.', 'Site-Add-on-Watchdog-main'),
+                esc_html__('Site Add-on Watchdog', 'site-add-on-watchdog'),
+                esc_html__('Latest scan completed — no risks detected.', 'site-add-on-watchdog'),
+                esc_html__('No plugin risks detected on your site at this time.', 'site-add-on-watchdog'),
                 $pluginsUrl,
                 esc_attr($accentColor),
-                esc_html__('Review plugins', 'Site-Add-on-Watchdog-main'),
-                esc_html__('You are receiving this update from Site Add-on Watchdog.', 'Site-Add-on-Watchdog-main')
+                esc_html__('Review plugins', 'site-add-on-watchdog'),
+                esc_html__('You are receiving this update from Site Add-on Watchdog.', 'site-add-on-watchdog')
             );
         }
         $cards = '';
@@ -686,7 +686,7 @@ class Notifier
                     $label = trim($title . ($cve !== '' ? ' - ' . $cve : ''));
                     if ($fixed !== '') {
                         /* translators: %s is a plugin version number. */
-                        $label .= ' ' . sprintf(__('(Fixed in %s)', 'Site-Add-on-Watchdog-main'), $fixed);
+                        $label .= ' ' . sprintf(__('(Fixed in %s)', 'site-add-on-watchdog'), $fixed);
                     }
 
                     if ($label !== '') {
@@ -723,10 +723,10 @@ class Notifier
                 . '</td></tr>',
                 esc_attr($accentColor),
                 esc_html($risk->pluginName),
-                esc_html__('Current Version', 'Site-Add-on-Watchdog-main'),
-                esc_html($risk->localVersion ?? __('Unknown', 'Site-Add-on-Watchdog-main')),
-                esc_html__('Directory Version', 'Site-Add-on-Watchdog-main'),
-                esc_html($risk->remoteVersion ?? __('N/A', 'Site-Add-on-Watchdog-main')),
+                esc_html__('Current Version', 'site-add-on-watchdog'),
+                esc_html($risk->localVersion ?? __('Unknown', 'site-add-on-watchdog')),
+                esc_html__('Directory Version', 'site-add-on-watchdog'),
+                esc_html($risk->remoteVersion ?? __('N/A', 'site-add-on-watchdog')),
                 $reasons
             );
         }
@@ -767,17 +767,17 @@ class Notifier
             esc_attr($background),
             esc_attr($containerCss),
             esc_attr($brandColor),
-            esc_html__('Site Add-on Watchdog', 'Site-Add-on-Watchdog-main'),
-            esc_html__('Potential plugin risks detected on your site', 'Site-Add-on-Watchdog-main'),
+            esc_html__('Site Add-on Watchdog', 'site-add-on-watchdog'),
+            esc_html__('Potential plugin risks detected on your site', 'site-add-on-watchdog'),
             $cards,
             esc_html__(
                 'These plugins need security or maintenance updates. Update them as soon as possible.',
-                'Site-Add-on-Watchdog-main'
+                'site-add-on-watchdog'
             ),
             $updateUrl,
             esc_attr($accentColor),
-            esc_html__('Review updates', 'Site-Add-on-Watchdog-main'),
-            esc_html__('You are receiving this update from Site Add-on Watchdog.', 'Site-Add-on-Watchdog-main')
+            esc_html__('Review updates', 'site-add-on-watchdog'),
+            esc_html__('You are receiving this update from Site Add-on Watchdog.', 'site-add-on-watchdog')
         );
     }
 
