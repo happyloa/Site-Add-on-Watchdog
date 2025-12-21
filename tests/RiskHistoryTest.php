@@ -39,7 +39,7 @@ class RiskHistoryTest extends TestCase
     {
         Functions\when('esc_html__')->alias(static fn ($text, ...$args) => $text);
         Functions\when('esc_html_e')->alias(static function ($text, ...$args): void {
-            echo $text;
+            echo esc_html($text);
         });
         Functions\when('esc_html')->alias(static fn ($value) => (string) $value);
         Functions\when('esc_url')->alias(static fn ($value) => (string) $value);

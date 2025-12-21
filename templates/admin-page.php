@@ -282,7 +282,7 @@ $watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
             'reasons'  => __('Reasons', 'site-add-on-watchdog'),
             'actions'  => __('Actions', 'site-add-on-watchdog'),
         ];
-        $watchdogPerPage = (int) apply_filters('siteadwa_main_admin_risks_per_page', 10);
+        $watchdogPerPage = (int) apply_filters('site_add_on_watchdog_admin_risks_per_page', 10);
         $watchdogNormalizeForSort = static function (string $watchdogValue): string {
             $watchdogNormalized = function_exists('remove_accents') ? remove_accents($watchdogValue) : $watchdogValue;
 
