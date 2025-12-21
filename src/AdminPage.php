@@ -53,8 +53,8 @@ class AdminPage
     public function addMenu(): void
     {
         $this->menuHook = add_menu_page(
-            __('Site Add-on Watchdog', 'site-add-on-watchdog'),
-            __('Watchdog', 'site-add-on-watchdog'),
+            __('Site Add-on Watchdog', 'Site-Add-on-Watchdog-main'),
+            __('Watchdog', 'Site-Add-on-Watchdog-main'),
             'manage_options',
             self::MENU_SLUG,
             [$this, 'render'],
@@ -65,7 +65,7 @@ class AdminPage
     public function render(): void
     {
         if (! current_user_can('manage_options')) {
-            wp_die(esc_html__('You do not have permission to access this page.', 'site-add-on-watchdog'));
+            wp_die(esc_html__('You do not have permission to access this page.', 'Site-Add-on-Watchdog-main'));
         }
 
         $this->enqueuePageAssets();
@@ -115,7 +115,7 @@ class AdminPage
         }
 
         $watchdogHistoryDisplay = (int) apply_filters(
-            'site_add_on_watchdog_admin_history_display',
+            'site_add_on_watchdog_main_admin_history_display',
             min($watchdogHistoryRetention, 10)
         );
         if ($watchdogHistoryDisplay < 1) {
@@ -283,7 +283,7 @@ class AdminPage
 
         $failed = $this->notifier->getLastFailedNotification();
         if ($failed === null) {
-            wp_die(esc_html__('No failed notification payload is available.', 'site-add-on-watchdog'));
+            wp_die(esc_html__('No failed notification payload is available.', 'Site-Add-on-Watchdog-main'));
         }
 
         nocache_headers();
@@ -302,7 +302,7 @@ class AdminPage
         $runAtParam = filter_input(INPUT_GET, 'run_at', FILTER_SANITIZE_NUMBER_INT);
         $runAt = $runAtParam !== null ? absint($runAtParam) : 0;
         if ($runAt <= 0) {
-            wp_die(esc_html__('Invalid history request.', 'site-add-on-watchdog'));
+            wp_die(esc_html__('Invalid history request.', 'Site-Add-on-Watchdog-main'));
         }
 
         $formatParam = filter_input(INPUT_GET, 'format', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
@@ -313,7 +313,7 @@ class AdminPage
 
         $entry = $this->riskRepository->historyEntry($runAt);
         if ($entry === null) {
-            wp_die(esc_html__('History entry not found.', 'site-add-on-watchdog'));
+            wp_die(esc_html__('History entry not found.', 'Site-Add-on-Watchdog-main'));
         }
 
         if ($format === 'csv') {
@@ -328,7 +328,7 @@ class AdminPage
     private function guardAccess(): void
     {
         if (! current_user_can('manage_options')) {
-            wp_die(esc_html__('You do not have permission to perform this action.', 'site-add-on-watchdog'));
+            wp_die(esc_html__('You do not have permission to perform this action.', 'Site-Add-on-Watchdog-main'));
         }
     }
 
@@ -368,8 +368,8 @@ class AdminPage
         wp_enqueue_script(self::PREFIX . '-admin-table', $scriptUrl, [], $assetVersion, true);
         wp_localize_script(self::PREFIX . '-admin-table', 'siteAddOnWatchdogTable', [
             /* translators: 1: current page number, 2: total number of pages. */
-            'pageStatus' => __('Page %1$d of %2$d', 'site-add-on-watchdog'),
-            'noResults' => __('No risks match your search.', 'site-add-on-watchdog'),
+            'pageStatus' => __('Page %1$d of %2$d', 'Site-Add-on-Watchdog-main'),
+            'noResults' => __('No risks match your search.', 'Site-Add-on-Watchdog-main'),
         ]);
 
         $this->assetsEnqueued = true;
@@ -665,7 +665,7 @@ class AdminPage
             $csvContent  = $this->buildCsvContent($rows);
 
             if (! $filesystem->put_contents($target, $csvContent)) {
-                wp_die(esc_html__('Unable to generate history export.', 'site-add-on-watchdog'));
+                wp_die(esc_html__('Unable to generate history export.', 'Site-Add-on-Watchdog-main'));
             }
         }
         exit;

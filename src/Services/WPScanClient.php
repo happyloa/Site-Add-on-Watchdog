@@ -107,8 +107,8 @@ class WPScanClient
         }
 
         $message = $code === 429
-            ? __('WPScan API rate limited; queries are paused temporarily.', 'site-add-on-watchdog')
-            : __('WPScan API is temporarily unavailable; queries are paused.', 'site-add-on-watchdog');
+            ? __('WPScan API rate limited; queries are paused temporarily.', 'Site-Add-on-Watchdog-main')
+            : __('WPScan API is temporarily unavailable; queries are paused.', 'Site-Add-on-Watchdog-main');
 
         set_transient(
             $this->getErrorKey(),

@@ -18,7 +18,7 @@ $watchdogHistoryDownloads = $watchdogHistoryDownloads ?? $historyDownloads ?? []
 ?>
 
 <?php if (empty($watchdogHistoryRecords)) : ?>
-    <p><?php echo esc_html__('No scans have been recorded yet. Run a scan to populate your history.', 'site-add-on-watchdog'); ?></p>
+    <p><?php echo esc_html__('No scans have been recorded yet. Run a scan to populate your history.', 'Site-Add-on-Watchdog-main'); ?></p>
 <?php else : ?>
     <p class="description">
         <?php
@@ -27,7 +27,7 @@ $watchdogHistoryDownloads = $watchdogHistoryDownloads ?? $historyDownloads ?? []
         echo esc_html(
             sprintf(
                 /* translators: 1: number of scans shown, 2: total scans retained */
-                esc_html__('Showing the last %1$s scans (retaining %2$s in total).', 'site-add-on-watchdog'),
+                esc_html__('Showing the last %1$s scans (retaining %2$s in total).', 'Site-Add-on-Watchdog-main'),
                 $watchdogDisplayCount,
                 $watchdogRetentionCount
             )
@@ -56,7 +56,7 @@ $watchdogHistoryDownloads = $watchdogHistoryDownloads ?? $historyDownloads ?? []
                                 '%s risk',
                                 '%s risks',
                                 $watchdogRecord['risk_count'],
-                                'site-add-on-watchdog'
+                                'Site-Add-on-Watchdog-main'
                             )
                             : ($watchdogRecord['risk_count'] === 1 ? '%s risk' : '%s risks');
 
@@ -66,14 +66,14 @@ $watchdogHistoryDownloads = $watchdogHistoryDownloads ?? $historyDownloads ?? []
                     </span>
                 </div>
                 <p class="wp-watchdog-history-card__meta">
-                    <?php echo esc_html__('Download the report for this run:', 'site-add-on-watchdog'); ?>
+                    <?php echo esc_html__('Download the report for this run:', 'Site-Add-on-Watchdog-main'); ?>
                 </p>
                 <div class="wp-watchdog-history-card__downloads">
                     <?php if (! empty($watchdogDownloads['json'])) : ?>
-                        <a class="button button-small" href="<?php echo esc_url($watchdogDownloads['json']); ?>"><?php esc_html_e('Download JSON', 'site-add-on-watchdog'); ?></a>
+                        <a class="button button-small" href="<?php echo esc_url($watchdogDownloads['json']); ?>"><?php esc_html_e('Download JSON', 'Site-Add-on-Watchdog-main'); ?></a>
                     <?php endif; ?>
                     <?php if (! empty($watchdogDownloads['csv'])) : ?>
-                        <a class="button button-small" href="<?php echo esc_url($watchdogDownloads['csv']); ?>"><?php esc_html_e('Download CSV', 'site-add-on-watchdog'); ?></a>
+                        <a class="button button-small" href="<?php echo esc_url($watchdogDownloads['csv']); ?>"><?php esc_html_e('Download CSV', 'Site-Add-on-Watchdog-main'); ?></a>
                     <?php endif; ?>
                 </div>
             </div>
