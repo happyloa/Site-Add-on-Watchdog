@@ -1,3 +1,0 @@
-# Exclude VCS metadata and other hidden files from release archives
-.*
-build/

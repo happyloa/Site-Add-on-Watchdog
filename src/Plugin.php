@@ -214,21 +214,21 @@ class Plugin
         if (! isset($schedules['weekly'])) {
             $schedules['weekly'] = [
                 'interval' => WEEK_IN_SECONDS,
-                'display'  => __('Once Weekly', 'site-add-on-watchdog'),
+                'display'  => __('Once Weekly', 'Site-Add-on-Watchdog-main'),
             ];
         }
 
         if (! isset($schedules[self::QUEUE_CRON_SCHEDULE])) {
             $schedules[self::QUEUE_CRON_SCHEDULE] = [
                 'interval' => $this->queueProcessorInterval(),
-                'display'  => __('Every 5 Minutes (Watchdog queue)', 'site-add-on-watchdog'),
+                'display'  => __('Every 5 Minutes (Watchdog queue)', 'Site-Add-on-Watchdog-main'),
             ];
         }
 
         if (! isset($schedules[self::LEGACY_QUEUE_CRON_SCHEDULE])) {
             $schedules[self::LEGACY_QUEUE_CRON_SCHEDULE] = [
                 'interval' => $this->queueProcessorInterval(),
-                'display'  => __('Every 5 Minutes (Watchdog queue)', 'site-add-on-watchdog'),
+                'display'  => __('Every 5 Minutes (Watchdog queue)', 'Site-Add-on-Watchdog-main'),
             ];
         }
 
@@ -237,7 +237,7 @@ class Plugin
                 'interval' => TestingMode::intervalInSeconds(),
                 'display'  => sprintf(
                     /* translators: %d: interval minutes */
-                    __('Every %d Minutes (testing)', 'site-add-on-watchdog'),
+                    __('Every %d Minutes (testing)', 'Site-Add-on-Watchdog-main'),
                     TestingMode::INTERVAL_MINUTES
                 ),
             ];
@@ -328,7 +328,7 @@ class Plugin
             echo '<div class="notice notice-error"><p>'
                 . esc_html__(
                     'WP-Cron appears disabled. Set a system cron job to trigger wp-cron.php for Site Add-on Watchdog.',
-                    'site-add-on-watchdog'
+                    'Site-Add-on-Watchdog-main'
                 )
                 . '</p></div>';
 
@@ -339,7 +339,7 @@ class Plugin
             echo '<div class="notice notice-warning"><p>'
                 . esc_html__(
                     'Site Add-on Watchdog scans are overdue. Ensure system cron calls wp-cron.php regularly.',
-                    'site-add-on-watchdog'
+                    'Site-Add-on-Watchdog-main'
                 )
                 . '</p></div>';
         }
@@ -633,7 +633,7 @@ class Plugin
 
             return [
                 'status'  => $result,
-                'message' => __('Notifications processed.', 'site-add-on-watchdog'),
+                'message' => __('Notifications processed.', 'Site-Add-on-Watchdog-main'),
                 'queue'   => $queueResult,
             ];
         }
@@ -644,7 +644,7 @@ class Plugin
 
         return [
             'status'  => 'ok',
-            'message' => __('Scan triggered successfully.', 'site-add-on-watchdog'),
+            'message' => __('Scan triggered successfully.', 'Site-Add-on-Watchdog-main'),
             'queue'   => $queueResult,
         ];
     }
@@ -688,14 +688,14 @@ class Plugin
         if ($stored === '') {
             return new \WP_Error(
                 'watchdog_cron_secret_missing',
-                __('Cron secret is missing. Please resave your settings.', 'site-add-on-watchdog'),
+                __('Cron secret is missing. Please resave your settings.', 'Site-Add-on-Watchdog-main'),
                 ['status' => 403]
             );
         }
 
         return new \WP_Error(
             'watchdog_cron_secret_invalid',
-            __('Invalid cron secret.', 'site-add-on-watchdog'),
+            __('Invalid cron secret.', 'Site-Add-on-Watchdog-main'),
             ['status' => 403]
         );
     }
