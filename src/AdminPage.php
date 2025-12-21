@@ -115,7 +115,7 @@ class AdminPage
         }
 
         $watchdogHistoryDisplay = (int) apply_filters(
-            'siteadwa_main_admin_history_display',
+            'site_add_on_watchdog_admin_history_display',
             min($watchdogHistoryRetention, 10)
         );
         if ($watchdogHistoryDisplay < 1) {

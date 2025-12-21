@@ -10,7 +10,7 @@ use Watchdog\Repository\SettingsRepository;
 use Watchdog\Scanner;
 
 if (! class_exists('WP_CLI')) {
-    class WP_CLI
+    class Watchdog_WP_CLI
     {
         public static array $successes = [];
         public static array $errors = [];
@@ -31,6 +31,8 @@ if (! class_exists('WP_CLI')) {
             self::$errors = [];
         }
     }
+
+    class_alias(Watchdog_WP_CLI::class, 'WP_CLI');
 }
 
 class ScanCommandTest extends TestCase
