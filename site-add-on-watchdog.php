@@ -7,7 +7,7 @@
  * Author:      Aaron
  * Author URI:  https://www.worksbyaaron.com/
  * License:     GPLv2 or later
- * Text Domain: Site-Add-on-Watchdog-main
+ * Text Domain: site-add-on-watchdog
  * Requires PHP: 8.1
  * Tested up to: 6.9
  */
@@ -19,7 +19,7 @@ if (version_compare(PHP_VERSION, '8.1', '<')) {
         echo '<div class="notice notice-error"><p>'
             . esc_html__(
                 'Site Add-on Watchdog requires PHP 8.1 or higher. The plugin has been disabled.',
-                'Site-Add-on-Watchdog-main'
+                'site-add-on-watchdog'
             )
             . '</p></div>';
     });
