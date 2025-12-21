@@ -77,9 +77,9 @@ class AdminPage
         $watchdogCronEndpoint = $this->plugin->getCronEndpointUrl();
         $watchdogCronSecretPersisted = $this->settingsRepository->hasPersistedCronSecret();
 
-        $watchdogRiskSortParam = filter_input(INPUT_GET, 'risk_sort', FILTER_UNSAFE_RAW);
-        $watchdogRiskOrderParam = filter_input(INPUT_GET, 'risk_order', FILTER_UNSAFE_RAW);
-        $watchdogRiskSearchParam = filter_input(INPUT_GET, 'risk_search', FILTER_UNSAFE_RAW);
+        $watchdogRiskSortParam = filter_input(INPUT_GET, 'risk_sort', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+        $watchdogRiskOrderParam = filter_input(INPUT_GET, 'risk_order', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+        $watchdogRiskSearchParam = filter_input(INPUT_GET, 'risk_search', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         $watchdogRiskSort = is_string($watchdogRiskSortParam) ? sanitize_key($watchdogRiskSortParam) : '';
         $watchdogRiskOrder = is_string($watchdogRiskOrderParam) ? sanitize_key($watchdogRiskOrderParam) : '';
         $watchdogRiskSearch = is_string($watchdogRiskSearchParam) ? sanitize_text_field($watchdogRiskSearchParam) : '';
@@ -136,19 +136,23 @@ class AdminPage
 
         $watchdogActionPrefix = self::PREFIX;
         $watchdogNoticeNonceValid = $this->isNoticeNonceValid();
-        $watchdogUpdatedNotice = filter_input(INPUT_GET, 'updated', FILTER_UNSAFE_RAW);
-        $watchdogScanNotice = filter_input(INPUT_GET, 'scan', FILTER_UNSAFE_RAW);
+        $watchdogUpdatedNotice = filter_input(INPUT_GET, 'updated', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+        $watchdogScanNotice = filter_input(INPUT_GET, 'scan', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         $watchdogNoticeFlags = [
             'updated' => $watchdogNoticeNonceValid && $watchdogUpdatedNotice !== null,
             'scan' => $watchdogNoticeNonceValid && $watchdogScanNotice !== null,
         ];
         $watchdogNotificationResult = '';
-        $watchdogNotificationsParam = filter_input(INPUT_GET, 'notifications', FILTER_UNSAFE_RAW);
+        $watchdogNotificationsParam = filter_input(INPUT_GET, 'notifications', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         if ($watchdogNoticeNonceValid && is_string($watchdogNotificationsParam)) {
             $watchdogNotificationResult = sanitize_key($watchdogNotificationsParam);
         }
         $watchdogFailedNotificationStatus = '';
-        $watchdogFailedNotificationParam = filter_input(INPUT_GET, 'failed_notification', FILTER_UNSAFE_RAW);
+        $watchdogFailedNotificationParam = filter_input(
+            INPUT_GET,
+            'failed_notification',
+            FILTER_SANITIZE_FULL_SPECIAL_CHARS
+        );
         if ($watchdogNoticeNonceValid && is_string($watchdogFailedNotificationParam)) {
             $watchdogFailedNotificationStatus = sanitize_key($watchdogFailedNotificationParam);
         }
@@ -295,13 +299,13 @@ class AdminPage
         $this->guardAccess();
         check_admin_referer(self::HISTORY_DOWNLOAD_ACTION);
 
-        $runAtParam = filter_input(INPUT_GET, 'run_at', FILTER_UNSAFE_RAW);
+        $runAtParam = filter_input(INPUT_GET, 'run_at', FILTER_SANITIZE_NUMBER_INT);
         $runAt = $runAtParam !== null ? absint($runAtParam) : 0;
         if ($runAt <= 0) {
             wp_die(esc_html__('Invalid history request.', 'site-add-on-watchdog'));
         }
 
-        $formatParam = filter_input(INPUT_GET, 'format', FILTER_UNSAFE_RAW);
+        $formatParam = filter_input(INPUT_GET, 'format', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         $format = is_string($formatParam) ? sanitize_key($formatParam) : 'json';
         if ($format === '' || ! in_array($format, ['json', 'csv'], true)) {
             $format = 'json';
@@ -714,7 +718,7 @@ class AdminPage
 
     private function isNoticeNonceValid(): bool
     {
-        $nonce = filter_input(INPUT_GET, '_wpnonce', FILTER_UNSAFE_RAW);
+        $nonce = filter_input(INPUT_GET, '_wpnonce', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         if (! is_string($nonce) || $nonce === '') {
             return false;
         }
