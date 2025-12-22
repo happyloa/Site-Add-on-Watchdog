@@ -49,7 +49,7 @@ class RiskRepository
                 'reasons' => isset($entry['reasons']) && is_array($entry['reasons'])
                     ? array_values(array_map(static fn ($reason): string => (string) $reason, $entry['reasons']))
                     : [],
-                'details' => isset($entry['details']) && is_array($entry['details']) ? $entry['details'] : [],
+                'details' => $this->normalizeDetails($entry['details'] ?? []),
             ];
         }
 
@@ -208,7 +208,7 @@ class RiskRepository
                     'reasons' => isset($risk['reasons']) && is_array($risk['reasons'])
                         ? array_values(array_map(static fn ($reason): string => (string) $reason, $risk['reasons']))
                         : [],
-                    'details' => isset($risk['details']) && is_array($risk['details']) ? $risk['details'] : [],
+                    'details' => $this->normalizeDetails($risk['details'] ?? []),
                 ];
             }
         }
@@ -217,6 +217,27 @@ class RiskRepository
             'run_at' => $runAt,
             'risks'  => $risks,
         ];
+    }
+
+    private function normalizeDetails(mixed $details): array
+    {
+        if (! is_array($details)) {
+            $details = [];
+        }
+
+        if (! isset($details['vulnerabilities'])) {
+            return $details;
+        }
+
+        if (! is_array($details['vulnerabilities'])) {
+            $details['vulnerabilities'] = [];
+        } else {
+            $details['vulnerabilities'] = array_values(
+                array_filter($details['vulnerabilities'], static fn ($item): bool => is_array($item))
+            );
+        }
+
+        return $details;
     }
 
     private function getOptionWithLegacy(string $option, string $legacyOption, mixed $default): mixed
