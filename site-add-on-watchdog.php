@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Site Add-on Watchdog
  * Description: Monitors installed plugins for potential security risks and outdated versions.
- * Version:     1.7.0
+ * Version:     1.7.1
  * Author:      Aaron
  * Author URI:  https://www.worksbyaaron.com/
  * License:     GPLv2 or later
@@ -93,6 +93,64 @@ $watchdog_adminPage          = new AdminPage(
 
 $watchdog_plugin->register();
 $watchdog_adminPage->register();
+
+add_filter('plugin_action_links_' . plugin_basename(__FILE__), static function (array $links): array {
+    $settings_url = admin_url('admin.php?page=site-add-on-watchdog');
+    $settings_link = sprintf(
+        '<a href="%s">%s</a>',
+        esc_url($settings_url),
+        esc_html__('Settings', 'site-add-on-watchdog')
+    );
+
+    array_unshift($links, $settings_link);
+
+    return $links;
+});
+
+add_filter(
+    'plugin_row_meta',
+    static function (array $links, string $file): array {
+        if ($file !== plugin_basename(__FILE__)) {
+            return $links;
+        }
+
+        $author_url = 'https://www.worksbyaaron.com/';
+        foreach ($links as $index => $link) {
+            if (str_contains($link, $author_url)) {
+                $links[$index] = str_replace(
+                    '<a ',
+                    '<a target="_blank" rel="noopener noreferrer" ',
+                    $link
+                );
+                break;
+            }
+        }
+
+        $details_link = sprintf(
+            '<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+            esc_url('https://wordpress.org/plugins/site-add-on-watchdog/'),
+            esc_html__('View details', 'site-add-on-watchdog')
+        );
+
+        $author_index = null;
+        foreach ($links as $index => $link) {
+            if (str_contains($link, $author_url)) {
+                $author_index = $index;
+                break;
+            }
+        }
+
+        if ($author_index === null) {
+            $links[] = $details_link;
+        } else {
+            array_splice($links, $author_index + 1, 0, [$details_link]);
+        }
+
+        return $links;
+    },
+    10,
+    2
+);
 
 if (defined('WP_CLI') && WP_CLI) {
     \WP_CLI::add_command('watchdog scan', new ScanCommand($watchdog_plugin));
