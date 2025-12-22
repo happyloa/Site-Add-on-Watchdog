@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Site Add-on Watchdog
  * Description: Monitors installed plugins for potential security risks and outdated versions.
- * Version:     1.7.4
+ * Version:     1.7.5
  * Author:      Aaron
  * Author URI:  https://www.worksbyaaron.com/
  * License:     GPLv2 or later
@@ -124,26 +124,6 @@ add_filter(
                 );
                 break;
             }
-        }
-
-        $details_link = sprintf(
-            '<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
-            esc_url('https://wordpress.org/plugins/site-add-on-watchdog/'),
-            esc_html__('View details', 'site-add-on-watchdog')
-        );
-
-        $author_index = null;
-        foreach ($links as $index => $link) {
-            if (str_contains($link, $author_url)) {
-                $author_index = $index;
-                break;
-            }
-        }
-
-        if ($author_index === null) {
-            $links[] = $details_link;
-        } else {
-            array_splice($links, $author_index + 1, 0, [$details_link]);
         }
 
         return $links;
