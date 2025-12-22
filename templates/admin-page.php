@@ -18,6 +18,7 @@
 /** @var string $watchdogFailedNotificationStatus */
 /** @var bool $watchdogCronSecretPersisted */
 
+use Watchdog\Models\Risk;
 use Watchdog\TestingMode;
 defined('ABSPATH') || exit;
 
