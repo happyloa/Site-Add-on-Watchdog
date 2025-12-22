@@ -4,7 +4,7 @@ Tags: security, plugins, monitoring, notifications
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 1.7.1
+Stable tag: 1.7.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -40,8 +40,6 @@ The plugin runs on a schedule you control—choose daily, weekly, a twenty-minut
 * Microsoft Teams: send adaptive card style notices through an incoming webhook connector.
 * Generic webhook: post JSON payload to any endpoint you control, with optional HMAC signatures. Failed deliveries are logged and highlighted on the Watchdog admin screen so you can reconfigure or resend manually.
 
-_Future enhancement:_ automatic retries for failed webhook deliveries are on the roadmap. Track progress in [issue #42](https://github.com/pluginwatchdog/wp-plugin-watchdog/issues/42).
-
 == Installation ==
 
 1. Upload the plugin folder to `/wp-content/plugins/` or install via the admin dashboard.
@@ -67,6 +65,10 @@ Slack requires an Incoming Webhook URL that you can generate from your workspace
 
 Yes. Use the "Run manual scan" button on the Watchdog admin page.
 
+= How do I resend a failed notification payload? =
+
+Open the Watchdog admin page and check the **Delivery health** section. If a notification fails, the payload is captured there with buttons to re-queue or download it.
+
 = Where can I find the test suite? =
 
 Tests and the `phpunit.xml.dist` configuration are available in the public repository but are excluded from the published plugin package. Clone the repo from GitHub to run the test suite locally with PHPUnit.
@@ -77,9 +79,7 @@ Tests and the `phpunit.xml.dist` configuration are available in the public repos
 
 Watchdog relies on WP-Cron to trigger scheduled scans and notifications. If you have set `DISABLE_WP_CRON` to `true` or your site receives very little traffic (so WP-Cron rarely runs), configure a system cron job to call either `wp-cron.php` or the plugin's REST endpoint. The admin **Delivery health** panel lists the REST URL you can target; a typical example looks like this:
 
-```
-curl -X POST https://example.com/wp-json/site-add-on-watchdog/v1/cron
-```
+`curl -X POST https://example.com/wp-json/site-add-on-watchdog/v1/cron`
 
 Testing-mode notifications also rely on this trigger, so be sure your cron job is running when validating delivery.
 
@@ -98,7 +98,16 @@ Examples:
 
 Recommended workflow: on CI/CD platforms, add a job step that boots your WordPress/WP-CLI container, runs pending database migrations if needed, and then calls `wp watchdog scan --notify=false` to verify the plugin state without spamming production channels. Promote to production by rerunning the same command with notifications enabled when you are ready to alert your team.
 
+== Development ==
+
+The development repository is available on GitHub: https://github.com/happyloa/Site-Add-on-Watchdog. Clone it locally to review the source or run the test suite.
+
 == Changelog ==
+
+= 1.7.2 =
+* Remove outdated roadmap reference in the readme.
+* Clarify FAQ guidance for resending failed notifications.
+* Add the GitHub repository link to the readme.
 
 = 1.7.1 =
 * Add Settings and View details links in the plugin row.
