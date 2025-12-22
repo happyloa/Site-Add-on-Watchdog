@@ -438,17 +438,15 @@ class AdminPage
     private function buildReasonSortValue(Risk $risk): string
     {
         $parts = $risk->reasons;
-        if (! empty($risk->details['vulnerabilities'])) {
-            foreach ($risk->details['vulnerabilities'] as $vulnerability) {
-                if (! empty($vulnerability['severity_label'])) {
-                    $parts[] = $vulnerability['severity_label'];
-                }
-                if (! empty($vulnerability['title'])) {
-                    $parts[] = $vulnerability['title'];
-                }
-                if (! empty($vulnerability['cve'])) {
-                    $parts[] = $vulnerability['cve'];
-                }
+        foreach ($this->getRiskVulnerabilities($risk) as $vulnerability) {
+            if (! empty($vulnerability['severity_label'])) {
+                $parts[] = $vulnerability['severity_label'];
+            }
+            if (! empty($vulnerability['title'])) {
+                $parts[] = $vulnerability['title'];
+            }
+            if (! empty($vulnerability['cve'])) {
+                $parts[] = $vulnerability['cve'];
             }
         }
 
@@ -458,11 +456,25 @@ class AdminPage
     private function countRiskSignals(Risk $risk): int
     {
         $count = count($risk->reasons);
-        if (! empty($risk->details['vulnerabilities'])) {
-            $count += count($risk->details['vulnerabilities']);
+        $vulnerabilities = $this->getRiskVulnerabilities($risk);
+        if ($vulnerabilities !== []) {
+            $count += count($vulnerabilities);
         }
 
         return $count;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getRiskVulnerabilities(Risk $risk): array
+    {
+        $vulnerabilities = $risk->details['vulnerabilities'] ?? [];
+        if (! is_array($vulnerabilities)) {
+            return [];
+        }
+
+        return array_values(array_filter($vulnerabilities, static fn ($item): bool => is_array($item)));
     }
 
     private function compareVersions(?string $left, ?string $right): int

@@ -290,8 +290,12 @@ $watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
         };
         $watchdogRiskCount = static function (Risk $watchdogRisk): int {
             $watchdogCount = count($watchdogRisk->reasons);
-            if (! empty($watchdogRisk->details['vulnerabilities'])) {
-                $watchdogCount += count($watchdogRisk->details['vulnerabilities']);
+            $watchdogVulnerabilities = $watchdogRisk->details['vulnerabilities'] ?? [];
+            if (! is_array($watchdogVulnerabilities)) {
+                $watchdogVulnerabilities = [];
+            }
+            if ($watchdogVulnerabilities !== []) {
+                $watchdogCount += count($watchdogVulnerabilities);
             }
 
             return $watchdogCount;
@@ -436,17 +440,19 @@ $watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
                         $watchdogRemoteVersion = $watchdogRisk->remoteVersion ?? __('N/A', 'site-add-on-watchdog');
                         $watchdogRemoteSort    = is_string($watchdogRisk->remoteVersion) ? $watchdogNormalizeForSort($watchdogRisk->remoteVersion) : '';
                         $watchdogReasonParts   = $watchdogRisk->reasons;
-                        if (! empty($watchdogRisk->details['vulnerabilities'])) {
-                            foreach ($watchdogRisk->details['vulnerabilities'] as $watchdogVulnerability) {
-                                if (! empty($watchdogVulnerability['severity_label'])) {
-                                    $watchdogReasonParts[] = $watchdogVulnerability['severity_label'];
-                                }
-                                if (! empty($watchdogVulnerability['title'])) {
-                                    $watchdogReasonParts[] = $watchdogVulnerability['title'];
-                                }
-                                if (! empty($watchdogVulnerability['cve'])) {
-                                    $watchdogReasonParts[] = $watchdogVulnerability['cve'];
-                                }
+                        $watchdogVulnerabilities = $watchdogRisk->details['vulnerabilities'] ?? [];
+                        if (! is_array($watchdogVulnerabilities)) {
+                            $watchdogVulnerabilities = [];
+                        }
+                        foreach ($watchdogVulnerabilities as $watchdogVulnerability) {
+                            if (! empty($watchdogVulnerability['severity_label'])) {
+                                $watchdogReasonParts[] = $watchdogVulnerability['severity_label'];
+                            }
+                            if (! empty($watchdogVulnerability['title'])) {
+                                $watchdogReasonParts[] = $watchdogVulnerability['title'];
+                            }
+                            if (! empty($watchdogVulnerability['cve'])) {
+                                $watchdogReasonParts[] = $watchdogVulnerability['cve'];
                             }
                         }
                         $watchdogReasonSort = $watchdogNormalizeForSort(implode(' ', $watchdogReasonParts));
@@ -484,11 +490,11 @@ $watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
                                     <?php foreach ($watchdogRisk->reasons as $watchdogReason) : ?>
                                         <li><?php echo esc_html($watchdogReason); ?></li>
                                     <?php endforeach; ?>
-                                    <?php if (! empty($watchdogRisk->details['vulnerabilities'])) : ?>
+                                    <?php if (! empty($watchdogVulnerabilities)) : ?>
                                         <li>
                                             <?php esc_html_e('WPScan vulnerabilities:', 'site-add-on-watchdog'); ?>
                                             <ul>
-                                                <?php foreach ($watchdogRisk->details['vulnerabilities'] as $watchdogVuln) : ?>
+                                                <?php foreach ($watchdogVulnerabilities as $watchdogVuln) : ?>
                                                     <li>
                                                         <?php if (! empty($watchdogVuln['severity']) && ! empty($watchdogVuln['severity_label'])) : ?>
                                                             <?php $watchdogSeverityClass = 'wp-watchdog-severity wp-watchdog-severity--' . sanitize_html_class((string) $watchdogVuln['severity']); ?>
