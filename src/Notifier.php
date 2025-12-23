@@ -3,6 +3,7 @@
 namespace Watchdog;
 
 use Watchdog\Models\Risk;
+use Watchdog\Repository\RiskRepository;
 use Watchdog\Repository\SettingsRepository;
 use Watchdog\Services\NotificationQueue;
 use Watchdog\Version;
@@ -13,6 +14,7 @@ class Notifier
 
     public function __construct(
         private readonly SettingsRepository $settingsRepository,
+        private readonly RiskRepository $riskRepository,
         private readonly NotificationQueue $notificationQueue
     ) {
     }
@@ -29,8 +31,17 @@ class Notifier
         $slackSettings   = is_array($notifications['slack'] ?? null) ? $notifications['slack'] : [];
         $teamsSettings   = is_array($notifications['teams'] ?? null) ? $notifications['teams'] : [];
         $webhookSettings = $notifications['webhook'];
-        $plainTextReport = $this->formatPlainTextMessage($risks);
-        $emailReport     = $this->formatEmailMessage($risks);
+        $notifyChangesOnly = ! empty($notifications['notify_changes_only'] ?? false);
+        $changeSummary = null;
+
+        if ($notifyChangesOnly) {
+            $diff = $this->riskRepository->diffWithLatest($risks);
+            $risks = array_merge($diff['added'], $diff['changed']);
+            $changeSummary = $this->formatChangeSummaryText($diff);
+        }
+
+        $plainTextReport = $this->formatPlainTextMessage($risks, $changeSummary);
+        $emailReport     = $this->formatEmailMessage($risks, $changeSummary);
 
         $jobs = [];
 
@@ -63,10 +74,10 @@ class Notifier
             $jobs[] = [
                 'channel'     => 'webhook',
                 'description' => __('Discord webhook', 'site-add-on-watchdog'),
-                'payload'     => [
-                    'url'    => $discordSettings['webhook'],
-                    'body'   => $this->formatDiscordMessage($risks, $plainTextReport),
-                    'secret' => null,
+                    'payload'     => [
+                        'url'    => $discordSettings['webhook'],
+                        'body'   => $this->formatDiscordMessage($risks, $plainTextReport),
+                        'secret' => null,
                 ],
             ];
         }
@@ -75,24 +86,24 @@ class Notifier
             $jobs[] = [
                 'channel'     => 'webhook',
                 'description' => __('Slack webhook', 'site-add-on-watchdog'),
-                'payload'     => [
-                    'url'    => $slackSettings['webhook'],
-                    'body'   => $this->formatSlackMessage($risks, $plainTextReport),
-                    'secret' => null,
-                ],
-            ];
+                    'payload'     => [
+                        'url'    => $slackSettings['webhook'],
+                        'body'   => $this->formatSlackMessage($risks, $plainTextReport, $changeSummary),
+                        'secret' => null,
+                    ],
+                ];
         }
 
         if (! empty($teamsSettings['enabled']) && ! empty($teamsSettings['webhook'])) {
             $jobs[] = [
                 'channel'     => 'webhook',
                 'description' => __('Microsoft Teams webhook', 'site-add-on-watchdog'),
-                'payload'     => [
-                    'url'    => $teamsSettings['webhook'],
-                    'body'   => $this->formatTeamsMessage($risks),
-                    'secret' => null,
-                ],
-            ];
+                    'payload'     => [
+                        'url'    => $teamsSettings['webhook'],
+                        'body'   => $this->formatTeamsMessage($risks, $changeSummary),
+                        'secret' => null,
+                    ],
+                ];
         }
 
         if (! empty($webhookSettings['enabled']) && ! empty($webhookSettings['url'])) {
@@ -287,24 +298,36 @@ class Notifier
     /**
      * @param Risk[] $risks
      */
-    private function formatPlainTextMessage(array $risks): string
+    private function formatPlainTextMessage(array $risks, ?string $changeSummary = null): string
     {
         if (empty($risks)) {
-            return implode("\n", [
+            $lines = [
                 __('No plugin risks detected on your site at this time.', 'site-add-on-watchdog'),
-                '',
-                sprintf(
-                    /* translators: %s is the URL to the Plugins page in the WordPress admin. */
-                    __('Review plugins here: %s', 'site-add-on-watchdog'),
-                    esc_url(admin_url('plugins.php'))
-                ),
-            ]);
+            ];
+
+            if ($changeSummary !== null) {
+                $lines[] = $changeSummary;
+            }
+
+            $lines[] = '';
+            $lines[] = sprintf(
+                /* translators: %s is the URL to the Plugins page in the WordPress admin. */
+                __('Review plugins here: %s', 'site-add-on-watchdog'),
+                esc_url(admin_url('plugins.php'))
+            );
+
+            return implode("\n", $lines);
         }
 
         $lines = [
             __('Potential plugin risks detected on your site:', 'site-add-on-watchdog'),
             '',
         ];
+
+        if ($changeSummary !== null) {
+            $lines[] = $changeSummary;
+            $lines[] = '';
+        }
 
         foreach ($risks as $risk) {
             $lines[] = sprintf(
@@ -339,7 +362,7 @@ class Notifier
     /**
      * @param Risk[] $risks
      */
-    private function formatSlackMessage(array $risks, string $plainTextReport): array
+    private function formatSlackMessage(array $risks, string $plainTextReport, ?string $changeSummary): array
     {
         $hasRisks  = ! empty($risks);
         $adminUrl  = admin_url('admin.php?page=site-add-on-watchdog');
@@ -363,6 +386,16 @@ class Notifier
                 ],
             ],
         ];
+
+        if ($changeSummary !== null) {
+            $blocks[] = [
+                'type' => 'section',
+                'text' => [
+                    'type' => 'mrkdwn',
+                    'text' => $changeSummary,
+                ],
+            ];
+        }
 
         if ($hasRisks) {
             $blocks[] = ['type' => 'divider'];
@@ -505,7 +538,7 @@ class Notifier
     /**
      * @param Risk[] $risks
      */
-    private function formatTeamsMessage(array $risks): array
+    private function formatTeamsMessage(array $risks, ?string $changeSummary): array
     {
         $hasRisks   = ! empty($risks);
         $adminUrl   = admin_url('admin.php?page=site-add-on-watchdog');
@@ -534,6 +567,13 @@ class Notifier
                 'text'          => $hasRisks ? $introText : $noRiskText,
             ],
         ];
+
+        if ($changeSummary !== null) {
+            $sections[] = [
+                'text' => $changeSummary,
+                'markdown' => true,
+            ];
+        }
 
         if ($hasRisks) {
             $sections = array_merge($sections, $riskBlocks);
@@ -633,7 +673,7 @@ class Notifier
     /**
      * @param Risk[] $risks
      */
-    private function formatEmailMessage(array $risks): string
+    private function formatEmailMessage(array $risks, ?string $changeSummary): string
     {
         $brandColor  = '#1d2327';
         $accentColor = '#2271b1';
@@ -648,19 +688,29 @@ class Notifier
 
         if (empty($risks)) {
             $pluginsUrl = esc_url(admin_url('plugins.php'));
+            $summaryLine = '';
+            if ($changeSummary !== null) {
+                $summaryLine = sprintf(
+                    '<p style="font-size:13px; line-height:1.6; margin:0 0 12px 0;">%s</p>',
+                    esc_html($changeSummary)
+                );
+            }
+
             return sprintf(
                 '<div style="background:%1$s; padding:22px 24px; border-radius:10px; border:1px solid #dcdcde;">'
                 . '<h1 style="margin:0 0 10px 0; font-size:22px; color:%2$s;">%3$s</h1>'
                 . '<p style="font-size:14px; line-height:1.7; margin:0 0 10px 0;">%4$s</p>'
-                . '<p style="font-size:14px; line-height:1.7; margin:0 0 16px 0;">%5$s</p>'
-                . '<a href="%6$s" style="display:inline-block; padding:10px 16px; background:%7$s;'
-                . ' color:#ffffff; text-decoration:none; border-radius:6px; font-weight:600;">%8$s</a>'
+                . '%5$s'
+                . '<p style="font-size:14px; line-height:1.7; margin:0 0 16px 0;">%6$s</p>'
+                . '<a href="%7$s" style="display:inline-block; padding:10px 16px; background:%8$s;'
+                . ' color:#ffffff; text-decoration:none; border-radius:6px; font-weight:600;">%9$s</a>'
                 . '</div>'
-                . '<p style="font-size:12px; color:#4b5563; margin:12px 0 0 0;">%9$s</p>',
+                . '<p style="font-size:12px; color:#4b5563; margin:12px 0 0 0;">%10$s</p>',
                 esc_attr($background),
                 esc_attr($brandColor),
                 esc_html__('Site Add-on Watchdog', 'site-add-on-watchdog'),
                 esc_html__('Latest scan completed — no risks detected.', 'site-add-on-watchdog'),
+                $summaryLine,
                 esc_html__('No plugin risks detected on your site at this time.', 'site-add-on-watchdog'),
                 $pluginsUrl,
                 esc_attr($accentColor),
@@ -732,6 +782,13 @@ class Notifier
         }
 
         $updateUrl = esc_url(admin_url('update-core.php'));
+        $summaryLine = '';
+        if ($changeSummary !== null) {
+            $summaryLine = sprintf(
+                '<p style="margin:10px 0 0; font-size:13px; line-height:1.6;">%s</p>',
+                esc_html($changeSummary)
+            );
+        }
 
         return sprintf(
             '<table role="presentation" width="100%%" cellspacing="0" cellpadding="0"'
@@ -743,24 +800,25 @@ class Notifier
             . ' border-radius:10px 10px 0 0;">'
             . '<h1 style="margin:0; font-size:22px;">%4$s</h1>'
             . '<p style="margin:6px 0 0; font-size:14px;">%5$s</p>'
+            . '%6$s'
             . '</td>'
             . '</tr>'
             . '<tr>'
             . '<td style="background:#ffffff; border-left:1px solid #dcdcde;'
             . ' border-right:1px solid #dcdcde;">'
-            . '<table role="presentation" width="100%%" cellspacing="0" cellpadding="0">%6$s</table>'
+            . '<table role="presentation" width="100%%" cellspacing="0" cellpadding="0">%7$s</table>'
             . '</td>'
             . '</tr>'
             . '<tr>'
             . '<td style="background:#ffffff; border:1px solid #dcdcde; border-top:0;'
             . ' padding:16px 26px 22px 26px;">'
-            . '<p style="margin:0 0 14px 0; font-size:14px; line-height:1.6;">%7$s</p>'
-            . '<a href="%8$s" style="display:inline-block; padding:10px 16px; background:%9$s; color:#ffffff;'
-            . ' text-decoration:none; border-radius:6px; font-weight:600;">%10$s</a>'
+            . '<p style="margin:0 0 14px 0; font-size:14px; line-height:1.6;">%8$s</p>'
+            . '<a href="%9$s" style="display:inline-block; padding:10px 16px; background:%10$s; color:#ffffff;'
+            . ' text-decoration:none; border-radius:6px; font-weight:600;">%11$s</a>'
             . '</td>'
             . '</tr>'
             . '<tr>'
-            . '<td style="text-align:center; font-size:12px; color:#4b5563; padding:14px 10px;">%11$s</td>'
+            . '<td style="text-align:center; font-size:12px; color:#4b5563; padding:14px 10px;">%12$s</td>'
             . '</tr>'
             . '</table>'
             . '</td></tr></table>',
@@ -769,6 +827,7 @@ class Notifier
             esc_attr($brandColor),
             esc_html__('Site Add-on Watchdog', 'site-add-on-watchdog'),
             esc_html__('Potential plugin risks detected on your site', 'site-add-on-watchdog'),
+            $summaryLine,
             $cards,
             esc_html__(
                 'These plugins need security or maintenance updates. Update them as soon as possible.',
@@ -778,6 +837,26 @@ class Notifier
             esc_attr($accentColor),
             esc_html__('Review updates', 'site-add-on-watchdog'),
             esc_html__('You are receiving this update from Site Add-on Watchdog.', 'site-add-on-watchdog')
+        );
+    }
+
+    /**
+     * @param array{added:Risk[], changed:Risk[]} $diff
+     */
+    private function formatChangeSummaryText(array $diff): string
+    {
+        $addedCount = count($diff['added'] ?? []);
+        $changedCount = count($diff['changed'] ?? []);
+
+        if ($addedCount === 0 && $changedCount === 0) {
+            return __('Change summary: no new or updated risks since the last scan.', 'site-add-on-watchdog');
+        }
+
+        return sprintf(
+            /* translators: 1: new risks count, 2: updated risks count */
+            __('Change summary: %1$d new, %2$d updated.', 'site-add-on-watchdog'),
+            $addedCount,
+            $changedCount
         );
     }
 

@@ -745,6 +745,24 @@ $watchdogActionPrefix = $watchdogActionPrefix ?? \Watchdog\Version::PREFIX;
                 </td>
             </tr>
             <tr>
+                <th scope="row"><?php esc_html_e('Notification behavior', 'site-add-on-watchdog'); ?></th>
+                <td>
+                    <label for="wp-watchdog-notify-changes-only">
+                        <input
+                            type="checkbox"
+                            id="wp-watchdog-notify-changes-only"
+                            name="settings[notifications][notify_changes_only]"
+                            value="1"
+                            <?php checked(! empty($watchdogSettings['notifications']['notify_changes_only'])); ?>
+                        />
+                        <?php esc_html_e('Only notify when new or updated risks are detected.', 'site-add-on-watchdog'); ?>
+                    </label>
+                    <p class="description">
+                        <?php esc_html_e('When enabled, notifications include only newly added or changed risks compared to the previous scan.', 'site-add-on-watchdog'); ?>
+                    </p>
+                </td>
+            </tr>
+            <tr>
                 <th scope="row"><?php esc_html_e('Email notifications', 'site-add-on-watchdog'); ?></th>
                 <td data-watchdog-notification>
                     <label class="wp-watchdog-notification-toggle">

@@ -136,6 +136,52 @@ class RiskRepository
     }
 
     /**
+     * @param Risk[] $risks
+     * @return array{added:Risk[], changed:Risk[]}
+     */
+    public function diffWithLatest(array $risks): array
+    {
+        $history = $this->history(2);
+        $latest  = $history[0]['risks'] ?? [];
+
+        $currentMap  = $this->buildSignatureMapFromRisks($risks);
+        $previousMap = $this->buildSignatureMapFromStored($latest);
+
+        if (
+            $previousMap !== []
+            && $this->signatureMapsMatch($previousMap, $currentMap)
+            && isset($history[1]['risks'])
+        ) {
+            $previousMap = $this->buildSignatureMapFromStored($history[1]['risks']);
+        }
+
+        $added   = [];
+        $changed = [];
+
+        foreach ($risks as $risk) {
+            $normalized = $this->normalizeRiskArray($risk->toArray());
+            if ($normalized['plugin_slug'] === '') {
+                continue;
+            }
+
+            if (! isset($previousMap[$normalized['plugin_slug']])) {
+                $added[] = $risk;
+                continue;
+            }
+
+            $signature = $this->buildRiskSignature($normalized);
+            if ($signature !== $previousMap[$normalized['plugin_slug']]) {
+                $changed[] = $risk;
+            }
+        }
+
+        return [
+            'added'   => $added,
+            'changed' => $changed,
+        ];
+    }
+
+    /**
      * @return string[]
      */
     public function ignored(): array
@@ -238,6 +284,138 @@ class RiskRepository
         }
 
         return $details;
+    }
+
+    /**
+     * @return array{plugin_slug:string, local_version:string, remote_version:?string, reasons:string[], details:array}
+     */
+    private function normalizeRiskArray(array $risk): array
+    {
+        return [
+            'plugin_slug'   => isset($risk['plugin_slug']) ? (string) $risk['plugin_slug'] : '',
+            'local_version' => isset($risk['local_version']) ? (string) $risk['local_version'] : '',
+            'remote_version' => isset($risk['remote_version']) && $risk['remote_version'] !== ''
+                ? (string) $risk['remote_version']
+                : null,
+            'reasons' => isset($risk['reasons']) && is_array($risk['reasons'])
+                ? array_values(array_map(static fn ($reason): string => (string) $reason, $risk['reasons']))
+                : [],
+            'details' => $this->normalizeDetails($risk['details'] ?? []),
+        ];
+    }
+
+    /**
+     * @param Risk[] $risks
+     * @return array<string, string>
+     */
+    private function buildSignatureMapFromRisks(array $risks): array
+    {
+        $map = [];
+        foreach ($risks as $risk) {
+            $normalized = $this->normalizeRiskArray($risk->toArray());
+            if ($normalized['plugin_slug'] === '') {
+                continue;
+            }
+
+            $map[$normalized['plugin_slug']] = $this->buildRiskSignature($normalized);
+        }
+
+        return $map;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function buildSignatureMapFromStored(mixed $stored): array
+    {
+        if (! is_array($stored)) {
+            return [];
+        }
+
+        $map = [];
+        foreach ($stored as $risk) {
+            if (! is_array($risk)) {
+                continue;
+            }
+
+            $normalized = $this->normalizeRiskArray($risk);
+            if ($normalized['plugin_slug'] === '') {
+                continue;
+            }
+
+            $map[$normalized['plugin_slug']] = $this->buildRiskSignature($normalized);
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param array<string, string> $left
+     * @param array<string, string> $right
+     */
+    private function signatureMapsMatch(array $left, array $right): bool
+    {
+        ksort($left);
+        ksort($right);
+
+        return $left === $right;
+    }
+
+    private function buildRiskSignature(array $risk): string
+    {
+        $payload = [
+            'local_version' => $risk['local_version'],
+            'remote_version' => $risk['remote_version'],
+            'reasons' => $this->normalizeComparisonValue($risk['reasons']),
+            'details' => $this->normalizeComparisonValue($risk['details']),
+        ];
+
+        $encoded = wp_json_encode($payload);
+        if (! is_string($encoded)) {
+            return '';
+        }
+
+        return $encoded;
+    }
+
+    private function normalizeComparisonValue(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        if ($this->isAssociativeArray($value)) {
+            ksort($value);
+            $normalized = [];
+            foreach ($value as $key => $item) {
+                $normalized[$key] = $this->normalizeComparisonValue($item);
+            }
+
+            return $normalized;
+        }
+
+        $normalized = array_map(fn ($item) => $this->normalizeComparisonValue($item), $value);
+        usort($normalized, static function ($left, $right): int {
+            $leftValue = wp_json_encode($left);
+            $rightValue = wp_json_encode($right);
+
+            if (! is_string($leftValue)) {
+                $leftValue = '';
+            }
+
+            if (! is_string($rightValue)) {
+                $rightValue = '';
+            }
+
+            return strcmp($leftValue, $rightValue);
+        });
+
+        return array_values($normalized);
+    }
+
+    private function isAssociativeArray(array $value): bool
+    {
+        return array_keys($value) !== range(0, count($value) - 1);
     }
 
     private function getOptionWithLegacy(string $option, string $legacyOption, mixed $default): mixed

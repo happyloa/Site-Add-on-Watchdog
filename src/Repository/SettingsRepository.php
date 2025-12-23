@@ -40,6 +40,7 @@ class SettingsRepository
                     'url'     => '',
                     'secret'  => '',
                 ],
+                'notify_changes_only' => false,
                 'testing_expires_at' => 0,
                 'wpscan_api_key' => '',
                 'last_manual_notification_at' => 0,
@@ -77,6 +78,7 @@ class SettingsRepository
         $settings['notifications']['testing_expires_at'] = $this->sanitizeTestingExpiration(
             $settings['notifications']['testing_expires_at'] ?? 0
         );
+        $settings['notifications']['notify_changes_only'] = ! empty($settings['notifications']['notify_changes_only']);
         $settings['notifications']['last_manual_notification_at'] = $this->sanitizeTimestamp(
             $settings['notifications']['last_manual_notification_at'] ?? 0
         );
@@ -179,6 +181,7 @@ class SettingsRepository
                     'url'     => esc_url_raw($webhook['url'] ?? ''),
                     'secret'  => sanitize_text_field($webhook['secret'] ?? ''),
                 ],
+                'notify_changes_only' => ! empty($notifications['notify_changes_only']),
                 'wpscan_api_key' => sanitize_text_field($notifications['wpscan_api_key'] ?? ''),
                 'last_manual_notification_at' => $this->sanitizeTimestamp(
                     $notifications['last_manual_notification_at']
@@ -358,6 +361,7 @@ class SettingsRepository
                 'url'     => $webhook['url'] ?? $legacy['webhook']['url'],
                 'secret'  => $webhook['secret'] ?? $legacy['webhook']['secret'],
             ],
+            'notify_changes_only' => $notifications['notify_changes_only'] ?? null,
             'wpscan_api_key' => $notifications['wpscan_api_key'] ?? $legacy['wpscan_api_key'],
             'testing_expires_at' => $notifications['testing_expires_at'] ?? null,
             'last_manual_notification_at' => $notifications['last_manual_notification_at']

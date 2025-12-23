@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Site Add-on Watchdog
  * Description: Monitors installed plugins for potential security risks and outdated versions.
- * Version:     1.7.5
+ * Version:     1.8.0
  * Author:      Aaron
  * Author URI:  https://www.worksbyaaron.com/
  * License:     GPLv2 or later
@@ -77,7 +77,11 @@ $watchdog_scanner            = new Scanner(
     $watchdog_wpscanClient
 );
 $watchdog_notificationQueue  = new NotificationQueue();
-$watchdog_notifier           = new Notifier($watchdog_settingsRepository, $watchdog_notificationQueue);
+$watchdog_notifier           = new Notifier(
+    $watchdog_settingsRepository,
+    $watchdog_riskRepository,
+    $watchdog_notificationQueue
+);
 $watchdog_plugin             = new Plugin(
     $watchdog_scanner,
     $watchdog_riskRepository,
