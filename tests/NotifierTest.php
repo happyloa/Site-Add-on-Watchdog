@@ -4,6 +4,7 @@ use function Brain\Monkey\Functions\expect;
 use function Brain\Monkey\Functions\when;
 use Watchdog\Models\Risk;
 use Watchdog\Notifier;
+use Watchdog\Repository\RiskRepository;
 use Watchdog\Repository\SettingsRepository;
 use Watchdog\Services\NotificationQueue;
 
@@ -254,7 +255,8 @@ class NotifierTest extends TestCase
                 $this->isType('int')
             );
 
-        $notifier = new Notifier($repository, $queue);
+        $riskRepository = $this->createMock(RiskRepository::class);
+        $notifier = new Notifier($repository, $riskRepository, $queue);
         $notifier->notify([
             new Risk('plugin-slug', 'Plugin Name', '1.0.0', null, ['Example reason']),
         ]);
@@ -727,6 +729,8 @@ class NotifierTest extends TestCase
                 ];
             });
 
-        return new Notifier($repository, $queue);
+        $riskRepository = $this->createMock(RiskRepository::class);
+
+        return new Notifier($repository, $riskRepository, $queue);
     }
 }
