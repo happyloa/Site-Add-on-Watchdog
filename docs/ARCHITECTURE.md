@@ -1,6 +1,6 @@
 # Site Add-on Watchdog architecture
 
-Version 1.8.1 keeps the WordPress entry file deliberately small and puts each responsibility behind a focused class.
+Version 1.8.3 keeps the WordPress entry file deliberately small and puts each responsibility behind a focused class.
 
 ```text
 site-add-on-watchdog.php
@@ -24,7 +24,7 @@ site-add-on-watchdog.php
 - `Bootstrap` is the composition root. Constructors receive dependencies and should not perform network requests.
 - `Plugin` owns WordPress hooks and coordinates use cases; scanning and message formatting stay in their own services.
 - `RiskRepository` and `SettingsRepository` are the only classes that own the plugin's persisted option shapes and legacy migration.
-- `Scanner` contains provider isolation and cached remote lookups. One malformed plugin or unavailable provider must not abort a site request.
+- `Scanner` contains provider isolation and cached successful WordPress.org lookups. A temporary lookup failure keeps that plugin's previous risk and does not abort the remaining scan.
 - `Notifier` creates delivery jobs, while `MessageFormatter` owns platform payload formats and `NotificationQueue` owns retry state.
 - `AdminPage` handles permissions, nonces, redirects, and rendering. Sorting remains independently testable through `RiskSorter`.
 

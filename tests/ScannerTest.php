@@ -1,6 +1,7 @@
 <?php
 
 use Brain\Monkey\Functions;
+use Watchdog\Models\Risk;
 use Watchdog\Repository\RiskRepository;
 use Watchdog\Scanner;
 use Watchdog\Services\VersionComparator;
@@ -276,5 +277,55 @@ class ScannerTest extends TestCase
 
         self::assertCount(1, $risks);
         self::assertSame('healthy', $risks[0]->pluginSlug);
+    }
+
+    public function testDirectoryFailureKeepsPriorRiskAndRetriesOnNextScan(): void
+    {
+        Functions\when('get_plugins')->justReturn([
+            'broken/broken.php' => ['Name' => 'Broken Plugin', 'Version' => '1.0.0'],
+            'healthy/healthy.php' => ['Name' => 'Healthy Plugin', 'Version' => '1.0.0'],
+        ]);
+        Functions\when('sanitize_title')->alias(static fn ($value) => $value);
+        Functions\when('sanitize_text_field')->alias(static fn ($value) => $value);
+        Functions\when('__')->alias(static fn ($text) => $text);
+        Functions\when('get_option')->alias(static function (string $option) {
+            if ($option === 'siteadwa_risks') {
+                return [(new Risk('broken', 'Broken Plugin', '1.0.0', '1.2.0', ['Prior risk']))->toArray()];
+            }
+
+            return [];
+        });
+
+        $failure = new \stdClass();
+        Functions\when('is_wp_error')->alias(static fn ($value): bool => $value === $failure);
+        $requests = [];
+        Functions\when('plugins_api')->alias(static function ($action, $args) use ($failure, &$requests) {
+            $requests[] = $args['slug'];
+            if ($args['slug'] === 'broken' && count($requests) < 3) {
+                return $failure;
+            }
+
+            return (object) ['version' => '1.2.0', 'sections' => []];
+        });
+
+        $wpscanClient = new class extends WPScanClient {
+            public function __construct()
+            {
+            }
+
+            public function fetchVulnerabilities(string $pluginSlug, string $pluginVersion = ''): array
+            {
+                return [];
+            }
+        };
+        $scanner = new Scanner(new RiskRepository(), new VersionComparator(), $wpscanClient);
+
+        $first = $scanner->scan();
+        self::assertSame(['broken', 'healthy'], array_map(static fn (Risk $risk) => $risk->pluginSlug, $first));
+        self::assertSame(['Prior risk'], $first[0]->reasons);
+
+        $second = $scanner->scan();
+        self::assertSame(['broken', 'healthy', 'broken', 'healthy'], $requests);
+        self::assertContains('An update is available in the plugin directory.', $second[0]->reasons);
     }
 }

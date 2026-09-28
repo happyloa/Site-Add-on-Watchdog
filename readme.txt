@@ -4,7 +4,7 @@ Tags: security, plugins, monitoring, notifications
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.8.2
+Stable tag: 1.8.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,16 +14,16 @@ Monitor installed plugins for security notices, outdated releases, and optional 
 
 Site Add-on Watchdog keeps an eye on your site's plugins and warns you when:
 
-* Your installed version is two or more minor releases behind the directory build.
-* The official changelog mentions security or vulnerability fixes.
-* (Optional) WPScan lists open CVEs for the plugin when you provide your own API key.
+* A newer release is available for an installed plugin, with an additional warning when it is two or more minor releases behind.
+* The latest release's official changelog mentions security or vulnerability fixes.
+* (Optional) WPScan reports vulnerabilities affecting the installed version when you provide your own API key.
 
-The plugin runs on a schedule you control—choose daily, weekly, a twenty-minute testing cadence, or rely on manual scans—and stores results locally. To compare public versions and changelogs, Watchdog sends one plugin slug at a time to WordPress.org and caches the response. WPScan lookups and outgoing notifications remain opt-in.
+The plugin runs on a schedule you control—choose daily, weekly, a twenty-minute testing cadence, or rely on manual scans—and stores results locally. To compare public versions and changelogs, Watchdog looks up plugin slugs individually on WordPress.org and caches successful responses for six hours. WPScan lookups and outgoing notifications remain opt-in.
 
 === Privacy first ===
 
 * Risk processing and storage stay on your site; Watchdog does not send telemetry, site content, or user data.
-* WordPress.org receives one request for each installed plugin slug so Watchdog can retrieve public version and changelog data.
+* WordPress.org receives a request for each installed plugin slug when its cached directory data expires so Watchdog can retrieve public version and changelog data.
 * WPScan receives one plugin-slug lookup at a time only when you add your personal API token.
 * Notification channels are opt-in and send the detected plugin risks to the destinations you configure.
 
@@ -31,7 +31,7 @@ The plugin runs on a schedule you control—choose daily, weekly, a twenty-minut
 
 Watchdog uses the following external services under the stated conditions:
 
-* **WordPress.org Plugin API (required for directory comparisons):** During a scan, Watchdog sends each installed plugin slug separately to retrieve its public version and changelog. No site content or user data is included. See the [WordPress.org service](https://api.wordpress.org/) and [privacy policy](https://wordpress.org/about/privacy/).
+* **WordPress.org Plugin API (required for directory comparisons):** When cached data is unavailable, Watchdog sends each installed plugin slug separately to retrieve its public version and changelog. No site content or user data is included. See the [WordPress.org service](https://api.wordpress.org/) and [privacy policy](https://wordpress.org/about/privacy/).
 * **WPScan API (optional):** When you save a WPScan API token, Watchdog sends that token as authorization and submits one plugin slug at a time to retrieve vulnerability records. See [WPScan](https://wpscan.com/), its [terms](https://wpscan.com/terms/), and the applicable [Automattic privacy policy](https://automattic.com/privacy/).
 * **Notification destinations (optional):** When you enable Email, Discord, Slack, Microsoft Teams, or a custom webhook, Watchdog sends the alert to the address you configure. Alerts can include plugin names, installed and available versions, risk or vulnerability details, and links back to your WordPress administration area. Those transmissions are governed by your mail provider or destination service; review the applicable policies for [Discord](https://discord.com/terms) ([privacy](https://discord.com/privacy)), [Slack](https://slack.com/terms-of-service) ([privacy](https://slack.com/trust/privacy/privacy-policy)), or [Microsoft](https://www.microsoft.com/servicesagreement) ([privacy](https://privacy.microsoft.com/privacystatement)).
 
@@ -53,7 +53,7 @@ Watchdog uses the following external services under the stated conditions:
 
 1. Upload the plugin folder to `/wp-content/plugins/` or install via the admin dashboard.
 2. Activate the plugin through the 'Plugins' menu in WordPress.
-3. Open the top-level **Watchdog** menu in the WordPress sidebar to review the risk table and adjust notifications (older versions or custom admin menu placements may still show under Tools → Watchdog).
+3. Open the top-level **Watchdog** menu in the WordPress sidebar to review the risk table and adjust notifications.
 4. (Optional) Add your WPScan API key in the settings to fetch vulnerability intelligence.
 
 == FAQ ==
@@ -105,13 +105,19 @@ Examples:
 * Run a scan and send notifications (default): `wp watchdog scan`
 * Run a scan silently (skip notifications): `wp watchdog scan --notify=false`
 
-Recommended workflow: on CI/CD platforms, add a job step that boots your WordPress/WP-CLI container, runs pending database migrations if needed, and then calls `wp watchdog scan --notify=false` to verify the plugin state without spamming production channels. Promote to production by rerunning the same command with notifications enabled when you are ready to alert your team.
+For automated checks, boot a WordPress/WP-CLI environment and run `wp watchdog scan --notify=false` to verify scanning without sending notifications. Run `wp watchdog scan` when you want the configured channels to receive new risk alerts.
 
 == Development ==
 
 The development repository is available on GitHub: https://github.com/happyloa/site-add-on-watchdog. Clone it locally to review the source or run the test suite.
 
 == Changelog ==
+
+= 1.8.3 =
+* Confirm compatibility with WordPress 7.1.2; WordPress.org displays the latest 7.1 patch release from the `Tested up to: 7.1` declaration.
+* Preserve a plugin's previous risk when its WordPress.org lookup fails temporarily, while continuing to scan other plugins.
+* Retry failed WordPress.org lookups on the next scan instead of caching a temporary error for six hours.
+* Align the readme, release packaging, and CI smoke check with the current behavior and version.
 
 = 1.8.2 =
 * Update WordPress compatibility to 7.1.
@@ -140,6 +146,9 @@ The development repository is available on GitHub: https://github.com/happyloa/s
 For earlier releases, see the full [GitHub changelog](https://github.com/happyloa/site-add-on-watchdog/blob/main/CHANGELOG.md).
 
 == Upgrade Notice ==
+
+= 1.8.3 =
+Improves resilience to temporary WordPress.org API failures and confirms compatibility with WordPress 7.1.2.
 
 = 1.8.2 =
 Updates WordPress compatibility to 7.1 and prevents false security alerts caused by matching unrelated changelog versions.

@@ -47,12 +47,12 @@ jobs:
       - uses: actions/checkout@v6
       - name: Build WordPress release ZIP
         shell: pwsh
-        run: ./scripts/build-release.ps1 -Version 1.8.2
+        run: ./scripts/build-release.ps1 -Version 1.8.3
       - name: Upload release package
         uses: actions/upload-artifact@v4
         with:
-          name: site-add-on-watchdog-1.8.2
-          path: dist/site-add-on-watchdog-1.8.2.zip
+          name: site-add-on-watchdog-1.8.3
+          path: dist/site-add-on-watchdog-1.8.3.zip
           if-no-files-found: error
 
   plugin-check:
@@ -64,10 +64,10 @@ jobs:
       - name: Download release package
         uses: actions/download-artifact@v4
         with:
-          name: site-add-on-watchdog-1.8.2
+          name: site-add-on-watchdog-1.8.3
           path: dist
       - name: Extract release package
-        run: unzip -q dist/site-add-on-watchdog-1.8.2.zip -d dist/plugin-check
+        run: unzip -q dist/site-add-on-watchdog-1.8.3.zip -d dist/plugin-check
       - name: Run official WordPress checks
         uses: wordpress/plugin-check-action@v1
         with:
@@ -76,6 +76,6 @@ jobs:
           include-experimental: false
       - name: Verify WordPress version and packaged scan
         run: |
-          wp-env run cli wp eval 'if (get_bloginfo("version") !== "7.1") { WP_CLI::error("Expected WordPress 7.1 for compatibility verification."); }'
+          wp-env run cli wp eval 'if (version_compare(get_bloginfo("version"), "7.1.2", "<") || version_compare(get_bloginfo("version"), "7.2", ">=")) { WP_CLI::error("Expected WordPress 7.1.2 or a newer 7.1 patch release."); }'
           wp-env run cli wp watchdog scan --notify=false
           wp-env run cli wp eval 'if (get_transient("siteadwa_scan_error") || ! get_option("siteadwa_risk_history")) { WP_CLI::error("The scan did not save its results."); }'

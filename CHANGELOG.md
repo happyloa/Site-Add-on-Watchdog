@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.3] - 2026-09-28
+
+### Changed
+
+- Confirm compatibility against WordPress 7.1.2 while retaining the WordPress.org `Tested up to: 7.1` convention for patch releases.
+- Update the release ZIP, CI artifact, and WordPress smoke check to version 1.8.3.
+- Align the public readme with the scanner, cache, WPScan, admin menu, and WP-CLI behavior.
+
+### Fixed
+
+- Keep a plugin's previous risk when its WordPress.org lookup or another plugin-specific scan step fails temporarily, while continuing to scan the remaining plugins.
+- Retry failed WordPress.org lookups on the next scan instead of caching transient errors as missing plugins for six hours.
+- Add regression coverage for risk preservation and lookup retry.
+
 ## [1.8.2] - 2026-09-11
 
 ### Changed

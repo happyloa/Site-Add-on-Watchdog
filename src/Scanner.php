@@ -30,6 +30,7 @@ class Scanner
 
         $plugins = get_plugins();
         $ignored = $this->riskRepository->ignored();
+        $previousRisks = null;
 
         $risks = [];
         foreach ($plugins as $pluginFile => $pluginData) {
@@ -46,6 +47,18 @@ class Scanner
                 $risk = $this->scanPlugin($slug, $pluginData);
             } catch (\Throwable $error) {
                 $this->recordPluginScanError($slug, $error);
+                if ($previousRisks === null) {
+                    $previousRisks = [];
+                    foreach ($this->riskRepository->all() as $previousRisk) {
+                        $previousRisks[$previousRisk->pluginSlug] = $previousRisk;
+                    }
+                }
+                if (
+                    isset($previousRisks[$slug])
+                    && $previousRisks[$slug]->localVersion === (string) ($pluginData['Version'] ?? '')
+                ) {
+                    $risks[] = $previousRisks[$slug];
+                }
                 continue;
             }
 
@@ -215,10 +228,6 @@ class Scanner
         if (is_object($cached)) {
             return $cached;
         }
-        if (is_array($cached) && ! empty($cached['not_found'])) {
-            return false;
-        }
-
         require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
 
         $result = plugins_api('plugin_information', [
@@ -230,8 +239,9 @@ class Scanner
         ]);
 
         if (is_wp_error($result)) {
-            set_transient($cacheKey, ['not_found' => true], $this->remoteCacheTtl());
-            return false;
+            // A temporary directory/API failure must not erase a saved risk or
+            // suppress retries for the full successful-response cache period.
+            throw new \RuntimeException('WordPress.org plugin information is unavailable.');
         }
 
         set_transient($cacheKey, $result, $this->remoteCacheTtl());
