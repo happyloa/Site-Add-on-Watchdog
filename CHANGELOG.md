@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Confirm compatibility against WordPress 7.1.2 while retaining the WordPress.org `Tested up to: 7.1` convention for patch releases.
 - Update the release ZIP, CI artifact, and WordPress smoke check to version 1.8.3.
-- Align the public readme with the scanner, cache, WPScan, admin menu, and WP-CLI behavior.
+- Align the public readme with the scanner, cache, WPScan, default email alerts, admin menu, and WP-CLI behavior.
 
 ### Fixed
 

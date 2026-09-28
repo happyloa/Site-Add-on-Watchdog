@@ -18,14 +18,14 @@ Site Add-on Watchdog keeps an eye on your site's plugins and warns you when:
 * The latest release's official changelog mentions security or vulnerability fixes.
 * (Optional) WPScan reports vulnerabilities affecting the installed version when you provide your own API key.
 
-The plugin runs on a schedule you control—choose daily, weekly, a twenty-minute testing cadence, or rely on manual scans—and stores results locally. To compare public versions and changelogs, Watchdog looks up plugin slugs individually on WordPress.org and caches successful responses for six hours. WPScan lookups and outgoing notifications remain opt-in.
+The plugin runs on a schedule you control—choose daily, weekly, a twenty-minute testing cadence, or rely on manual scans—and stores results locally. To compare public versions and changelogs, Watchdog looks up plugin slugs individually on WordPress.org and caches successful responses for six hours. WPScan lookups are optional. Email risk alerts to site administrators are enabled by default; webhook channels require setup and activation.
 
 === Privacy first ===
 
 * Risk processing and storage stay on your site; Watchdog does not send telemetry, site content, or user data.
 * WordPress.org receives a request for each installed plugin slug when its cached directory data expires so Watchdog can retrieve public version and changelog data.
 * WPScan receives one plugin-slug lookup at a time only when you add your personal API token.
-* Notification channels are opt-in and send the detected plugin risks to the destinations you configure.
+* Email risk alerts to site administrators are enabled by default and can be disabled in settings. Webhook channels send detected plugin risks only after you configure and enable them.
 
 === External services ===
 
@@ -33,7 +33,7 @@ Watchdog uses the following external services under the stated conditions:
 
 * **WordPress.org Plugin API (required for directory comparisons):** When cached data is unavailable, Watchdog sends each installed plugin slug separately to retrieve its public version and changelog. No site content or user data is included. See the [WordPress.org service](https://api.wordpress.org/) and [privacy policy](https://wordpress.org/about/privacy/).
 * **WPScan API (optional):** When you save a WPScan API token, Watchdog sends that token as authorization and submits one plugin slug at a time to retrieve vulnerability records. See [WPScan](https://wpscan.com/), its [terms](https://wpscan.com/terms/), and the applicable [Automattic privacy policy](https://automattic.com/privacy/).
-* **Notification destinations (optional):** When you enable Email, Discord, Slack, Microsoft Teams, or a custom webhook, Watchdog sends the alert to the address you configure. Alerts can include plugin names, installed and available versions, risk or vulnerability details, and links back to your WordPress administration area. Those transmissions are governed by your mail provider or destination service; review the applicable policies for [Discord](https://discord.com/terms) ([privacy](https://discord.com/privacy)), [Slack](https://slack.com/terms-of-service) ([privacy](https://slack.com/trust/privacy/privacy-policy)), or [Microsoft](https://www.microsoft.com/servicesagreement) ([privacy](https://privacy.microsoft.com/privacystatement)).
+* **Notification destinations:** Email alerts to site administrators are enabled by default and can be disabled. Discord, Slack, Microsoft Teams, and custom webhooks are optional and send only when configured and enabled. Alerts can include plugin names, installed and available versions, risk or vulnerability details, and links back to your WordPress administration area. Those transmissions are governed by your mail provider or destination service; review the applicable policies for [Discord](https://discord.com/terms) ([privacy](https://discord.com/privacy)), [Slack](https://slack.com/terms-of-service) ([privacy](https://slack.com/trust/privacy/privacy-policy)), or [Microsoft](https://www.microsoft.com/servicesagreement) ([privacy](https://privacy.microsoft.com/privacystatement)).
 
 === Admin tools ===
 
@@ -60,7 +60,7 @@ Watchdog uses the following external services under the stated conditions:
 
 = Does this plugin share my list of installed plugins? =
 
-Risk processing and storage happen locally, but version comparison requires Watchdog to query WordPress.org once for each installed plugin slug. If you add a WPScan API token, each plugin slug is also queried against WPScan. Watchdog does not send site content, user data, or telemetry. Notification channels only send detected plugin risks when you explicitly configure and enable them.
+Risk processing and storage happen locally, but version comparison requires Watchdog to query WordPress.org for each installed plugin slug when its cache expires. If you add a WPScan API token, plugin slugs are also queried against WPScan. Watchdog does not send site content, user data, or telemetry to those lookup services. Email risk alerts to site administrators are enabled by default; you can disable them in settings. Webhook channels send detected risks only when you configure and enable them.
 
 = How do I get a WPScan API key? =
 
