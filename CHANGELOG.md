@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.4] - 2026-10-09
+
+### Fixed
+
+- Show WordPress mail and SMTP errors in Delivery health, with sensitive URL paths and common credential fields redacted.
+- Catch exceptions from mail plugins so a failed email does not stop other notification channels or queue retries.
+- Remove the temporary mail error listener after every attempt and record each failed email test once.
+- Explain that a successful email test confirms acceptance for sending, while inbox delivery depends on the site's mail setup.
+
+### Changed
+
+- Verify the packaged plugin against WordPress 7.1.3 and document email troubleshooting.
+- Update PHP CodeSniffer to address CVE-2026-67434 in the development tools.
+
 ## [1.8.3] - 2026-09-28
 
 ### Changed

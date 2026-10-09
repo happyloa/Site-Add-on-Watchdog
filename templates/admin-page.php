@@ -185,11 +185,15 @@ $watchdogFrequencyLabel = $watchdogFrequencyLabels[$watchdogCurrentFrequency]
         <?php if ($watchdogChannelTestStatus === 'sent') : ?>
             <div class="notice notice-success is-dismissible"><p>
                 <?php
-                printf(
-                    /* translators: %s: notification channel name. */
-                    esc_html__('%s test notification sent successfully.', 'site-add-on-watchdog'),
-                    esc_html($watchdogChannelTestLabel)
-                );
+                if ($watchdogChannelTest === 'email') {
+                    esc_html_e('WordPress accepted the test email for sending. This does not confirm inbox delivery. If it does not arrive, check spam and your site mail or SMTP configuration.', 'site-add-on-watchdog');
+                } else {
+                    printf(
+                        /* translators: %s: notification channel name. */
+                        esc_html__('%s test notification sent successfully.', 'site-add-on-watchdog'),
+                        esc_html($watchdogChannelTestLabel)
+                    );
+                }
                 ?>
             </p></div>
         <?php elseif ($watchdogChannelTestStatus === 'invalid_settings') : ?>
@@ -881,6 +885,7 @@ $watchdogFrequencyLabel = $watchdogFrequencyLabels[$watchdogCurrentFrequency]
                             <input type="text" name="settings[notifications][email][recipients]" value="<?php echo esc_attr($watchdogSettings['notifications']['email']['recipients']); ?>" class="regular-text" />
                         </label>
                         <p class="description"><?php esc_html_e('Separate addresses with commas, semicolons, or spaces. WordPress administrator accounts are always included.', 'site-add-on-watchdog'); ?></p>
+                        <p class="description"><?php esc_html_e('Email uses WordPress mail delivery. Your host must support sending mail, or you must configure an SMTP/mail plugin. Discord and other webhooks do not use this mail configuration.', 'site-add-on-watchdog'); ?></p>
                         <p><button class="button" type="submit" name="test_channel" value="email"><?php esc_html_e('Save and test email', 'site-add-on-watchdog'); ?></button></p>
                     </div>
                 </td>

@@ -1,6 +1,6 @@
 # Site Add-on Watchdog architecture
 
-Version 1.8.3 keeps the WordPress entry file deliberately small and puts each responsibility behind a focused class.
+Version 1.8.4 keeps the WordPress entry file deliberately small and puts each responsibility behind a focused class.
 
 ```text
 site-add-on-watchdog.php
@@ -26,6 +26,7 @@ site-add-on-watchdog.php
 - `RiskRepository` and `SettingsRepository` are the only classes that own the plugin's persisted option shapes and legacy migration.
 - `Scanner` contains provider isolation and cached successful WordPress.org lookups. A temporary lookup failure keeps that plugin's previous risk and does not abort the remaining scan.
 - `Notifier` creates delivery jobs, while `MessageFormatter` owns platform payload formats and `NotificationQueue` owns retry state.
+- Email uses the site's WordPress mail transport. Temporary `wp_mail_failed` listeners capture provider errors, and mail plugin exceptions are contained so other channels can continue. A successful return confirms acceptance for sending, not inbox delivery.
 - `AdminPage` handles permissions, nonces, redirects, and rendering. Sorting remains independently testable through `RiskSorter`.
 
 ## Extension points
@@ -47,4 +48,5 @@ site-add-on-watchdog.php
 - `composer test` runs the PHPUnit suite.
 - `composer lint` runs the repository's PSR-12 PHPCS ruleset; the official Plugin Check action supplies WordPress-specific review checks.
 - GitHub Actions tests PHP 8.1 through 8.5 and runs the official WordPress Plugin Check action.
+- The packaged plugin is tested against a local Mailpit SMTP server, including recipients, HTML content, connection failures, queue retries, and mail plugin exceptions.
 - `scripts/build-release.ps1` creates the installable ZIP from an explicit allowlist, keeping tests, build tooling, repository artwork, and WordPress.org directory assets outside the plugin package.

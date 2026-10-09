@@ -247,7 +247,10 @@ class NotifierTest extends TestCase
                     self::assertSame('email', $job['channel']);
                     self::assertSame('Email alert', $job['description']);
                     self::assertSame(['user@example.com'], $job['payload']['recipients']);
-                    self::assertSame('Email delivery failed.', $job['last_error']);
+                    self::assertSame(
+                        'Email delivery failed. Check your site mail or SMTP configuration.',
+                        $job['last_error']
+                    );
 
                     return true;
                 }),
@@ -809,6 +812,105 @@ class NotifierTest extends TestCase
         $notifier = new Notifier($repository, $queue);
 
         self::assertSame('sent', $notifier->testChannel('email'));
+    }
+
+    /**
+     * @dataProvider emailFailureProvider
+     */
+    public function testEmailTransportFailuresAreCapturedAndHooksAreRemoved(
+        string $failureMode,
+        string $providerMessage,
+        string $expectedDetail
+    ): void {
+        $repository = $this->createMock(SettingsRepository::class);
+        $repository->method('get')->willReturn([
+            'notifications' => ['email' => ['enabled' => true, 'recipients' => 'test@example.com']],
+        ]);
+        when('get_users')->justReturn([]);
+        when('admin_url')->alias(static fn ($path = '') => 'https://example.com/wp-admin/' . ltrim($path, '/'));
+        when('esc_url')->alias(static fn ($url) => $url);
+        when('esc_html')->alias(static fn ($text) => $text);
+        when('esc_attr')->alias(static fn ($text) => $text);
+        when('__')->alias(static fn ($text) => $text);
+        when('esc_html__')->alias(static fn ($text) => $text);
+        when('sanitize_email')->alias(static fn ($email) => trim((string) $email));
+        when('sanitize_key')->alias(static fn ($key) => strtolower((string) $key));
+        when('is_email')->alias(static fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL) !== false);
+
+        $mailErrorCallback = null;
+        \Brain\Monkey\Actions\expectAdded('wp_mail_failed')->twice()->whenHappen(
+            static function (callable $callback) use (&$mailErrorCallback): void {
+                $mailErrorCallback = $callback;
+            }
+        );
+        $attempt = 0;
+        when('wp_mail')->alias(static function () use (
+            &$attempt,
+            &$mailErrorCallback,
+            $failureMode,
+            $providerMessage
+        ): bool {
+            if (++$attempt > 1) {
+                return true;
+            }
+
+            if ($failureMode === 'exception') {
+                throw new \RuntimeException($providerMessage);
+            }
+            if ($failureMode === 'hook') {
+                $mailErrorCallback(new class($providerMessage) {
+                    public function __construct(private string $message)
+                    {
+                    }
+
+                    public function get_error_message(): string
+                    {
+                        return $this->message;
+                    }
+                });
+            }
+
+            return false;
+        });
+
+        $queue = $this->createMock(NotificationQueue::class);
+        $queue->expects(self::never())->method('enqueue');
+        $queue->expects(self::once())->method('recordFailure')->with(
+            self::callback(static function (array $job) use ($expectedDetail): bool {
+                self::assertSame('email', $job['channel']);
+                self::assertSame(['test@example.com'], $job['payload']['recipients']);
+                $message = 'Email delivery failed. Check your site mail or SMTP configuration.';
+                self::assertSame($message . $expectedDetail, $job['last_error']);
+
+                return true;
+            }),
+            self::isType('int')
+        );
+
+        $notifier = new Notifier($repository, $queue);
+        self::assertSame('failed', $notifier->testChannel('email'));
+        self::assertFalse(has_action('wp_mail_failed'));
+        self::assertSame('sent', $notifier->testChannel('email'));
+        self::assertFalse(has_action('wp_mail_failed'));
+    }
+
+    public function emailFailureProvider(): array
+    {
+        return [
+            'WordPress failure hook' => ['hook', 'SMTP Error: Could not authenticate.', ' SMTP Error: Could not authenticate.'],
+            'mail plugin exception' => ['exception', 'SMTP connection refused', ' SMTP connection refused'],
+            'short-circuited mail' => ['false', '', ''],
+            'redacted provider error' => [
+                'hook',
+                "<b>SMTP error</b>\nhttps://user:password@example.com/send?token=private token=secret123 password=hunter2",
+                ' SMTP error https://example.com token=[redacted] password=[redacted]',
+            ],
+            'quoted and bearer credentials' => [
+                'exception',
+                'SMTP error password="two secret words" Authorization: Bearer private-token',
+                ' SMTP error password=[redacted] Authorization=[redacted]',
+            ],
+        ];
     }
 
     private function makeNotifier(SettingsRepository $repository): Notifier

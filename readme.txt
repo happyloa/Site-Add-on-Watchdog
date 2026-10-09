@@ -4,7 +4,7 @@ Tags: security, plugins, monitoring, notifications
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.8.3
+Stable tag: 1.8.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -92,6 +92,12 @@ Watchdog relies on WP-Cron to trigger scheduled scans and notifications. If you 
 
 Testing-mode notifications also rely on this trigger, so be sure your cron job is running when validating delivery.
 
+=== Discord works but email does not arrive ===
+
+Email uses WordPress's `wp_mail()` function and your site's mail configuration. Discord and other webhooks use HTTP, so a working webhook does not confirm that the server can send email.
+
+Use "Save and test email", then check Delivery health for a mail or SMTP error. Configure your host's mail service or an SMTP/mail plugin if needed. If WordPress accepts the test but no email arrives, check spam and your mail provider's delivery logs, sender verification, and SPF/DKIM settings. Acceptance for sending does not confirm inbox delivery.
+
 == CLI Usage ==
 
 Watchdog bundles a WP-CLI command so you can run scans outside of the WordPress admin. All examples below assume the command is executed from a shell where `wp` (WP-CLI) is available.
@@ -112,6 +118,13 @@ For automated checks, boot a WordPress/WP-CLI environment and run `wp watchdog s
 The development repository is available on GitHub: https://github.com/happyloa/site-add-on-watchdog. Clone it locally to review the source or run the test suite.
 
 == Changelog ==
+
+= 1.8.4 =
+* Show mail and SMTP failure details in Delivery health while redacting sensitive URLs and common credential fields.
+* Keep webhook delivery and queue retries running when a mail plugin throws an exception.
+* Record each failed email test once and remove its temporary error listener after every attempt.
+* Clarify email test results and mail setup requirements.
+* Verify compatibility with WordPress 7.1.3.
 
 = 1.8.3 =
 * Confirm compatibility with WordPress 7.1.2; WordPress.org displays the latest 7.1 patch release from the `Tested up to: 7.1` declaration.
@@ -146,6 +159,9 @@ The development repository is available on GitHub: https://github.com/happyloa/s
 For earlier releases, see the full [GitHub changelog](https://github.com/happyloa/site-add-on-watchdog/blob/main/CHANGELOG.md).
 
 == Upgrade Notice ==
+
+= 1.8.4 =
+Shows email failure details, keeps other channels running after mail errors, and clarifies how to check email delivery.
 
 = 1.8.3 =
 Improves resilience to temporary WordPress.org API failures and confirms compatibility with WordPress 7.1.2.

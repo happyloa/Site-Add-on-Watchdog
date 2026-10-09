@@ -4,6 +4,7 @@
 /.gitignore
 /.phpcs-cache
 /.phpunit.result.cache
+/.wp-env.json
 /artwork
 /scripts
 /tests

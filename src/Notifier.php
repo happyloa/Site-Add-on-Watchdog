@@ -62,8 +62,10 @@ class Notifier
             return 'sent';
         }
 
-        $job['last_error'] = $result;
-        $this->notificationQueue->recordFailure($job, time());
+        if ($job['channel'] !== 'email') {
+            $job['last_error'] = $result;
+            $this->notificationQueue->recordFailure($job, time());
+        }
 
         return 'failed';
     }
@@ -294,13 +296,29 @@ class Notifier
         $body    = isset($payload['body']) ? (string) $payload['body'] : '';
         $headers = $payload['headers'] ?? ['Content-Type: text/html; charset=UTF-8'];
 
-        $sent = wp_mail($recipients, $subject, $body, $headers);
+        $mailError = '';
+        $captureError = static function ($error) use (&$mailError): void {
+            $mailError = $error->get_error_message();
+        };
+
+        add_action('wp_mail_failed', $captureError);
+        try {
+            $sent = wp_mail($recipients, $subject, $body, $headers);
+        } catch (\Throwable $error) {
+            $sent      = false;
+            $mailError = $error->getMessage();
+        } finally {
+            remove_action('wp_mail_failed', $captureError);
+        }
 
         if ($sent) {
             return true;
         }
 
-        $message = __('Email delivery failed.', 'site-add-on-watchdog');
+        $message = __('Email delivery failed. Check your site mail or SMTP configuration.', 'site-add-on-watchdog');
+        if ($mailError !== '') {
+            $message .= ' ' . $this->sanitizeMailError($mailError);
+        }
         $this->notificationQueue->recordFailure([
             'channel'     => 'email',
             'description' => isset($job['description']) ? (string) $job['description'] : '',
@@ -310,6 +328,23 @@ class Notifier
         ], time());
 
         return $message;
+    }
+
+    private function sanitizeMailError(string $message): string
+    {
+        $message = preg_replace_callback(
+            '~https?://[^\s<>]+~i',
+            fn (array $match): string => $this->redactWebhookUrl($match[0]),
+            $message
+        ) ?? '';
+        $message = preg_replace(
+            '/\b(password|passwd|token|secret|api[_-]?key|authorization)\s*[:=]\s*'
+                . '(?:Bearer\s+\S+|"[^"]*"|\'[^\']*\'|\S+)/i',
+            '$1=[redacted]',
+            $message
+        ) ?? '';
+
+        return $this->sanitizeErrorText($message);
     }
 
     private function sendQueuedJob(array $job): bool|string
